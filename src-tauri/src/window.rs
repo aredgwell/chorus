@@ -2,7 +2,7 @@
 
 #[cfg(target_os = "macos")]
 use tauri_nspanel::{
-    tauri_panel, CollectionBehavior, PanelHandle, PanelLevel, StyleMask,
+    tauri_panel, PanelHandle, PanelLevel, StyleMask,
     WebviewWindowExt as PanelWebviewWindowExt,
 };
 
@@ -66,10 +66,8 @@ pub fn setup_spotlight_panel(
     // Convert window to panel
     let panel = window.to_panel::<SpotlightPanel>()?;
 
-    // Set panel level to status window level (above full screen, below system dialogs)
     panel.set_level(PanelLevel::Status.into());
 
-    // Set style mask: non-activating panel + resizable
     panel.set_style_mask(
         StyleMask::empty()
             .nonactivating_panel()
@@ -77,28 +75,22 @@ pub fn setup_spotlight_panel(
             .into(),
     );
 
-    // Set collection behavior: float above all windows and spaces
+    // Use raw bit flags matching the old working configuration:
+    // CanJoinAllSpaces(1<<0) | Transient(1<<3) | Stationary(1<<4) |
+    // IgnoresCycle(1<<6) | FullScreenAuxiliary(1<<8)
+    let behavior_bits: usize = (1 << 0) | (1 << 3) | (1 << 4) | (1 << 6) | (1 << 8);
     panel.set_collection_behavior(
-        CollectionBehavior::new()
-            .transient()
-            .ignores_cycle()
-            .stationary()
-            .move_to_active_space()
-            .can_join_all_spaces()
-            .into(),
+        objc2_app_kit::NSWindowCollectionBehavior::from_bits_retain(behavior_bits),
     );
 
-    // Panel should not hide when app deactivates
     panel.set_hides_on_deactivate(false);
 
-    // Set min/max size on the underlying NSPanel
     let ns_panel = panel.as_panel();
     let max_size = objc2_foundation::NSSize::new(900.0, 1200.0);
     let min_size = objc2_foundation::NSSize::new(300.0, 200.0);
     ns_panel.setMaxSize(max_size);
     ns_panel.setMinSize(min_size);
 
-    // Set up event delegate
     let handler = SpotlightPanelDelegate::new();
 
     let app_handle = window.app_handle().clone();
