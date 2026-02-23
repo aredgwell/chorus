@@ -50,33 +50,33 @@ fn char_to_code(ch: char) -> Option<Code> {
 }
 
 fn parse_shortcut(shortcut_str: &str) -> Option<Shortcut> {
-    println!("Attempting to parse shortcut: {}", shortcut_str);
+    log::debug!("Attempting to parse shortcut: {}", shortcut_str);
     let parts: Vec<&str> = shortcut_str.split('+').map(str::trim).collect();
-    println!("Split parts: {:?}", parts);
+    log::debug!("Split parts: {:?}", parts);
     if parts.is_empty() {
-        println!("No parts found in shortcut string");
+        log::debug!("No parts found in shortcut string");
         return None;
     }
 
     let mut modifiers = Modifiers::empty();
     let key_str = parts.last()?;
-    println!("Key string: {}", key_str);
+    log::debug!("Key string: {}", key_str);
 
     // Parse modifiers from all parts except last
     for modifier in &parts[..parts.len() - 1] {
-        println!("Processing modifier: {}", modifier);
+        log::debug!("Processing modifier: {}", modifier);
         match modifier.to_lowercase().as_str() {
             "alt" => modifiers |= Modifiers::ALT,
             "ctrl" | "control" => modifiers |= Modifiers::CONTROL,
             "shift" => modifiers |= Modifiers::SHIFT,
             "super" | "cmd" | "command" => modifiers |= Modifiers::SUPER,
             _ => {
-                println!("Unknown modifier: {}", modifier);
+                log::debug!("Unknown modifier: {}", modifier);
                 return None;
             }
         }
     }
-    println!("Final modifiers: {:?}", modifiers);
+    log::debug!("Final modifiers: {:?}", modifiers);
 
     let key_lower = key_str.to_lowercase();
     let code = match key_lower.as_str() {
