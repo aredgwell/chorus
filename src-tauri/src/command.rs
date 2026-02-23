@@ -1,5 +1,3 @@
-#[cfg(target_os = "macos")]
-use crate::window::WebviewWindowExt;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 #[cfg(not(target_os = "macos"))]
 use screenshots::Screen;
@@ -58,7 +56,7 @@ pub fn hide(app_handle: AppHandle) {
     {
         let panel = app_handle.get_webview_panel(SPOTLIGHT_LABEL).unwrap();
         if panel.is_visible() {
-            panel.order_out(None);
+            panel.hide();
         }
     }
 
@@ -100,7 +98,7 @@ pub fn chat_deleted(app_handle: AppHandle, chat_id: String) {
 #[cfg(target_os = "macos")]
 pub fn update_panel_theme(app_handle: AppHandle, is_dark_mode: bool) {
     if let Some(window) = app_handle.get_webview_window(SPOTLIGHT_LABEL) {
-        window.update_theme(is_dark_mode);
+        crate::window::update_panel_theme(&window, is_dark_mode);
     }
 }
 

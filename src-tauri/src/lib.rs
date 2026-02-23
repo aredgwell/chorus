@@ -7,7 +7,7 @@ use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
 use tauri_plugin_store::StoreExt;
 
 #[cfg(target_os = "macos")]
-use window::WebviewWindowExt;
+use window::setup_spotlight_panel;
 
 mod command;
 pub mod migrations;
@@ -324,8 +324,8 @@ pub fn run() {
             .map(|mode| mode == "dark")
             .unwrap_or(false); // Default to light mode if setting not found
 
-        // Convert the window to a spotlight panel
-        let _panel = window.to_spotlight_panel(is_dark_mode)?;
+        // Convert the window to a spotlight panel and set up events
+        let _panel = setup_spotlight_panel(&window, is_dark_mode)?;
 
         let cloned_handle = handle.clone();
 
@@ -379,7 +379,7 @@ pub fn run() {
                             .unwrap_or(false); // Default to enabled if setting not found
                         if quick_chat_enabled {
                             if panel.is_visible() {
-                                panel.order_out(None);
+                                panel.hide();
                             } else {
                                 let handle = app.app_handle();
                                 handle.emit("show_quick_chat", ()).unwrap();
