@@ -2554,5 +2554,77 @@ You have full access to bash commands on the user''''s computer. If you write a 
                 UPDATE projects SET total_cost_usd = 0.0 WHERE total_cost_usd IS NULL;
             "#,
         },
+        Migration {
+            version: 139,
+            description: "enable WAL mode for better concurrent read/write performance",
+            kind: MigrationKind::Up,
+            sql: "PRAGMA journal_mode=WAL;",
+        },
+        Migration {
+            version: 140,
+            description: "add FTS5 full-text search for messages",
+            kind: MigrationKind::Up,
+            sql: r#"
+                CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+                    chat_id UNINDEXED,
+                    message_id UNINDEXED,
+                    model UNINDEXED,
+                    content,
+                    tokenize='porter unicode61'
+                );
+
+                INSERT INTO messages_fts (chat_id, message_id, model, content)
+                SELECT m.chat_id, m.id, m.model, COALESCE(m.text, '')
+                FROM messages m
+                WHERE m.model = 'user' AND m.text IS NOT NULL AND m.text != '';
+
+                INSERT INTO messages_fts (chat_id, message_id, model, content)
+                SELECT mp.chat_id, mp.message_id, m.model, mp.content
+                FROM message_parts mp
+                JOIN messages m ON m.id = mp.message_id AND m.chat_id = mp.chat_id
+                WHERE mp.content IS NOT NULL AND mp.content != '';
+
+                CREATE TRIGGER IF NOT EXISTS messages_fts_insert_user AFTER INSERT ON messages
+                WHEN NEW.model = 'user' AND NEW.text IS NOT NULL AND NEW.text != ''
+                BEGIN
+                    INSERT INTO messages_fts (chat_id, message_id, model, content)
+                    VALUES (NEW.chat_id, NEW.id, NEW.model, NEW.text);
+                END;
+
+                CREATE TRIGGER IF NOT EXISTS messages_fts_update_user AFTER UPDATE OF text ON messages
+                WHEN NEW.model = 'user' AND NEW.text IS NOT NULL AND NEW.text != ''
+                BEGIN
+                    DELETE FROM messages_fts WHERE message_id = NEW.id AND chat_id = NEW.chat_id;
+                    INSERT INTO messages_fts (chat_id, message_id, model, content)
+                    VALUES (NEW.chat_id, NEW.id, NEW.model, NEW.text);
+                END;
+
+                CREATE TRIGGER IF NOT EXISTS messages_fts_insert_parts AFTER INSERT ON message_parts
+                WHEN NEW.content IS NOT NULL AND NEW.content != ''
+                BEGIN
+                    INSERT INTO messages_fts (chat_id, message_id, model, content)
+                    SELECT NEW.chat_id, NEW.message_id, m.model, NEW.content
+                    FROM messages m WHERE m.id = NEW.message_id AND m.chat_id = NEW.chat_id;
+                END;
+
+                CREATE TRIGGER IF NOT EXISTS messages_fts_delete AFTER DELETE ON messages
+                BEGIN
+                    DELETE FROM messages_fts WHERE message_id = OLD.id AND chat_id = OLD.chat_id;
+                END;
+            "#,
+        },
+        Migration {
+            version: 141,
+            description: "drop legacy archive and temp tables",
+            kind: MigrationKind::Up,
+            sql: r#"
+                DROP TABLE IF EXISTS messages_archive_20250102;
+                DROP TABLE IF EXISTS models_archive_20250111;
+                DROP TABLE IF EXISTS temp_hierarchy;
+                DROP TABLE IF EXISTS temp_groupings;
+                DROP TABLE IF EXISTS temp_group_parent;
+                DROP TABLE IF EXISTS temp_message_sets;
+            "#,
+        },
     ];
 }

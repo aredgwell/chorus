@@ -2,6 +2,7 @@ import {
     sqliteTable,
     text,
     integer,
+    real,
     primaryKey,
     index,
 } from "drizzle-orm/sqlite-core";
@@ -56,6 +57,7 @@ export const chats = sqliteTable(
         gcPrototypeChat: integer("gc_prototype_chat", { mode: "boolean" })
             .notNull()
             .default(false),
+        totalCostUsd: real("total_cost_usd").default(0.0),
     },
     (table) => [
         index("idx_chats_is_new_chat").on(table.isNewChat),
@@ -211,6 +213,10 @@ export const messages = sqliteTable("messages", {
     depAttachmentsArchive: text("dep_attachments_archive"),
     replyChatId: text("reply_chat_id"),
     branchedFromId: text("branched_from_id"),
+    promptTokens: integer("prompt_tokens"),
+    completionTokens: integer("completion_tokens"),
+    totalTokens: integer("total_tokens"),
+    costUsd: real("cost_usd"),
 });
 
 // ── model_configs ─────────────────────────────────────────────────────────────
@@ -273,6 +279,7 @@ export const projects = sqliteTable("projects", {
     isImported: integer("is_imported", { mode: "boolean" })
         .notNull()
         .default(false),
+    totalCostUsd: real("total_cost_usd").default(0.0),
 });
 
 // ── saved_model_configs_chats ─────────────────────────────────────────────────
