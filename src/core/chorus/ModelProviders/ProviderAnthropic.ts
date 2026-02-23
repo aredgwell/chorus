@@ -158,12 +158,13 @@ export class ProviderAnthropic implements IProvider {
             system: modelConfig.systemPrompt,
             stream: true,
             max_tokens: getMaxTokens(modelName),
-            ...(isThinking && {
-                thinking: {
-                    type: "enabled",
-                    budget_tokens: modelConfig.budgetTokens,
-                },
-            }),
+            ...(isThinking &&
+                modelConfig.budgetTokens !== undefined && {
+                    thinking: {
+                        type: "enabled" as const,
+                        budget_tokens: modelConfig.budgetTokens,
+                    },
+                }),
             ...(tools &&
                 tools.length > 0 && {
                     tools: anthropicTools,
@@ -248,7 +249,7 @@ async function formatMessageWithAttachments(
         };
     }
 
-    const attachmentBlocks: Anthropic.Messages.ContentBlock[] = [];
+    const attachmentBlocks: Anthropic.Messages.ContentBlockParam[] = [];
 
     const attachments = message.role === "user" ? message.attachments : [];
 
@@ -256,7 +257,7 @@ async function formatMessageWithAttachments(
         switch (attachment.type) {
             case "text": {
                 attachmentBlocks.push({
-                    // @ts-expect-error: Anthropic sdk types are outdated
+
                     type: "document",
                     source: {
                         type: "text",
@@ -272,7 +273,7 @@ async function formatMessageWithAttachments(
             }
             case "webpage": {
                 attachmentBlocks.push({
-                    // @ts-expect-error: Anthropic sdk types are outdated
+
                     type: "document",
                     source: {
                         type: "text",
@@ -329,7 +330,7 @@ async function formatMessageWithAttachments(
                 );
 
                 attachmentBlocks.push({
-                    // @ts-expect-error: Anthropic sdk types are outdated
+
                     type: "image",
                     source: {
                         type: "base64",
@@ -341,7 +342,7 @@ async function formatMessageWithAttachments(
             }
             case "pdf": {
                 attachmentBlocks.push({
-                    // @ts-expect-error: Anthropic sdk types are outdated
+
                     type: "document",
                     source: {
                         type: "base64",
@@ -436,9 +437,9 @@ function addCacheControlToLastAttachment(
             // add cache control block to the last attachment-containing message
             const blocks = outputMessage.content;
 
-            blocks[blocks.length - 1]["cache_control"] = {
-                type: "ephemeral",
-            };
+            // All content block types we create (text, document, image) support cache_control
+            const lastBlock = blocks[blocks.length - 1] as { cache_control?: { type: "ephemeral" } };
+            lastBlock.cache_control = { type: "ephemeral" };
 
             outputMessages.push({
                 ...outputMessage,

@@ -8,18 +8,18 @@ import {
     llmConversation,
     llmConversationForSynthesis,
 } from "./ChatState";
-import type {
-    MessageSetDetail,
-    Message,
-    MessagePart,
-    BlockType,
-} from "./ChatState";
+import type { MessageSetDetail, Message, MessagePart } from "./ChatState";
 
 afterEach(() => {
     vi.restoreAllMocks();
 });
 
 // --------------- helpers ---------------
+
+/** Narrow LLMMessage to access .content (user or assistant) */
+function contentOf(msg: { role: string; content?: string }): string {
+    return (msg as { content: string }).content;
+}
 
 function makeMessage(overrides: Partial<Message> = {}): Message {
     return {
@@ -262,7 +262,7 @@ describe("llmConversation", () => {
         const result = llmConversation([ms]);
         expect(result).toHaveLength(1);
         expect(result[0].role).toBe("user");
-        expect(result[0].content).toBe("What is 2+2?");
+        expect(contentOf(result[0])).toBe("What is 2+2?");
     });
 
     it("encodes a user block with undefined message as empty content", () => {
@@ -272,7 +272,7 @@ describe("llmConversation", () => {
         });
         const result = llmConversation([ms]);
         expect(result).toHaveLength(1);
-        expect(result[0].content).toBe("");
+        expect(contentOf(result[0])).toBe("");
     });
 
     it("encodes a chat block with message", () => {
@@ -287,7 +287,7 @@ describe("llmConversation", () => {
         const result = llmConversation([ms]);
         expect(result).toHaveLength(1);
         expect(result[0].role).toBe("assistant");
-        expect(result[0].content).toBe("AI response");
+        expect(contentOf(result[0])).toBe("AI response");
     });
 
     it("encodes a chat block with applied review revision", () => {
@@ -307,7 +307,7 @@ describe("llmConversation", () => {
         });
         const result = llmConversation([ms]);
         expect(result).toHaveLength(1);
-        expect(result[0].content).toBe("Revised content");
+        expect(contentOf(result[0])).toBe("Revised content");
     });
 
     it("encodes an empty chat block as empty array", () => {
@@ -337,7 +337,7 @@ describe("llmConversation", () => {
         });
         const result = llmConversation([ms]);
         expect(result).toHaveLength(1);
-        expect(result[0].content).toBe("Synthesized response");
+        expect(contentOf(result[0])).toBe("Synthesized response");
     });
 
     it("encodes a compare block with single selected message", () => {
@@ -362,7 +362,7 @@ describe("llmConversation", () => {
         });
         const result = llmConversation([ms]);
         expect(result).toHaveLength(1);
-        expect(result[0].content).toBe("Selected");
+        expect(contentOf(result[0])).toBe("Selected");
     });
 
     it("encodes a brainstorm block", () => {
@@ -378,8 +378,8 @@ describe("llmConversation", () => {
         });
         const result = llmConversation([ms]);
         expect(result).toHaveLength(1);
-        expect(result[0].content).toContain("<idea>Idea 1</idea>");
-        expect(result[0].content).toContain("<idea>Idea 2</idea>");
+        expect(contentOf(result[0])).toContain("<idea>Idea 1</idea>");
+        expect(contentOf(result[0])).toContain("<idea>Idea 2</idea>");
     });
 
     it("encodes a tools block with selected message parts", () => {
@@ -402,7 +402,7 @@ describe("llmConversation", () => {
         const result = llmConversation([ms]);
         expect(result).toHaveLength(1);
         expect(result[0].role).toBe("assistant");
-        expect(result[0].content).toBe("Here is my response");
+        expect(contentOf(result[0])).toBe("Here is my response");
     });
 
     it("encodes a tools block with tool results", () => {
@@ -457,20 +457,18 @@ describe("llmConversation", () => {
                         {
                             id: "a1",
                             type: "image",
-                            name: "screenshot.png",
-                            content: "data",
+                            originalName: "screenshot.png",
+                            path: "/tmp/screenshot.png",
+                            isLoading: false,
                             ephemeral: true,
-                            chatId: "chat-1",
-                            messageSetId: "ms-1",
                         },
                         {
                             id: "a2",
                             type: "text",
-                            name: "file.txt",
-                            content: "data",
+                            originalName: "file.txt",
+                            path: "/tmp/file.txt",
+                            isLoading: false,
                             ephemeral: false,
-                            chatId: "chat-1",
-                            messageSetId: "ms-1",
                         },
                     ],
                 }),
@@ -498,11 +496,10 @@ describe("llmConversation", () => {
                         {
                             id: "a3",
                             type: "image",
-                            name: "new-screenshot.png",
-                            content: "data",
+                            originalName: "new-screenshot.png",
+                            path: "/tmp/new-screenshot.png",
+                            isLoading: false,
                             ephemeral: true,
-                            chatId: "chat-1",
-                            messageSetId: "ms-3",
                         },
                     ],
                 }),
@@ -603,9 +600,9 @@ describe("llmConversationForSynthesis", () => {
         // Last message should contain perspectives
         const last = result[result.length - 1];
         expect(last.role).toBe("user");
-        expect(last.content).toContain("Perspective A");
-        expect(last.content).toContain("Perspective B");
-        expect(last.content).toContain("claude");
-        expect(last.content).toContain("gpt-4");
+        expect(contentOf(last)).toContain("Perspective A");
+        expect(contentOf(last)).toContain("Perspective B");
+        expect(contentOf(last)).toContain("claude");
+        expect(contentOf(last)).toContain("gpt-4");
     });
 });
