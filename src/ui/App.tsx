@@ -539,8 +539,8 @@ function AppContent() {
     }, []);
 
     useEffect(() => {
-        // Don't check for updates in dev mode
-        if (import.meta.env.DEV) {
+        // Don't check for updates in dev mode or when updater is disabled
+        if (import.meta.env.DEV || !config.updaterEnabled) {
             return;
         }
 

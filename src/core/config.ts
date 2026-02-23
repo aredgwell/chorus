@@ -8,7 +8,8 @@ const DB_URL = "sqlite:chats.db";
 const MELTY_PROXY_URL = "https://app.chorus.sh";
 
 export const config = {
-    tellPostHogIAmATestUser: isDev,
+    analyticsEnabled: false,
+    updaterEnabled: false,
     dbUrl: DB_URL,
     meltyProxyUrl: MELTY_PROXY_URL,
 } as const;
