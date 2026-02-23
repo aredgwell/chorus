@@ -49,7 +49,7 @@ All safe patch/minor updates were applied in the codebase improvements PR. This 
 - [ ] **`thiserror`** 1.x -> 2.x -- Major version. Derive macro syntax changed. Update `CommandError` in `command.rs`.
 - [ ] **`base64`** 0.21 -> 0.22 -- API changed from `encode()`/`decode()` to `Engine` trait.
 - [ ] **`image`** 0.24 -> 0.25 -- Buffer types and error handling changed.
-- [ ] **`window-vibrancy`** 0.5 -> 0.7 -- API may differ.
+- [x] **`window-vibrancy`** 0.5 -> 0.7 -- Done. API unchanged; required to resolve objc2 version conflict with tauri-nspanel v2.1.
 - [ ] **`rusqlite`** 0.32 -> 0.38 -- Multiple minor versions. Check for API changes.
 
 ## Suggested PR Groupings
