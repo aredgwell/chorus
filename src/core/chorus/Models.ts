@@ -20,6 +20,10 @@ import { ProviderGrok } from "./ModelProviders/ProviderGrok";
 import posthog from "posthog-js";
 import { UserTool, UserToolCall, UserToolResult } from "./Toolsets";
 import { Attachment } from "./api/AttachmentsAPI";
+import {
+    classifyError,
+    detectContextLimitError as _detectContextLimitError,
+} from "./errors";
 
 /// ------------------------------------------------------------------------------------------------
 /// Basic Types
@@ -307,13 +311,18 @@ export async function streamResponse(
     const providerName = getProviderName(params.modelConfig.modelId);
     const provider = getProvider(providerName);
     await provider.streamResponse(params).catch((error: unknown) => {
-        console.error(error);
-        const errorMessage = getErrorMessage(error);
-        void params.onError(errorMessage);
+        const classified = classifyError(error, providerName);
+        console.error(
+            `[${classified.type}] ${providerName} error:`,
+            classified.message,
+        );
+        void params.onError(classified.message);
         posthog.capture("response_errored", {
             modelProvider: providerName,
             modelId: params.modelConfig.modelId,
-            errorMessage,
+            errorMessage: classified.message,
+            errorType: classified.type,
+            retryable: classified.retryable,
         });
     });
 }
@@ -591,52 +600,13 @@ export function attachmentMissingFlag(attachment: Attachment): string {
 </attachment>\n\n`;
 }
 
-function getErrorMessage(error: unknown): string {
-    if (typeof error === "object" && error !== null && "message" in error) {
-        return (error as { message: string }).message;
-    } else if (typeof error === "string") {
-        return error;
-    } else {
-        return "Unknown error";
-    }
-}
-
-// Provider-specific context limit error messages
-// this is pretty hacky, but works for now - we just take an easily identifiable substring from each provider's error message
-const CONTEXT_LIMIT_PATTERNS: Record<ProviderName, string> = {
-    anthropic: "prompt is too long",
-    openai: "context window",
-    google: "token count",
-    grok: "maximum prompt length",
-    openrouter: "context length",
-    meta: "context window", // best guess
-    lmstudio: "context window", // best guess
-    perplexity: "context window", // best guess
-    ollama: "context window", // best guess
-};
-
 /**
  * Detects if an error message indicates that the model ran out of context.
- * Each provider has different error messages for context limit errors.
+ * Delegates to the structured error classifier in errors.ts.
  */
 export function detectContextLimitError(
     errorMessage: string,
     modelId: string,
 ): boolean {
-    if (!errorMessage) {
-        return false;
-    }
-
-    const lowerMessage = errorMessage.toLowerCase();
-
-    const providerName = getProviderName(modelId);
-    const pattern = CONTEXT_LIMIT_PATTERNS[providerName];
-
-    if (pattern) {
-        if (lowerMessage.includes(pattern)) {
-            return true;
-        }
-    }
-
-    return false;
+    return _detectContextLimitError(errorMessage, getProviderName(modelId));
 }
