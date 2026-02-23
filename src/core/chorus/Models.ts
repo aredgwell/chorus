@@ -163,6 +163,21 @@ export type ApiKeys = {
     grok?: string;
 };
 
+/**
+ * Known keys for model_flags JSON blob. Used for rare provider-specific overrides.
+ * Providers read these flags to enable special behavior without hardcoding model IDs.
+ */
+export type ModelFlags = {
+    /** Built-in tools to add to the request (e.g., ["web_search_preview", "code_interpreter"]) */
+    openai_builtin_tools?: string[];
+    /** Reasoning mode override (e.g., "summary_auto" instead of effort-based) */
+    reasoning_mode?: string;
+    /** Toolset names to exclude from the request (e.g., ["web"]) */
+    exclude_toolsets?: string[];
+    /** Key into EXTRA_SYSTEM_PROMPTS map in prompts.ts */
+    extra_system_prompt_key?: string;
+};
+
 export type Model = {
     id: string;
     displayName: string;
@@ -171,6 +186,13 @@ export type Model = {
     isEnabled: boolean;
     supportedAttachmentTypes: AttachmentType[];
     isInternal: boolean; // internal models are never shown to users
+
+    // provider configuration (from models table, set via migrations)
+    apiModelName?: string; // actual name sent to provider API; undefined = derive from id
+    maxOutputTokens?: number; // max output tokens; undefined = provider default
+    isReasoningModel: boolean; // controls reasoning-specific behavior (e.g., OpenAI o-series)
+    supportsToolUse: boolean; // whether model accepts tool/function definitions
+    modelFlags?: ModelFlags; // provider-specific overrides (JSON blob from DB)
 };
 
 /** Data for staff picks, used only for UI treatment */
@@ -208,6 +230,13 @@ export type ModelConfig = {
     // pricing (from models table)
     promptPricePerToken?: number;
     completionPricePerToken?: number;
+
+    // provider configuration (from models table, set via migrations)
+    apiModelName?: string; // actual name sent to provider API; undefined = derive from id
+    maxOutputTokens?: number; // max output tokens; undefined = provider default
+    isReasoningModel: boolean; // controls reasoning-specific behavior (e.g., OpenAI o-series)
+    supportsToolUse: boolean; // whether model accepts tool/function definitions
+    modelFlags?: ModelFlags; // provider-specific overrides (JSON blob from DB)
 };
 
 export type UsageData = {
@@ -341,7 +370,10 @@ export async function saveModelAndDefaultConfig(
 ): Promise<void> {
     // insert or replace is important. this way I can have a refresh where Ollama / LM studio models are set to disabled if they're not running, and enabled if they are
     await db.execute(
-        "INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types, is_internal, prompt_price_per_token, completion_price_per_token) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        `INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types, is_internal,
+            prompt_price_per_token, completion_price_per_token,
+            api_model_name, max_output_tokens, is_reasoning_model, supports_tool_use, model_flags)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
             model.id,
             model.displayName,
@@ -350,6 +382,11 @@ export async function saveModelAndDefaultConfig(
             model.isInternal ? 1 : 0,
             pricing?.promptPricePerToken ?? null,
             pricing?.completionPricePerToken ?? null,
+            model.apiModelName ?? null,
+            model.maxOutputTokens ?? null,
+            model.isReasoningModel ? 1 : 0,
+            model.supportsToolUse ? 1 : 0,
+            model.modelFlags ? JSON.stringify(model.modelFlags) : null,
         ],
     );
     await db.execute(
@@ -426,6 +463,8 @@ export async function downloadOpenRouterModels(db: Database): Promise<number> {
                         : ["text", "webpage"],
                     isEnabled: true,
                     isInternal: false,
+                    isReasoningModel: false,
+                    supportsToolUse: true,
                 },
                 `${model.name}`,
                 hasPricing
@@ -468,6 +507,8 @@ export async function downloadOllamaModels(db: Database): Promise<void> {
                 supportedAttachmentTypes: ["text", "webpage"], // Ollama models currently only support text and webpage
                 isEnabled: true,
                 isInternal: false,
+                isReasoningModel: false,
+                supportsToolUse: false,
             },
             `${model.name} (Ollama)`,
         );
@@ -504,6 +545,8 @@ export async function downloadLMStudioModels(db: Database): Promise<void> {
                     supportedAttachmentTypes: ["text", "webpage"], // LM Studio models currently support text and webpage
                     isEnabled: true,
                     isInternal: false,
+                    isReasoningModel: false,
+                    supportsToolUse: false,
                 },
                 `${model.id} (LM Studio)`,
             );

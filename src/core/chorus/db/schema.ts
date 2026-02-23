@@ -247,6 +247,17 @@ export const models = sqliteTable("models", {
     isDeprecated: integer("is_deprecated", { mode: "boolean" })
         .notNull()
         .default(false),
+    promptPricePerToken: real("prompt_price_per_token"),
+    completionPricePerToken: real("completion_price_per_token"),
+    apiModelName: text("api_model_name"),
+    maxOutputTokens: integer("max_output_tokens"),
+    isReasoningModel: integer("is_reasoning_model", { mode: "boolean" })
+        .notNull()
+        .default(false),
+    supportsToolUse: integer("supports_tool_use", { mode: "boolean" })
+        .notNull()
+        .default(true),
+    modelFlags: text("model_flags"),
 });
 
 // ── project_attachments ───────────────────────────────────────────────────────

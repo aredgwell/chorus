@@ -2665,5 +2665,85 @@ You have full access to bash commands on the user''''s computer. If you write a 
                 UPDATE models SET display_name = 'Gemini 2.5 Pro' WHERE id = 'google::gemini-2.5-pro-latest';
             "#,
         },
+        // ┌────────────────────────────────────────────────────────────────────────────┐
+        // │                    HOW TO ADD A NEW MODEL                                  │
+        // │                                                                            │
+        // │  1. Create a new migration that INSERTs into `models` and `model_configs`. │
+        // │     Copy the pattern from migration 142 as a template.                     │
+        // │                                                                            │
+        // │  Required columns in `models`:                                             │
+        // │    - id: "provider::model-name" (e.g. "anthropic::claude-sonnet-5")        │
+        // │    - display_name: Human-readable name                                     │
+        // │    - supported_attachment_types: JSON array, e.g. '["text","image",...]'   │
+        // │                                                                            │
+        // │  Optional columns in `models` (only set if non-default):                   │
+        // │    - api_model_name: If the API name differs from the id suffix            │
+        // │    - max_output_tokens: If the model has a specific output token limit      │
+        // │    - is_reasoning_model: Set to 1 for o-series / reasoning models          │
+        // │    - supports_tool_use: Set to 0 if the model cannot use tools             │
+        // │    - model_flags: JSON for rare provider-specific overrides                │
+        // │    - prompt_price_per_token / completion_price_per_token: pricing           │
+        // │                                                                            │
+        // │  Required columns in `model_configs`:                                      │
+        // │    - id: Same as model id for the default config                           │
+        // │    - model_id: Same as model id                                            │
+        // │    - display_name: Same as model display_name                              │
+        // │    - author: 'system'                                                      │
+        // │    - system_prompt: '' (empty string)                                      │
+        // │                                                                            │
+        // │  2. (Optional) Add the model to a tier in src/ui/lib/models.ts             │
+        // │  3. That's it! No provider TypeScript code changes needed.                 │
+        // └────────────────────────────────────────────────────────────────────────────┘
+        Migration {
+            version: 143,
+            description: "add model capability columns for database-driven provider config",
+            kind: MigrationKind::Up,
+            sql: r#"
+                -- Add new columns to models table
+                ALTER TABLE models ADD COLUMN api_model_name TEXT;
+                ALTER TABLE models ADD COLUMN max_output_tokens INTEGER;
+                ALTER TABLE models ADD COLUMN is_reasoning_model BOOLEAN NOT NULL DEFAULT 0;
+                ALTER TABLE models ADD COLUMN supports_tool_use BOOLEAN NOT NULL DEFAULT 1;
+                ALTER TABLE models ADD COLUMN model_flags TEXT;
+
+                -- Backfill Anthropic: api_model_name (only where it differs from id suffix)
+                UPDATE models SET api_model_name = 'claude-sonnet-4-0' WHERE id = 'anthropic::claude-sonnet-4-latest';
+                UPDATE models SET api_model_name = 'claude-opus-4-0' WHERE id = 'anthropic::claude-opus-4-latest';
+                UPDATE models SET api_model_name = 'claude-opus-4-1-20250805' WHERE id = 'anthropic::claude-opus-4.1-latest';
+
+                -- Backfill Anthropic: max_output_tokens
+                UPDATE models SET max_output_tokens = 8192 WHERE id = 'anthropic::claude-3-5-sonnet-latest';
+                UPDATE models SET max_output_tokens = 20000 WHERE id = 'anthropic::claude-3-7-sonnet-latest';
+                UPDATE models SET max_output_tokens = 10000 WHERE id = 'anthropic::claude-3-7-sonnet-latest-thinking';
+                UPDATE models SET max_output_tokens = 10000 WHERE id = 'anthropic::claude-sonnet-4-latest';
+                UPDATE models SET max_output_tokens = 10000 WHERE id = 'anthropic::claude-sonnet-4-5-20250929';
+                UPDATE models SET max_output_tokens = 10000 WHERE id = 'anthropic::claude-opus-4-latest';
+                UPDATE models SET max_output_tokens = 10000 WHERE id = 'anthropic::claude-opus-4.1-latest';
+                UPDATE models SET max_output_tokens = 20000 WHERE id = 'anthropic::claude-haiku-4-5-20251001';
+                UPDATE models SET max_output_tokens = 20000 WHERE id = 'anthropic::claude-opus-4-5-20251101';
+                UPDATE models SET max_output_tokens = 128000 WHERE id = 'anthropic::claude-opus-4-6';
+                UPDATE models SET max_output_tokens = 64000 WHERE id = 'anthropic::claude-sonnet-4-6';
+
+                -- Backfill Google: api_model_name (aliases)
+                UPDATE models SET api_model_name = 'gemini-2.5-pro' WHERE id = 'google::gemini-2.5-pro-latest';
+                UPDATE models SET api_model_name = 'gemini-2.5-flash' WHERE id = 'google::gemini-2.5-flash-preview-04-17';
+
+                -- Backfill OpenAI: is_reasoning_model
+                UPDATE models SET is_reasoning_model = 1 WHERE id IN (
+                    'openai::o1', 'openai::o1-pro', 'openai::o3-mini',
+                    'openai::o3', 'openai::o3-pro', 'openai::o4-mini',
+                    'openai::o3-deep-research'
+                );
+
+                -- Backfill OpenAI: o3-deep-research model_flags
+                UPDATE models SET model_flags = '{"openai_builtin_tools":["web_search_preview","code_interpreter"],"reasoning_mode":"summary_auto","exclude_toolsets":["web"],"extra_system_prompt_key":"o3_deep_research"}' WHERE id = 'openai::o3-deep-research';
+
+                -- Backfill Grok: supports_tool_use = 0
+                UPDATE models SET supports_tool_use = 0 WHERE id LIKE 'grok::%';
+
+                -- Backfill Perplexity: supports_tool_use = 0
+                UPDATE models SET supports_tool_use = 0 WHERE id LIKE 'perplexity::%';
+            "#,
+        },
     ];
 }

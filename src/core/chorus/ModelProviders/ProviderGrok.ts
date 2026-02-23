@@ -36,14 +36,6 @@ export class ProviderGrok implements IProvider {
         customBaseUrl,
     }: StreamResponseParams) {
         const modelName = modelConfig.modelId.split("::")[1];
-        if (
-            modelName !== "grok-3-beta" &&
-            modelName !== "grok-3-mini-beta" &&
-            modelName !== "grok-3-mini-fast-beta" &&
-            modelName !== "grok-3-fast-beta"
-        ) {
-            throw new Error(`Unsupported model: ${modelName}`);
-        }
 
         const { canProceed, reason } = canProceedWithProvider("grok", apiKeys);
 

@@ -27,78 +27,6 @@ type MeltyAnthrMessageParam = {
     hasAttachments: boolean;
 };
 
-type AnthropicModelConfig = {
-    inputModelName: string;
-    anthropicModelName: string;
-    maxTokens: number;
-};
-
-const ANTHROPIC_MODELS: AnthropicModelConfig[] = [
-    {
-        inputModelName: "claude-3-5-sonnet-latest",
-        anthropicModelName: "claude-3-5-sonnet-latest",
-        maxTokens: 8192,
-    },
-    {
-        inputModelName: "claude-3-7-sonnet-latest",
-        anthropicModelName: "claude-3-7-sonnet-latest",
-        maxTokens: 20000,
-    },
-    {
-        inputModelName: "claude-3-7-sonnet-latest-thinking",
-        anthropicModelName: "claude-3-7-sonnet-latest",
-        maxTokens: 10000,
-    },
-    {
-        inputModelName: "claude-sonnet-4-latest",
-        // https://docs.anthropic.com/en/docs/about-claude/models/overview 0 is the new alias for latest
-        anthropicModelName: "claude-sonnet-4-0",
-        maxTokens: 10000,
-    },
-    {
-        inputModelName: "claude-sonnet-4-5-20250929",
-        anthropicModelName: "claude-sonnet-4-5-20250929",
-        maxTokens: 10000,
-    },
-    {
-        inputModelName: "claude-opus-4-latest",
-        anthropicModelName: "claude-opus-4-0",
-        maxTokens: 10000,
-    },
-    {
-        inputModelName: "claude-opus-4.1-latest",
-        anthropicModelName: "claude-opus-4-1-20250805",
-        maxTokens: 10000,
-    },
-    {
-        inputModelName: "claude-haiku-4-5-20251001",
-        anthropicModelName: "claude-haiku-4-5-20251001",
-        maxTokens: 20000,
-    },
-    {
-        inputModelName: "claude-opus-4-5-20251101",
-        anthropicModelName: "claude-opus-4-5-20251101",
-        maxTokens: 20000,
-    },
-    {
-        inputModelName: "claude-opus-4-6",
-        anthropicModelName: "claude-opus-4-6",
-        maxTokens: 128000,
-    },
-    {
-        inputModelName: "claude-sonnet-4-6",
-        anthropicModelName: "claude-sonnet-4-6",
-        maxTokens: 64000,
-    },
-];
-
-function getAnthropicModelName(modelName: string): string | undefined {
-    const modelConfig = ANTHROPIC_MODELS.find(
-        (m) => m.inputModelName === modelName,
-    );
-    return modelConfig?.anthropicModelName;
-}
-
 export class ProviderAnthropic implements IProvider {
     async streamResponse({
         modelConfig,
@@ -112,10 +40,8 @@ export class ProviderAnthropic implements IProvider {
         customBaseUrl,
     }: StreamResponseParams) {
         const modelName = modelConfig.modelId.split("::")[1];
-        const anthropicModelName = getAnthropicModelName(modelName);
-        if (!anthropicModelName) {
-            throw new Error(`Unsupported model: ${modelConfig.modelId}`);
-        }
+        // Use the API model name from the database if set, otherwise use the model ID suffix
+        const anthropicModelName = modelConfig.apiModelName ?? modelName;
 
         const { canProceed, reason } = canProceedWithProvider(
             "anthropic",
@@ -167,7 +93,7 @@ export class ProviderAnthropic implements IProvider {
             messages,
             system: modelConfig.systemPrompt,
             stream: true,
-            max_tokens: getMaxTokens(modelName),
+            max_tokens: modelConfig.maxOutputTokens ?? 8192,
             ...(isThinking &&
                 modelConfig.budgetTokens !== undefined && {
                     thinking: {
@@ -406,16 +332,6 @@ async function formatMessageWithAttachments(
         hasAttachments: attachmentBlocks.length > 0,
     };
 }
-
-const getMaxTokens = (modelId: string) => {
-    const modelConfig = ANTHROPIC_MODELS.find(
-        (m) => m.inputModelName === modelId,
-    );
-    if (!modelConfig) {
-        throw new Error(`Unsupported model: ${modelId}`);
-    }
-    return modelConfig.maxTokens;
-};
 
 /**
  * Adds cache control block to the last message in `messages`

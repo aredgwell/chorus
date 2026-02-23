@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import {
     StreamResponseParams,
+    ModelFlags,
     LLMMessage,
     readImageAttachment,
     encodeTextAttachment,
@@ -15,6 +16,11 @@ import { canProceedWithProvider } from "@core/utilities/ProxyUtils";
 import { UserToolCall, getUserToolNamespacedName } from "@core/chorus/Toolsets";
 import { O3_DEEP_RESEARCH_SYSTEM_PROMPT } from "@core/chorus/prompts/prompts";
 
+/** Map of extra system prompt keys (stored in model_flags) to their prompt text */
+const EXTRA_SYSTEM_PROMPTS: Record<string, string> = {
+    o3_deep_research: O3_DEEP_RESEARCH_SYSTEM_PROMPT,
+};
+
 export class ProviderOpenAI implements IProvider {
     async streamResponse({
         modelConfig,
@@ -27,30 +33,9 @@ export class ProviderOpenAI implements IProvider {
         customBaseUrl,
     }: StreamResponseParams) {
         const modelId = modelConfig.modelId.split("::")[1];
-        if (
-            modelId !== "gpt-4o" &&
-            modelId !== "gpt-4o-mini" &&
-            modelId !== "o1" &&
-            modelId !== "o3-mini" &&
-            modelId !== "gpt-4.5-preview" &&
-            modelId !== "o1-pro" &&
-            modelId !== "gpt-4.1" &&
-            modelId !== "gpt-4.1-mini" &&
-            modelId !== "gpt-4.1-nano" &&
-            modelId !== "o3" &&
-            modelId !== "o4-mini" &&
-            modelId !== "o3-pro" &&
-            modelId !== "o3-deep-research" &&
-            modelId !== "gpt-5" &&
-            modelId !== "gpt-5-mini" &&
-            modelId !== "gpt-5-nano" &&
-            modelId !== "gpt-5.1" &&
-            modelId !== "gpt-5.2"
-        ) {
-            throw new Error(`Unsupported model: ${modelId}`);
-        }
 
-        const imageSupport = modelId !== "o3-mini" && modelId !== "o1";
+        const imageSupport =
+            modelConfig.supportedAttachmentTypes?.includes("image") ?? false;
 
         const { canProceed, reason } = canProceedWithProvider(
             "openai",
@@ -68,14 +53,14 @@ export class ProviderOpenAI implements IProvider {
             llmConversation,
             imageSupport,
         );
-        const isReasoningModel =
-            modelId === "o1" ||
-            modelId === "o1-pro" ||
-            modelId === "o3-mini" ||
-            modelId === "o3" ||
-            modelId === "o3-pro" ||
-            modelId === "o4-mini" ||
-            modelId === "o3-deep-research";
+
+        // Read model capabilities from database-driven config
+        const isReasoningModel = modelConfig.isReasoningModel;
+        const flags: ModelFlags = modelConfig.modelFlags ?? {};
+        const excludeToolsets = flags.exclude_toolsets ?? [];
+        const builtinTools = flags.openai_builtin_tools ?? [];
+        const reasoningMode = flags.reasoning_mode;
+        const extraSystemPromptKey = flags.extra_system_prompt_key;
 
         // Add system message if needed
         if (isReasoningModel || modelConfig.systemPrompt) {
@@ -86,12 +71,12 @@ export class ProviderOpenAI implements IProvider {
                 systemContent = "Markdown formatting re-enabled.";
             }
 
-            // Add special system prompt for o3-deep-research
-            if (modelId === "o3-deep-research") {
+            // Add extra system prompt if specified via model_flags
+            if (extraSystemPromptKey && EXTRA_SYSTEM_PROMPTS[extraSystemPromptKey]) {
                 if (systemContent) {
-                    systemContent += "\n" + O3_DEEP_RESEARCH_SYSTEM_PROMPT;
+                    systemContent += "\n" + EXTRA_SYSTEM_PROMPTS[extraSystemPromptKey];
                 } else {
-                    systemContent = O3_DEEP_RESEARCH_SYSTEM_PROMPT;
+                    systemContent = EXTRA_SYSTEM_PROMPTS[extraSystemPromptKey];
                 }
             }
 
@@ -110,11 +95,10 @@ export class ProviderOpenAI implements IProvider {
             ];
         }
 
-        // Convert tools to OpenAI format
-        // For o3-deep-research, filter out native web search since we use OpenAI's web_search_preview
+        // Convert tools to OpenAI format, filtering out excluded toolsets
         const filteredTools =
-            modelId === "o3-deep-research"
-                ? tools?.filter((tool) => tool.toolsetName !== "web")
+            excludeToolsets.length > 0
+                ? tools?.filter((tool) => !excludeToolsets.includes(tool.toolsetName))
                 : tools;
 
         const openaiTools: Array<OpenAI.Responses.FunctionTool> | undefined =
@@ -147,29 +131,29 @@ export class ProviderOpenAI implements IProvider {
             }),
         };
 
-        // Add special tools for o3-deep-research
-        if (modelId === "o3-deep-research") {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            createParams.reasoning = {
-                summary: "auto",
-            };
+        // Handle model_flags: builtin tools and reasoning mode overrides
+        if (builtinTools.length > 0) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             createParams.tools = [
-                {
-                    type: "web_search_preview",
-                },
-                {
-                    type: "code_interpreter",
-                    container: {
-                        type: "auto",
-                        file_ids: [],
-                    },
-                },
+                ...builtinTools.map((toolType) => {
+                    if (toolType === "code_interpreter") {
+                        return {
+                            type: toolType,
+                            container: { type: "auto", file_ids: [] },
+                        };
+                    }
+                    return { type: toolType };
+                }),
                 ...(openaiTools || []),
             ];
-            // o3-deep-research requires tool_choice to be "auto" when using code_interpreter
+            // When using builtin tools, force tool_choice to "auto"
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             createParams.tool_choice = "auto";
+        }
+
+        if (reasoningMode === "summary_auto") {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            createParams.reasoning = { summary: "auto" };
         }
 
         const client = new OpenAI({

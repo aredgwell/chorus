@@ -1,4 +1,15 @@
-// Mapping of model IDs and config IDs for easier maintenance
+/**
+ * UI tier configuration for the model picker and quick chat.
+ *
+ * When adding a new model:
+ * 1. Add it to the database via a migration in src-tauri/src/migrations.rs
+ *    (this is the primary step — see the "HOW TO ADD A NEW MODEL" comment there)
+ * 2. Add it to the appropriate tier below (basic/frontier/plus) for UI display ordering
+ * 3. If it should appear in quick chat, it's automatically included via the tier list
+ *
+ * If a model ID listed here doesn't exist in the database, it will simply not appear.
+ * No provider TypeScript code changes are needed — model capabilities are stored in the DB.
+ */
 
 import { ProviderName } from "@core/chorus/Models";
 
