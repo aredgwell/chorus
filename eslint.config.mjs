@@ -12,7 +12,7 @@ export default tseslint.config(
             "dist/**/*",
             "postcss.config.js",
             "vite.config.ts",
-            "tailwind.config.cjs",
+            "tailwind.config.js",
             ".github/**/*.yml",
             ".github/**/*.yaml",
         ],

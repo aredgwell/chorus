@@ -788,6 +788,7 @@ dependencies = [
  "hex",
  "hmac",
  "image 0.24.9",
+ "log",
  "monitor",
  "obfstr",
  "objc",

@@ -1,5 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 import { colorPalette } from "./src/ui/themes/index.ts";
+import tailwindcssAnimate from "tailwindcss-animate";
+import tailwindcssTypography from "@tailwindcss/typography";
+import tailwindcssContainerQueries from "@tailwindcss/container-queries";
 
 export default {
     darkMode: ["class"],
@@ -173,33 +176,33 @@ export default {
             typography: (theme) => ({
                 DEFAULT: {
                     css: {
-                        lineHeight: theme("lineHeight.snug"),
-                        maxWidth: "none",
+                        "line-height": theme("lineHeight.snug"),
+                        "max-width": "none",
                         color: "hsl(var(--foreground))",
                         p: {
                             color: "hsl(var(--foreground))",
                         },
                         h1: {
                             color: "hsl(var(--foreground))",
-                            fontSize: theme("fontSize.lg"),
-                            fontWeight: "500",
-                            marginTop: "1rem",
+                            "font-size": theme("fontSize.lg"),
+                            "font-weight": "500",
+                            "margin-top": "1rem",
                         },
                         h2: {
                             color: "hsl(var(--foreground))",
-                            fontSize: theme("fontSize.md"),
-                            fontWeight: "500",
-                            marginTop: "0.75rem",
+                            "font-size": theme("fontSize.md"),
+                            "font-weight": "500",
+                            "margin-top": "0.75rem",
                         },
                         h3: {
                             color: "hsl(var(--foreground))",
-                            fontSize: theme("fontSize.md"),
-                            marginTop: "0.5rem",
+                            "font-size": theme("fontSize.md"),
+                            "margin-top": "0.5rem",
                         },
                         h4: {
                             color: "hsl(var(--foreground))",
-                            fontSize: theme("fontSize.sm"),
-                            marginTop: "0.5rem",
+                            "font-size": theme("fontSize.sm"),
+                            "margin-top": "0.5rem",
                         },
                         strong: {
                             color: "hsl(var(--foreground))",
@@ -212,30 +215,30 @@ export default {
                         },
                         a: {
                             color: "hsl(var(--foreground))",
-                            textDecoration: "none",
+                            "text-decoration": "none",
                             "&:hover": {
-                                color: "hsl(var(--foreground))", // text-blue-300
-                                textDecoration: "underline",
+                                color: "hsl(var(--foreground))",
+                                "text-decoration": "underline",
                             },
                         },
                         img: {
-                            maxWidth: "16rem",
-                            borderRadius: "0.25rem",
+                            "max-width": "16rem",
+                            "border-radius": "0.25rem",
                         },
                         pre: {
                             border: "1px solid hsl(var(--border))",
-                            borderRadius: theme("borderRadius.md"),
+                            "border-radius": theme("borderRadius.md"),
                             padding: "0px",
-                            overflowX: "auto",
-                            maxWidth: "100%",
+                            "overflow-x": "auto",
+                            "max-width": "100%",
                         },
                         code: {
-                            borderRadius: theme("borderRadius.md"),
+                            "border-radius": theme("borderRadius.md"),
                             color: "hsl(var(--foreground))",
-                            backgroundColor: "transparent",
+                            "background-color": "transparent",
                             padding: "0.2em 0.4em",
-                            fontSize: "85%",
-                            fontWeight: "400",
+                            "font-size": "85%",
+                            "font-weight": "400",
                             "&::before": {
                                 content: '""',
                             },
@@ -250,15 +253,15 @@ export default {
                             content: '""',
                         },
                         "pre code": {
-                            backgroundColor: "transparent",
-                            borderRadius: "0",
+                            "background-color": "transparent",
+                            "border-radius": "0",
                             padding: "0",
                             color: "inherit",
-                            fontSize: "inherit",
-                            fontWeight: "inherit",
+                            "font-size": "inherit",
+                            "font-weight": "inherit",
                         },
                         th: {
-                            backgroundColor: "hsl(var(--muted))",
+                            "background-color": "hsl(var(--muted))",
                             color: "hsl(var(--muted-foreground))",
                         },
                     },
@@ -285,8 +288,8 @@ export default {
         },
     },
     plugins: [
-        require("tailwindcss-animate"),
-        require("@tailwindcss/typography"),
-        require("@tailwindcss/container-queries"),
+        tailwindcssAnimate,
+        tailwindcssTypography,
+        tailwindcssContainerQueries,
     ],
 };
