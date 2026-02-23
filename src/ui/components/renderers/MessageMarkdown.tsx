@@ -40,9 +40,19 @@ function extractTextFromChildren(children: ReactNode): string {
         .map((child) => {
             if (typeof child === "string") return child;
             if (typeof child === "number") return String(child);
-            if (child && "props" in child && "children" in child.props) {
-                const props = child.props as { children: ReactNode };
-                return extractTextFromChildren(props.children);
+            if (
+                typeof child === "object" &&
+                child !== null &&
+                "props" in child
+            ) {
+                const elementProps = (child as React.ReactElement).props as
+                    | Record<string, unknown>
+                    | undefined;
+                if (elementProps && "children" in elementProps) {
+                    return extractTextFromChildren(
+                        elementProps.children as ReactNode,
+                    );
+                }
             }
             return "";
         })

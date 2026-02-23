@@ -79,9 +79,8 @@ import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
 
 scan({
-    enabled: true,
-    log: true, // logs render info to console (default: false)
-    clearLog: false, // clears the console per group of renders (default: false)
+    enabled: import.meta.env.DEV,
+    log: true,
 });
 
 const mutationCache = new MutationCache({

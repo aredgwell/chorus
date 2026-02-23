@@ -528,7 +528,7 @@ export default function ProjectView() {
 }
 
 interface ProjectContextEditorRef {
-    textareaRef: React.RefObject<HTMLTextAreaElement>;
+    textareaRef: React.RefObject<HTMLTextAreaElement | null>;
     handleTemplateSelect?: (template: string) => void;
 }
 

@@ -79,8 +79,8 @@ export function ChatInput({
     chatId: string;
     isNewChat: boolean | undefined;
     currentMessageSet: MessageSetDetail | undefined;
-    inputRef: React.RefObject<HTMLTextAreaElement>;
-    eyeRef: React.RefObject<MouseTrackingEyeRef>;
+    inputRef: React.RefObject<HTMLTextAreaElement | null>;
+    eyeRef: React.RefObject<MouseTrackingEyeRef | null>;
     scrollToLatestMessageSet: () => void;
     sentAttachmentTypes: AttachmentType[]; // todo: should we bring this back for something?
     isReply?: boolean;

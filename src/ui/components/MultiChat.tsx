@@ -1572,7 +1572,7 @@ function UserBlockView({
     isQuickChatWindow,
 }: {
     userBlock: UserBlock;
-    userMessageRef?: React.RefObject<HTMLDivElement>;
+    userMessageRef?: React.RefObject<HTMLDivElement | null>;
     isQuickChatWindow: boolean;
 }) {
     return (
@@ -1594,8 +1594,8 @@ type MessageSetViewProps = {
     messageSetId: string;
     isLastRow?: boolean;
     isQuickChatWindow: boolean;
-    userMessageRef: React.RefObject<HTMLDivElement> | undefined;
-    messageSetRef: React.RefObject<HTMLDivElement> | undefined;
+    userMessageRef: React.RefObject<HTMLDivElement | null> | undefined;
+    messageSetRef: React.RefObject<HTMLDivElement | null> | undefined;
 };
 
 const MessageSetView = memo(
@@ -2636,9 +2636,9 @@ function MainScrollableContentView({
     setShowScrollButton,
     handleScrollToBottom,
 }: {
-    chatContainerRef: React.RefObject<HTMLDivElement>;
-    lastMessageSetRef: React.RefObject<HTMLDivElement>;
-    inputRef: React.RefObject<HTMLTextAreaElement>;
+    chatContainerRef: React.RefObject<HTMLDivElement | null>;
+    lastMessageSetRef: React.RefObject<HTMLDivElement | null>;
+    inputRef: React.RefObject<HTMLTextAreaElement | null>;
     setShowScrollButton: (show: boolean) => void;
     handleScrollToBottom: (smooth?: boolean) => void;
 }) {
@@ -2760,7 +2760,7 @@ function MainScrollableContentView({
 
     function renderMessageSet(
         ms: MessageSetDetail,
-        messageSetRef: React.RefObject<HTMLDivElement> | undefined = undefined,
+        messageSetRef: React.RefObject<HTMLDivElement | null> | undefined = undefined,
     ) {
         const isLastRow = ms.level === messageSets.length - 1;
         return (

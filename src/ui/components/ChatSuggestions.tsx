@@ -9,7 +9,7 @@ import * as MessageAPI from "@core/chorus/api/MessageAPI";
 
 interface ChatSuggestionsProps {
     chatId: string;
-    inputRef: React.RefObject<HTMLTextAreaElement>;
+    inputRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 export function ChatSuggestions({ chatId, inputRef }: ChatSuggestionsProps) {

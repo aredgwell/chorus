@@ -30,8 +30,8 @@ class ErrorBoundary extends Component<Props, State> {
         // Save errorInfo to state so we can show it in UI
         this.setState({ errorInfo });
 
-        // don't capture errors when we're in dev mode, it's too noisy
-        if (!config.tellPostHogIAmATestUser) {
+        // don't capture errors when analytics is disabled or in dev mode
+        if (config.analyticsEnabled && !config.isDev) {
             void getVersion().then((version) =>
                 posthog.capture("app_errored", {
                     error_message: error.message,

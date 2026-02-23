@@ -18,7 +18,7 @@ export const ThinkBlock = ({
     isComplete: boolean;
 }) => {
     const [isOpen, setIsOpen] = useState(!isComplete);
-    const prevIsCompleteRef = useRef<boolean>();
+    const prevIsCompleteRef = useRef<boolean | undefined>(undefined);
 
     // When the block transitions from incomplete to complete, close it
     useEffect(() => {
