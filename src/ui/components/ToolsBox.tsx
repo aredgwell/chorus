@@ -265,7 +265,7 @@ function ToolsBox() {
     return (
         <>
             <button
-                className="inline-flex bg-muted items-center justify-center rounded-full h-7 pl-2 text-sm hover:bg-muted/80 px-3 py-1 ring-offset-background placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 flex-shrink-0"
+                className="inline-flex bg-muted items-center justify-center rounded-full h-7 pl-2 text-sm hover:bg-muted/80 px-3 py-1 ring-offset-background placeholder:text-muted-foreground focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 shrink-0"
                 aria-label="Manage tools"
                 onClick={() => dialogActions.openDialog(TOOLS_BOX_DIALOG_ID)}
             >
@@ -277,7 +277,7 @@ function ToolsBox() {
                                 <TooltipTrigger asChild>
                                     <div
                                         key={toolset.name}
-                                        className={`w-5 h-5 rounded-full bg-background flex items-center justify-center -ml-1.5 first:ml-0 border border-border shadow-sm ${
+                                        className={`w-5 h-5 rounded-full bg-background flex items-center justify-center -ml-1.5 first:ml-0 border border-border shadow-xs ${
                                             toolset.status.status !== "running"
                                                 ? "opacity-50"
                                                 : ""

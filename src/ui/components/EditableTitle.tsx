@@ -131,7 +131,7 @@ export function EditableTitle({
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Pencil
-                            className="h-3 w-3 ml-2 opacity-0 group-hover/editable-title:opacity-100 transition-opacity text-muted-foreground hover:text-foreground cursor-pointer flex-shrink-0"
+                            className="h-3 w-3 ml-2 opacity-0 group-hover/editable-title:opacity-100 transition-opacity text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
                             onClick={() => void handleStartEdit()}
                         />
                     </TooltipTrigger>

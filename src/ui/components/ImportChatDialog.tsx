@@ -358,7 +358,7 @@ export default function ImportChatDialog({ provider }: ImportChatDialogProps) {
                     <div className="space-y-4">
                         {config.steps.map((step) => (
                             <div key={step.number} className="flex gap-4">
-                                <div className="flex-shrink-0">
+                                <div className="shrink-0">
                                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold">
                                         {step.number}
                                     </div>

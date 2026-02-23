@@ -186,14 +186,14 @@ function ReviewMessageView({
                         </Tooltip>
                     ) : decision === "INFO" ? (
                         <>
-                            <div className="bg-sky-500/10 rounded-full p-1 border !border-sky-500/10 flex items-center justify-center">
+                            <div className="bg-sky-500/10 rounded-full p-1 border border-sky-500/10! flex items-center justify-center">
                                 <InfoIcon className="w-3 h-3 text-sky-800" />{" "}
                             </div>
                             More Info
                         </>
                     ) : decision === "DISAGREE" ? (
                         <>
-                            <div className="bg-red-500/10 rounded-full p-1 border !border-red-500/10 flex items-center justify-center">
+                            <div className="bg-red-500/10 rounded-full p-1 border border-red-500/10! flex items-center justify-center">
                                 <ThumbsDownIcon className="w-3 h-3 text-red-500" />{" "}
                             </div>
                             Disagree
@@ -322,7 +322,7 @@ function AIMessageView({
         !isQuickChatWindow && "rounded-md border-[0.090rem]",
         blockType === "compare"
             ? message.selected
-                ? "!border-border-accent text-foreground-accent"
+                ? "border-border-accent! text-foreground-accent"
                 : "opacity-90 hover:opacity-100 transition-opacity"
             : "",
         isLastRow && !isQuickChatWindow && !message.selected
@@ -399,7 +399,7 @@ function AIMessageView({
                     ) : (
                         // compare mode: model name, always visible
                         <div className={`ml-2 px-2.5 bg-background`}>
-                            <span className="print-model-name text-sm font-[400] text-gray-800 rounded-full py-1 inline-flex items-center gap-1">
+                            <span className="print-model-name text-sm font-normal text-gray-800 rounded-full py-1 inline-flex items-center gap-1">
                                 {isSynthesis ? (
                                     <MergeIcon className="w-3 h-3 inline-block mb-0.5 mr-1" />
                                 ) : (
@@ -503,7 +503,7 @@ function AIMessageView({
                 <div className="relative">
                     <div
                         className={`${message.selected ? "" : "overflow-y-auto"}
-                    ${isQuickChatWindow ? "py-2.5 border !border-border-accent max-w-full inline-block break-words px-3.5 rounded-xl" : "p-4 pb-6"}`}
+                    ${isQuickChatWindow ? "py-2.5 border border-border-accent! max-w-full inline-block wrap-break-word px-3.5 rounded-xl" : "p-4 pb-6"}`}
                     >
                         {message.text ? (
                             <MessageMarkdown text={message.text} />

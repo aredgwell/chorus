@@ -91,7 +91,7 @@ export const ToolPermissionDialog: React.FC = () => {
     return (
         <AlertDialog open={true}>
             <AlertDialogContent className="max-w-lg max-h-[90vh] flex flex-col">
-                <AlertDialogHeader className="flex-shrink-0">
+                <AlertDialogHeader className="shrink-0">
                     <AlertDialogTitle className="flex items-center gap-2">
                         <ShieldCheckIcon className="w-4 h-4" />
                         Tool Request
@@ -126,7 +126,7 @@ export const ToolPermissionDialog: React.FC = () => {
                                 With parameters:
                             </p>
                             <div className="relative max-h-32 overflow-auto hljs-container rounded">
-                                <div className="p-2 [&_pre]:!m-0 [&_pre]:!p-0 [&_pre]:!bg-transparent [&_pre]:!overflow-visible [&_pre_code]:!whitespace-pre-wrap [&_pre_code]:!break-all">
+                                <div className="p-2 [&_pre]:m-0! [&_pre]:p-0! [&_pre]:bg-transparent! [&_pre]:overflow-visible! [&_pre_code]:whitespace-pre-wrap! [&_pre_code]:break-all!">
                                     <Lowlight
                                         language="json"
                                         value={formatArgs(currentRequest.args)}
@@ -155,7 +155,7 @@ export const ToolPermissionDialog: React.FC = () => {
                         </div>
                     </div>
                 </AlertDialogDescription>
-                <AlertDialogFooter className="flex-shrink-0 border-t pt-4">
+                <AlertDialogFooter className="shrink-0 border-t pt-4">
                     <AlertDialogCancel
                         variant="outline"
                         className="text-muted-foreground"

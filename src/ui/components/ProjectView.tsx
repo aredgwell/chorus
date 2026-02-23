@@ -164,15 +164,15 @@ export default function ProjectView() {
             <div
                 data-tauri-drag-region
                 className={`fixed top-0 left-0 ${open ? "left-64" : "pl-20"} right-0 h-[52px] z-10
-                     items-center justify-between px-3 -mt-[1px] flex bg-background
+                     items-center justify-between px-3 -mt-px flex bg-background
                 hover:bg-background
                 active:bg-background
                 border-b
                 active:border-b
-                active:!border-border`}
+                active:border-border!`}
             >
                 <div className="flex items-center gap-1">
-                    {!open && <SidebarTrigger className="!size-4 ml-2" />}
+                    {!open && <SidebarTrigger className="size-4! ml-2" />}
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
@@ -182,7 +182,7 @@ export default function ProjectView() {
                             >
                                 <ArrowLeftIcon
                                     strokeWidth={1.5}
-                                    className="!size-3.5 ml-2"
+                                    className="size-3.5! ml-2"
                                 />
                             </Button>
                         </TooltipTrigger>
@@ -204,7 +204,7 @@ export default function ProjectView() {
                             >
                                 <ArrowRightIcon
                                     strokeWidth={1.5}
-                                    className="!size-3.5"
+                                    className="size-3.5!"
                                 />
                             </Button>
                         </TooltipTrigger>
@@ -253,7 +253,7 @@ export default function ProjectView() {
                             >
                                 <SquarePlusIcon
                                     strokeWidth={1.5}
-                                    className="!w-4 !h-4"
+                                    className="w-4! h-4!"
                                 />
                             </Button>
                         </TooltipTrigger>
@@ -274,7 +274,7 @@ export default function ProjectView() {
                             >
                                 <TrashIcon
                                     strokeWidth={1.5}
-                                    className="!w-4 !h-4"
+                                    className="w-4! h-4!"
                                 />
                             </Button>
                         </TooltipTrigger>
@@ -315,7 +315,7 @@ export default function ProjectView() {
                             e.preventDefault();
                             fileSelect.mutate();
                         }}
-                        className="rounded-full text-foreground !border-input hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
+                        className="rounded-full text-foreground border-input! hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
                     >
                         <span className="text-base mr-1">+</span>
                         Add files
@@ -328,7 +328,7 @@ export default function ProjectView() {
                                 PROJECT_TEMPLATE_PAIR_PROGRAMMER,
                             );
                         }}
-                        className="rounded-full text-foreground !border-input-border border-dashed hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
+                        className="rounded-full text-foreground border-input-border! border-dashed hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
                     >
                         <AtSignIcon className="size-3" />
                         Pair Programmer
@@ -341,7 +341,7 @@ export default function ProjectView() {
                                 PROJECT_TEMPLATE_COACH,
                             );
                         }}
-                        className="rounded-full text-foreground !border-input-border border-dashed hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
+                        className="rounded-full text-foreground border-input-border! border-dashed hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
                     >
                         <AtSignIcon className="size-3" />
                         Coach
@@ -354,7 +354,7 @@ export default function ProjectView() {
                                 PROJECT_TEMPLATE_HAMEL_WRITING_GUIDE,
                             );
                         }}
-                        className="rounded-full text-foreground !border-input-border border-dashed hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
+                        className="rounded-full text-foreground border-input-border! border-dashed hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
                     >
                         <AtSignIcon className="size-3" />
                         Writing Assistant
@@ -367,7 +367,7 @@ export default function ProjectView() {
                                 PROJECT_TEMPLATE_DECISION_ADVISOR,
                             );
                         }}
-                        className="rounded-full text-foreground !border-input-border border-dashed hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
+                        className="rounded-full text-foreground border-input-border! border-dashed hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
                     >
                         <AtSignIcon className="size-3" />
                         Decision Advisor

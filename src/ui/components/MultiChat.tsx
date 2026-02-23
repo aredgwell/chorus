@@ -322,7 +322,7 @@ function ContextLimitError({ chatId }: { chatId: string }) {
     return (
         <div className="text-md rounded-md">
             <div className="flex items-start gap-2">
-                <CircleAlertIcon className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
+                <CircleAlertIcon className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
                 <div className="flex-1">
                     <div className="font-medium text-destructive">
                         Context limit reached
@@ -391,7 +391,7 @@ function ProjectSwitcher() {
                         >
                             <FolderOpenIcon
                                 strokeWidth={1.5}
-                                className="!size-3.5 mr-0.5"
+                                className="size-3.5! mr-0.5"
                             />
 
                             <span className="text-sm">
@@ -412,7 +412,7 @@ function ProjectSwitcher() {
                 <div className="flex items-center px-1">
                     {currentProject.id !== "default" && (
                         <span className="text-sm mr-1 font-light">
-                            <ChevronRightIcon className="!size-3.5" />
+                            <ChevronRightIcon className="size-3.5!" />
                         </span>
                     )}
                     <EditableTitle
@@ -564,10 +564,10 @@ export function UserMessageView({
                         onCancelEdit={cancelEdit}
                         onSaveEdit={saveEdit}
                         cautiousEnter={cautiousEnter}
-                        className={`${messageBoxClasses} outline-none ring-1 ring-border-accent`}
+                        className={`${messageBoxClasses} outline-hidden ring-1 ring-border-accent`}
                     />
                 ) : (
-                    <div className={`${messageBoxClasses} break-words`}>
+                    <div className={`${messageBoxClasses} wrap-break-word`}>
                         <div
                             onClick={startEdit}
                             className="hover:cursor-pointer"
@@ -1037,7 +1037,7 @@ function ToolsAIMessageViewInner({
         <div
             className={`relative overflow-y-auto select-text ${
                 isQuickChatWindow
-                    ? "py-2.5 border !border-special max-w-full inline-block break-words px-3.5 rounded-xl"
+                    ? "py-2.5 border border-special! max-w-full inline-block wrap-break-word px-3.5 rounded-xl"
                     : "p-4 pb-6"
             }`}
         >
@@ -1187,7 +1187,7 @@ export function ToolsMessageView({
         !isQuickChatWindow && "rounded-md border-[0.090rem]",
         isQuickChatWindow ? "text-sm" : "bg-background",
         !isQuickChatWindow && (message.selected || isReply)
-            ? "!border-special"
+            ? "border-special!"
             : "",
         isLastRow && !isQuickChatWindow && !message.selected
             ? "cursor-pointer"
@@ -1234,7 +1234,7 @@ export function ToolsMessageView({
                         {/* message header (model name + buttons) */}
                         <div
                             className={`absolute left-0 right-0 -top-3 h-6
-                            flex items-center justify-between z-[5]
+                            flex items-center justify-between z-5
                             `}
                             onClick={(e) => {
                                 e.stopPropagation(); // prevent message from being selected
@@ -1255,7 +1255,7 @@ export function ToolsMessageView({
                                             <ProviderLogo
                                                 size="sm"
                                                 modelId={modelConfig.modelId}
-                                                className="-mt-[1px]"
+                                                className="-mt-px"
                                             />
                                             <div className="text-sm">
                                                 {modelConfig?.displayName}
@@ -1869,7 +1869,7 @@ export default function MultiChat() {
 
         return () => {
             window.removeEventListener("focus", handleFocus);
-            window.removeEventListener("blur", handleBlur);
+            window.removeEventListener("blur-sm", handleBlur);
         };
     }, []);
 
@@ -2247,7 +2247,7 @@ export default function MultiChat() {
                                     <span className="text-[10px] text-foreground/75">
                                         ⌘O
                                     </span>
-                                    <PictureInPicture2Icon className="!w-3.5 !h-3.5" />
+                                    <PictureInPicture2Icon className="w-3.5! h-3.5!" />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>Open in main window</TooltipContent>
@@ -2263,7 +2263,7 @@ export default function MultiChat() {
                                     <span className="text-[10px] text-foreground/75">
                                         ⌘N
                                     </span>
-                                    <SquarePen className="!w-3.5 !h-3.5" />
+                                    <SquarePen className="w-3.5! h-3.5!" />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>New ambient chat</TooltipContent>
@@ -2274,16 +2274,16 @@ export default function MultiChat() {
                 <div
                     data-tauri-drag-region
                     className={`absolute top-0 left-0 ${isSidebarOpen ? "" : "left-0 pl-20"} right-0 h-[52px] z-10
-                     items-center justify-between px-3 -mt-[1px] flex bg-background
+                     items-center justify-between px-3 -mt-px flex bg-background
                 hover:bg-background
                 active:bg-background
                 border-b
                 active:border-b
-                active:!border-border`}
+                active:border-border!`}
                 >
                     <div className="flex items-center gap-1">
                         {!isSidebarOpen && (
-                            <SidebarTrigger className="!size-4 ml-2" />
+                            <SidebarTrigger className="size-4! ml-2" />
                         )}
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -2294,7 +2294,7 @@ export default function MultiChat() {
                                 >
                                     <ArrowLeftIcon
                                         strokeWidth={1.5}
-                                        className="!size-3.5 ml-2"
+                                        className="size-3.5! ml-2"
                                     />
                                 </Button>
                             </TooltipTrigger>
@@ -2320,7 +2320,7 @@ export default function MultiChat() {
                                 >
                                     <ArrowRightIcon
                                         strokeWidth={1.5}
-                                        className="!size-3.5"
+                                        className="size-3.5!"
                                     />
                                 </Button>
                             </TooltipTrigger>
@@ -2364,7 +2364,7 @@ export default function MultiChat() {
                                             >
                                                 <SearchIcon
                                                     strokeWidth={1.5}
-                                                    className="!size-3.5"
+                                                    className="size-3.5!"
                                                 />
                                             </Button>
                                         </TooltipTrigger>
@@ -2390,7 +2390,7 @@ export default function MultiChat() {
                                                 ) : (
                                                     <FileTextIcon
                                                         strokeWidth={1.5}
-                                                        className="!size-3.5"
+                                                        className="size-3.5!"
                                                     />
                                                 )}
                                             </Button>
@@ -2415,7 +2415,7 @@ export default function MultiChat() {
                                                 ) : (
                                                     <ShareIcon
                                                         strokeWidth={1.5}
-                                                        className="!size-3.5"
+                                                        className="size-3.5!"
                                                     />
                                                 )}
                                             </Button>
@@ -2524,14 +2524,14 @@ export default function MultiChat() {
                         <DialogTitle>Share Chat</DialogTitle>
                         <DialogDescription className="space-y-4">
                             <div className="flex items-center gap-2 mt-2">
-                                <CircleAlertIcon className="h-4 w-4 flex-shrink-0" />
+                                <CircleAlertIcon className="h-4 w-4 shrink-0" />
                                 <p className="text-sm">
                                     Anyone with this link can view your chat.
                                 </p>
                             </div>
                             <button
                                 onClick={() => void handleCopyShareUrl()}
-                                className="text-left focus:outline-none border text-sm hover:bg-muted/50 rounded-md p-2 w-full"
+                                className="text-left focus:outline-hidden border text-sm hover:bg-muted/50 rounded-md p-2 w-full"
                                 autoFocus
                             >
                                 <code>{shareUrl}</code>
