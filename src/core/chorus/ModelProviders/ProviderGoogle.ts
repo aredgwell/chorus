@@ -38,13 +38,14 @@ function getGoogleModelName(modelName: string): string | undefined {
             "gemini-2.5-flash",
             "gemini-3-flash-preview",
             "gemini-3-pro-preview",
+            "gemini-3.1-pro-preview",
         ].includes(modelName)
     ) {
         // allowed model names
         return modelName;
     } else if (modelName === "gemini-2.5-pro-latest") {
-        // special case: this is not a real google model name, we just map it to latest thing google has available
-        return "gemini-2.5-pro-preview-06-05";
+        // special case: this is not a real google model name, we just map it to the stable release
+        return "gemini-2.5-pro";
     } else if (modelName === "gemini-2.5-flash-preview-04-17") {
         // alias deprecated preview model to stable version
         return "gemini-2.5-flash";

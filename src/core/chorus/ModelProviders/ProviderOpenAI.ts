@@ -43,7 +43,9 @@ export class ProviderOpenAI implements IProvider {
             modelId !== "o3-deep-research" &&
             modelId !== "gpt-5" &&
             modelId !== "gpt-5-mini" &&
-            modelId !== "gpt-5-nano"
+            modelId !== "gpt-5-nano" &&
+            modelId !== "gpt-5.1" &&
+            modelId !== "gpt-5.2"
         ) {
             throw new Error(`Unsupported model: ${modelId}`);
         }

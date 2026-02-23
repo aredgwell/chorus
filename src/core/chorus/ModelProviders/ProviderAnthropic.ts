@@ -80,6 +80,16 @@ const ANTHROPIC_MODELS: AnthropicModelConfig[] = [
         anthropicModelName: "claude-opus-4-5-20251101",
         maxTokens: 20000,
     },
+    {
+        inputModelName: "claude-opus-4-6",
+        anthropicModelName: "claude-opus-4-6",
+        maxTokens: 128000,
+    },
+    {
+        inputModelName: "claude-sonnet-4-6",
+        anthropicModelName: "claude-sonnet-4-6",
+        maxTokens: 64000,
+    },
 ];
 
 function getAnthropicModelName(modelName: string): string | undefined {

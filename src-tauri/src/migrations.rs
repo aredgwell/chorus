@@ -2626,5 +2626,44 @@ You have full access to bash commands on the user''''s computer. If you write a 
                 DROP TABLE IF EXISTS temp_message_sets;
             "#,
         },
+        Migration {
+            version: 142,
+            description: "add claude opus 4.6, sonnet 4.6, gpt-5.1, gpt-5.2, gemini 3.1 pro preview",
+            kind: MigrationKind::Up,
+            sql: r#"
+                -- Add Claude Opus 4.6
+                INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types, prompt_price_per_token, completion_price_per_token) VALUES
+                    ('anthropic::claude-opus-4-6', 'Claude Opus 4.6', 1, '["text", "image", "webpage", "pdf"]', 0.000005, 0.000025);
+                INSERT OR REPLACE INTO model_configs (author, id, model_id, display_name, system_prompt, is_default, new_until) VALUES
+                    ('system', 'anthropic::claude-opus-4-6', 'anthropic::claude-opus-4-6', 'Claude Opus 4.6', '', 0, '2026-04-01 00:00:00');
+
+                -- Add Claude Sonnet 4.6
+                INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types, prompt_price_per_token, completion_price_per_token) VALUES
+                    ('anthropic::claude-sonnet-4-6', 'Claude Sonnet 4.6', 1, '["text", "image", "webpage", "pdf"]', 0.000003, 0.000015);
+                INSERT OR REPLACE INTO model_configs (author, id, model_id, display_name, system_prompt, is_default, new_until) VALUES
+                    ('system', 'anthropic::claude-sonnet-4-6', 'anthropic::claude-sonnet-4-6', 'Claude Sonnet 4.6', '', 0, '2026-04-01 00:00:00');
+
+                -- Add GPT-5.1
+                INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types) VALUES
+                    ('openai::gpt-5.1', 'GPT-5.1', 1, '["text", "image", "webpage", "pdf"]');
+                INSERT OR REPLACE INTO model_configs (author, id, model_id, display_name, system_prompt, is_default, new_until) VALUES
+                    ('system', 'openai::gpt-5.1', 'openai::gpt-5.1', 'GPT-5.1', '', 0, '2026-04-01 00:00:00');
+
+                -- Add GPT-5.2
+                INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types) VALUES
+                    ('openai::gpt-5.2', 'GPT-5.2', 1, '["text", "image", "webpage", "pdf"]');
+                INSERT OR REPLACE INTO model_configs (author, id, model_id, display_name, system_prompt, is_default, new_until) VALUES
+                    ('system', 'openai::gpt-5.2', 'openai::gpt-5.2', 'GPT-5.2', '', 0, '2026-04-01 00:00:00');
+
+                -- Add Gemini 3.1 Pro Preview
+                INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types) VALUES
+                    ('google::gemini-3.1-pro-preview', 'Gemini 3.1 Pro (Preview)', 1, '["text", "image", "webpage", "pdf"]');
+                INSERT OR REPLACE INTO model_configs (author, id, model_id, display_name, system_prompt, is_default, new_until) VALUES
+                    ('system', 'google::gemini-3.1-pro-preview', 'google::gemini-3.1-pro-preview', 'Gemini 3.1 Pro (Preview)', '', 0, '2026-04-01 00:00:00');
+
+                -- Update Gemini 2.5 Pro latest mapping to stable
+                UPDATE models SET display_name = 'Gemini 2.5 Pro' WHERE id = 'google::gemini-2.5-pro-latest';
+            "#,
+        },
     ];
 }
