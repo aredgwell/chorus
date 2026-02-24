@@ -32,6 +32,7 @@ import {
     SiCloudflare,
     SiGithub,
 } from "react-icons/si";
+import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { toast } from "sonner";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { CustomToolsetConfig, getEnvFromJSON } from "@core/chorus/Toolsets";
@@ -289,7 +290,7 @@ function RecommendedIntegrationRow({
                             {rec.docsUrl.includes("github.com") ? (
                                 <SiGithub className="size-3.5" />
                             ) : (
-                                <ExternalLinkIcon className="size-3.5" />
+                                <InfoCircledIcon className="size-3.5" />
                             )}
                         </Button>
                     ) : (
