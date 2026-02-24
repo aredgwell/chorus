@@ -169,6 +169,8 @@ export function ChatInput({
     const createMessageSetPair = MessageAPI.useCreateMessageSetPair();
     const createMessage = MessageAPI.useCreateMessage();
     const forceRefreshMessageSets = MessageAPI.useForceRefreshMessageSets();
+    const optimisticInsertUserMessage =
+        MessageAPI.useOptimisticInsertUserMessage();
     const generateChatTitle = MessageAPI.useGenerateChatTitle();
     const markProjectContextSummaryAsStale =
         ProjectAPI.useMarkProjectContextSummaryAsStale();
@@ -282,6 +284,19 @@ export function ChatInput({
                 aiMessageSetId,
             );
 
+            // Optimistically insert user message into the cache so it appears instantly
+            const userLevel = currentMessageSet
+                ? currentMessageSet.level + 1
+                : 0;
+            optimisticInsertUserMessage(
+                chatId,
+                userMessageSetId,
+                aiMessageSetId,
+                userMessageText,
+                userLevel,
+                BLOCK_TYPE,
+            );
+
             // save user's new message
             const userMessageResult = await createMessage.mutateAsync({
                 message: createUserMessage({
@@ -311,9 +326,8 @@ export function ChatInput({
                 messageId: userMessageResult.messageId,
             });
 
-            // since we have no optimistic update in createMessageSetPair or createMessage
-            // or convertDraftAttachmentsToMessageAttachments, force refetch before
-            // generateChatTitle or populateBLock
+            // Reconcile optimistic cache with real DB data before
+            // AI streaming (populateBlock reads conversation history from cache)
             await forceRefreshMessageSets(chatId);
 
             // generate chat title if needed
