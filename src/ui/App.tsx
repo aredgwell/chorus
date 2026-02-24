@@ -30,6 +30,7 @@ import NewPrompt from "./components/NewPrompt";
 import ListPrompts from "./components/ListPrompts";
 import Onboarding from "./components/Onboarding";
 import ProjectView from "./components/ProjectView";
+import SearchView from "./components/SearchView";
 import {
     onOpenUrl,
     getCurrent as getCurrentDeepLink,
@@ -281,6 +282,12 @@ function AppContent() {
     useShortcut(["meta", "w"], () => {
         if (!isQuickChatWindow && currentChatId) {
             navigate("/");
+        }
+    });
+
+    useShortcut(["meta", "shift", "f"], () => {
+        if (!isQuickChatWindow) {
+            navigate("/search");
         }
     });
 
@@ -895,6 +902,7 @@ function AppContent() {
                         <Route path="/" element={<Home />} />
                         <Route path="/new-prompt" element={<NewPrompt />} />
                         <Route path="/prompts" element={<ListPrompts />} />
+                        <Route path="/search" element={<SearchView />} />
                         <Route path="/chat/:chatId" element={<MultiChat />} />
                         <Route
                             path="/projects/:projectId"
