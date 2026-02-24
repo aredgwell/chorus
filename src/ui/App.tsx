@@ -78,6 +78,7 @@ import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
 import * as ToolsetsAPI from "@core/chorus/api/ToolsetsAPI";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
+import { SettingsManager } from "@core/utilities/Settings";
 
 scan({
     enabled: import.meta.env.DEV,
@@ -147,6 +148,11 @@ function AppContent() {
     // Load app version once on mount
     useEffect(() => {
         void getVersion().then(setCurrentAppVersion);
+    }, []);
+
+    // Migrate API keys from plaintext store to OS keychain (runs once per session)
+    useEffect(() => {
+        void SettingsManager.getInstance().migrateApiKeysToKeychain();
     }, []);
 
     // Get all chats to determine if user is new
