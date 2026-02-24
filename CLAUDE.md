@@ -74,23 +74,23 @@ Don't combine git commands -- e.g., instead of `git add -A && git commit`, run `
 
 Important files and directories to be aware of:
 
--   `src/core/chorus/db/` - Queries against the sqlite database, which are split up by entity type (e.g. message, chat, project)
--   `src/core/chorus/api/` - TanStack Query queries and mutations, which are also split up by entity type
+-   `src/core/chorus/api/` - TanStack Query queries, mutations, and raw SQL queries, split by entity type (e.g. `MessageAPI.ts`, `ChatAPI.ts`, `ProjectAPI.ts`, `SearchAPI.ts`, `CostAPI.ts`)
+-   `src/core/chorus/DB.ts` - Database connection singleton (queries live in `api/` files, not here)
 -   `src/ui/components/MultiChat.tsx` - Main interface
 -   `src/ui/components/ChatInput.tsx` - The input box where the user types chat messages
 -   `src/ui/components/AppSidebar.tsx` - The sidebar on the left
 -   `src/ui/App.tsx` - The root component
 
-You can see an up-to-date schema of all database tables in SQL_SCHEMA.md. Use this file as a reference to understand the current
-database schema.
-
 Other features:
 
--   Model picker, which lets the user select which models are available in the chat -- implemented in`ManageModelsBox.tsx`
+-   Model picker, which lets the user select which models are available in the chat -- implemented in `ManageModelsBox.tsx`
 -   Quick chats (aka Ambient Chats), a lightweight chat window -- implemented, alongside regular chats, in `MultiChat.tsx`
 -   Projects, which are folders of related chats -- start with `AppSidebar.tsx`
--   Tools and "connections" (aka toolsets) -- start with `Toolsets.ts`
+-   Tools and "connections" (aka toolsets) -- start with `Toolsets.ts`, individual toolsets in `src/core/chorus/toolsets/` (e.g. `github.ts`, `slack.ts`)
+-   Full-text search (FTS5) -- already implemented via `SearchAPI.ts` and `CommandMenu.tsx` (migration #50)
 -   react-router-dom for navigation -- see `App.tsx`
+-   Streaming: `UpdateQueue` in `MessageAPI.ts` batches DB writes during streaming; cache updates use Immer's `produce` via TanStack Query's `setQueryData`
+-   Settings and API keys stored via `@tauri-apps/plugin-store` in `src/core/infra/Store.ts`
 
 ## Screenshots
 
@@ -110,10 +110,10 @@ The `models` table stores all per-model configuration: API name aliases (`api_mo
 
 Changes to the data model will typically require most of the following steps:
 
--   Making a new migration in `src-tauri/src/migrations.rs` (if changes to the sqlite database scheme are needed)
--   Modifying fetch and read functions in `src/core/chorus/DB.ts`
+-   Making a new migration in `src-tauri/src/migrations.rs` (if changes to the sqlite database scheme are needed). New migrations must use the next sequential version number. NEVER modify a previous migration.
+-   Modifying fetch and read functions in the relevant `src/core/chorus/api/*.ts` file (e.g. `MessageAPI.ts`, `ChatAPI.ts`)
 -   Modifying data types (stored in a variety of places)
--   Adding or modifying TanStack Query queries in `src/core/chorus/API.ts`
+-   Adding or modifying TanStack Query queries in the relevant `src/core/chorus/api/*.ts` file
 
 ## Coding style
 
@@ -130,7 +130,7 @@ Changes to the data model will typically require most of the following steps:
     from our SQLite DB, you will need to convert it to a fully qualified UTC date using `convertDate` first.
 -   Do not use foreign keys or other constraints, they're too hard to remove and tend to put us in tricky situations down the line
 
-IMPORTANT: If you want to use any of these features, you must alert me and explicitly ask for my permission first: `setTimeout`, `useImperativeHandle`, `useRef`, or type assertions with `as`.
+IMPORTANT: If you want to use any of these features, you must alert me and explicitly ask for my permission first: `setTimeout`, `useImperativeHandle`, `useRef`, or type assertions with `as`. These are escape hatches from React's declarative model and TypeScript's type system — they introduce hidden state, imperative control flow, or type safety bypasses that can cause bugs only visible at runtime (which you cannot test). For high-frequency updates, prefer `useDeferredValue` or `startTransition` over `setTimeout`.
 
 ## Troubleshooting
 
@@ -148,5 +148,21 @@ When we run into issues with the requests we're sending to model providers (e.g.
 ## Updating this onboarding doc
 
 Whenever you discover something that you wish you'd known earlier -- and seems likely to be helpful to future developers as well -- you can add it to the scratchpad section below. Feel free to edit the scratchpad section, but don't change the rest of this doc.
+
+## Build and Dev Commands
+
+-   `pnpm build` - TypeScript check + Vite production build
+-   `pnpm vite:dev` - Vite dev server (called automatically by `tauri dev`)
+-   `pnpm tsc --noEmit` - TypeScript type check only
+-   `cargo tauri dev` - Full Tauri dev mode (starts both Vite and Rust backend)
+
+## Stack Versions
+
+-   React 19.2
+-   TypeScript 5.9
+-   Vite 6
+-   Tauri 2
+-   TanStack Query 5
+-   React Compiler via `babel-plugin-react-compiler` (React 19 has the compiler runtime built in)
 
 ### Scratchpad
