@@ -2766,5 +2766,27 @@ You have full access to bash commands on the user''''s computer. If you write a 
                 AND value = 'google::gemini-2.5-pro-latest';
             "#,
         },
+        Migration {
+            version: 146,
+            description: "create gc_messages table for production group chat",
+            kind: MigrationKind::Up,
+            sql: r#"
+                CREATE TABLE gc_messages (
+                    chat_id TEXT NOT NULL,
+                    id TEXT NOT NULL,
+                    text TEXT NOT NULL,
+                    model_config_id TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    is_deleted BOOLEAN NOT NULL DEFAULT 0,
+                    thread_root_message_id TEXT,
+                    promoted_from_message_id TEXT,
+                    PRIMARY KEY (chat_id, id)
+                );
+
+                CREATE INDEX idx_gc_messages_chat_created ON gc_messages(chat_id, created_at);
+                CREATE INDEX idx_gc_messages_thread_root ON gc_messages(thread_root_message_id);
+            "#,
+        },
     ];
 }

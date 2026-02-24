@@ -210,12 +210,22 @@ export function useCreateNewChat() {
 
     return useMutation({
         mutationKey: ["createNewChat"] as const,
-        mutationFn: async ({ projectId }: { projectId: string }) => {
+        mutationFn: async ({
+            projectId,
+            gcChat = false,
+        }: {
+            projectId: string;
+            gcChat?: boolean;
+        }) => {
             const result = await db.select<{ id: string }[]>(
-                `INSERT INTO chats (id, created_at, updated_at, is_new_chat, project_id, quick_chat) 
-                 VALUES (lower(hex(randomblob(16))), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1, ?, ?) 
+                `INSERT INTO chats (id, created_at, updated_at, is_new_chat, project_id, quick_chat, gc_prototype_chat)
+                 VALUES (lower(hex(randomblob(16))), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1, ?, ?, ?)
                  RETURNING id`,
-                [projectId, projectId === "quick-chat" ? 1 : 0],
+                [
+                    projectId,
+                    projectId === "quick-chat" ? 1 : 0,
+                    gcChat ? 1 : 0,
+                ],
             );
 
             if (!result.length) {
@@ -278,10 +288,11 @@ export function useGetOrCreateNewChat() {
     return useMutation({
         mutationKey: ["getOrCreateNewChat"] as const,
         mutationFn: async ({ projectId }: { projectId: string }) => {
+            // New chats default to group chat mode
             const existingNewChat = await db.select<{ id: string }[]>(
-                `UPDATE chats 
-                 SET updated_at = CURRENT_TIMESTAMP 
-                 WHERE is_new_chat = 1 AND project_id = ? AND gc_prototype_chat = 0
+                `UPDATE chats
+                 SET updated_at = CURRENT_TIMESTAMP
+                 WHERE is_new_chat = 1 AND project_id = ? AND gc_prototype_chat = 1
                  RETURNING id`,
                 [projectId],
             );
@@ -293,7 +304,10 @@ export function useGetOrCreateNewChat() {
                 return existingNewChat[0].id;
             }
 
-            const chatId = await createNewChat.mutateAsync({ projectId });
+            const chatId = await createNewChat.mutateAsync({
+                projectId,
+                gcChat: true,
+            });
             return chatId;
         },
         onSuccess: (chatId: string) => {

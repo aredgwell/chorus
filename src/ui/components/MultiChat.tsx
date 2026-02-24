@@ -65,7 +65,7 @@ import {
     exportChatAsMarkdown,
     exportChatAsJSON,
 } from "@core/chorus/ExportService";
-import GroupChat from "./gc-prototype/GroupChat";
+import GroupChat from "./GroupChat";
 import { MouseTrackingEye, MouseTrackingEyeRef } from "./MouseTrackingEye";
 import {
     Message,

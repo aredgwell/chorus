@@ -18,12 +18,12 @@ import {
     ShieldCheckIcon,
     User2,
     Key,
-    PlugIcon,
     FileText,
     Import,
     BookOpen,
     Globe,
     BarChart3,
+    Puzzle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { config } from "@core/config";
@@ -37,7 +37,7 @@ import { useReactQueryAutoSync } from "use-react-query-auto-sync";
 import { SiOpenai } from "react-icons/si";
 import { RiClaudeFill } from "react-icons/ri";
 import ImportChatDialog from "./ImportChatDialog";
-import { dialogActions } from "@core/infra/DialogStore";
+import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
 import { PermissionsTab } from "./PermissionsTab";
 import { CostDashboard } from "./CostDashboard";
@@ -61,8 +61,8 @@ const TABS: Record<SettingsTabId, TabConfig> = {
     import: { label: "Import", icon: Import },
     "system-prompt": { label: "System Prompt", icon: FileText },
     "api-keys": { label: "API Keys", icon: Key },
+    integrations: { label: "Integrations", icon: Puzzle },
     "quick-chat": { label: "Ambient Chat", icon: Fullscreen },
-    connections: { label: "Connections", icon: PlugIcon },
     permissions: { label: "Tool Permissions", icon: ShieldCheckIcon },
     "base-url": { label: "Base URL", icon: Globe },
     usage: { label: "Usage", icon: BarChart3 },
@@ -302,11 +302,23 @@ export default function Settings({ tab = "general" }: SettingsProps) {
         dialogActions.openDialog(`import-${platform}`);
     };
 
-    const [activeTab, setActiveTab] = useState<SettingsTabId>(defaultTab);
+    const pendingSettingsTab = useDialogStore(
+        (state) => state.pendingSettingsTab,
+    );
+    const [activeTab, setActiveTab] = useState<SettingsTabId>(
+        (pendingSettingsTab as SettingsTabId) || defaultTab,
+    );
 
     useEffect(() => {
         setActiveTab(defaultTab);
     }, [defaultTab]);
+
+    // Allow any component to open settings to a specific tab via dialogActions.openSettings()
+    useEffect(() => {
+        if (pendingSettingsTab) {
+            setActiveTab(pendingSettingsTab as SettingsTabId);
+        }
+    }, [pendingSettingsTab]);
 
     const content = (
         <div className="flex flex-col h-full">
@@ -487,6 +499,12 @@ export default function Settings({ tab = "general" }: SettingsProps) {
                         />
                     )}
 
+                    {activeTab === "integrations" && (
+                        <div className="max-w-2xl">
+                            <ConnectionsTab />
+                        </div>
+                    )}
+
                     {activeTab === "quick-chat" && (
                         <QuickChatTab
                             quickChatEnabled={quickChatEnabled}
@@ -501,12 +519,6 @@ export default function Settings({ tab = "general" }: SettingsProps) {
                                 void onDefaultQcShortcutClick()
                             }
                         />
-                    )}
-
-                    {activeTab === "connections" && (
-                        <div className="space-y-6 max-w-2xl">
-                            <ConnectionsTab />
-                        </div>
                     )}
 
                     {activeTab === "permissions" && (
