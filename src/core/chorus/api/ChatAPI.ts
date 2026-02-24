@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { produce } from "immer";
 import { useNavigate } from "react-router-dom";
 import { db } from "../DB";
@@ -161,6 +162,19 @@ export const chatIsLoadingQueries = {
 
 export function useChat(chatId: string) {
     return useQuery(chatQueries.detail(chatId));
+}
+
+/**
+ * Returns the number of chats that are branched from the given chat.
+ * Derived from the cached chat list — no extra DB query.
+ */
+export function useBranchCount(chatId: string): number {
+    const { data: chats } = useQuery(chatQueries.list());
+    return useMemo(
+        () =>
+            (chats ?? []).filter((c) => c.parentChatId === chatId).length,
+        [chats, chatId],
+    );
 }
 
 export function useUpdateNewChat() {
