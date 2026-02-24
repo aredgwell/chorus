@@ -49,6 +49,7 @@ obfstr = "0.4" # For billing info
 hmac = "0.12"  # For HMAC in billing info
 tauri-plugin-devtools = "2.0.0"
 tauri-plugin-keyring = "0.1.0"
+rand = "0.8"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2.1" }
