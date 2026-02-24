@@ -3010,6 +3010,83 @@ export function useForceRefreshMessageSets() {
     };
 }
 
+/**
+ * Optimistically inserts a user message set into the TanStack Query cache
+ * so the user sees their message immediately before DB writes complete.
+ */
+export function useOptimisticInsertUserMessage() {
+    const queryClient = useQueryClient();
+    return (
+        chatId: string,
+        userMessageSetId: string,
+        aiMessageSetId: string,
+        text: string,
+        level: number,
+        selectedBlockType: BlockType,
+    ) => {
+        const userMessage: Message = {
+            id: "optimistic-" + userMessageSetId,
+            chatId,
+            messageSetId: userMessageSetId,
+            blockType: "user",
+            text,
+            model: "user",
+            selected: true,
+            attachments: [],
+            isReview: false,
+            state: "idle",
+            streamingToken: undefined,
+            errorMessage: undefined,
+            reviewState: undefined,
+            level: undefined,
+            parts: [],
+            replyChatId: undefined,
+            branchedFromId: undefined,
+        };
+
+        const userMessageSet: MessageSetDetail = {
+            id: userMessageSetId,
+            chatId,
+            type: "user",
+            level,
+            selectedBlockType: "user",
+            createdAt: new Date().toISOString(),
+            userBlock: { type: "user", message: userMessage },
+            chatBlock: { type: "chat", message: undefined, reviews: [] },
+            compareBlock: {
+                type: "compare",
+                messages: [],
+                synthesis: undefined,
+            },
+            brainstormBlock: { type: "brainstorm", ideaMessages: [] },
+            toolsBlock: { type: "tools", chatMessages: [] },
+        };
+
+        const aiMessageSet: MessageSetDetail = {
+            id: aiMessageSetId,
+            chatId,
+            type: "ai",
+            level: level + 1,
+            selectedBlockType,
+            createdAt: new Date().toISOString(),
+            userBlock: { type: "user", message: undefined },
+            chatBlock: { type: "chat", message: undefined, reviews: [] },
+            compareBlock: {
+                type: "compare",
+                messages: [],
+                synthesis: undefined,
+            },
+            brainstormBlock: { type: "brainstorm", ideaMessages: [] },
+            toolsBlock: { type: "tools", chatMessages: [] },
+        };
+
+        queryClient.setQueryData<MessageSetDetail[]>(
+            messageKeys.messageSets(chatId),
+            (old) => [...(old ?? []), userMessageSet, aiMessageSet],
+        );
+    };
+}
+
 // ------------------------------------------------------------------------------------------------
 // Helpers for making optimistic updates
 // ------------------------------------------------------------------------------------------------
