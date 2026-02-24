@@ -39,6 +39,7 @@ import { TooltipContent } from "./ui/tooltip";
 import { Tooltip } from "./ui/tooltip";
 import { TooltipTrigger } from "./ui/tooltip";
 import { AttachmentPillsList } from "./AttachmentsViews";
+import { VirtualizedMessageSet } from "./VirtualizedMessageSet";
 import * as Models from "@core/chorus/Models";
 import { invoke } from "@tauri-apps/api/core";
 import { ProviderLogo } from "@ui/components/ui/provider-logo";
@@ -2891,7 +2892,9 @@ function MainScrollableContentView({
                 {messageSets.length > 0 && (
                     <>
                         {otherMessageSets.map((ms) => (
-                            <div key={ms.id}>{renderMessageSet(ms)}</div>
+                            <VirtualizedMessageSet key={ms.id}>
+                                {renderMessageSet(ms)}
+                            </VirtualizedMessageSet>
                         ))}
                         <div
                             // we should subtract enough space that there's no scroll bar on first message
