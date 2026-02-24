@@ -18,7 +18,13 @@ const hmrPort = process.env.VITE_HMR_PORT
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
     plugins: [
-        react(),
+        react({
+            babel: {
+                plugins: [
+                    ["babel-plugin-react-compiler"],
+                ],
+            },
+        }),
         nodePolyfills({
             include: ["os"],
         }),

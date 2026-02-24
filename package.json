@@ -158,6 +158,7 @@
         "@types/uuid": "^9.0.8",
         "@vitejs/plugin-react": "^5.1.4",
         "autoprefixer": "^10.4.24",
+        "babel-plugin-react-compiler": "^1.0.0",
         "cross-env": "^7.0.3",
         "drizzle-kit": "^0.31.9",
         "eslint": "^9.25.1",
