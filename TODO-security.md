@@ -12,64 +12,64 @@ All secrets are stored in plain text:
 | Toolset credentials (GitHub PAT, Linear API key, Slack token) | SQLite `toolsets_config` table | Plain text columns |
 | Chorus backend token | Tauri Store (`api_token` key) | Plain text |
 
-The `tauri-plugin-stronghold` dependency is included in `Cargo.toml` but never initialized — `src-tauri/src/lib.rs:134` has a `todo!()` placeholder that would panic if called.
+### ~~Remove Stronghold~~
 
-### Proposed solution: `tauri-plugin-keyring`
+Done — the unused `tauri-plugin-stronghold` dependency and its `todo!()` placeholder have been removed from `Cargo.toml` and `lib.rs`. This eliminates the `iota_stronghold` dependency tree.
 
-Use OS-native credential storage via `tauri-plugin-keyring`, which wraps:
-- **macOS**: Keychain Services
-- **Windows**: Credential Manager
-- **Linux**: Secret Service (via `libsecret`)
+### Plugin research
 
-Advantages over Stronghold:
-- Invisible to users — no extra password prompts (Stronghold requires a master password or auto-derived key)
-- Credentials survive app reinstall (keychain is OS-managed)
-- Standard security model users already trust
+Two third-party Tauri v2 keyring plugins exist:
+
+| Plugin | Crate | JS API | Notes |
+|---|---|---|---|
+| [tauri-plugin-keyring](https://github.com/HuakunShen/tauri-plugin-keyring) | `tauri-plugin-keyring` | `getPassword(service, user)`, `setPassword(service, user, password)`, `deletePassword(service, user)` | Wraps Rust `keyring` crate. Created Dec 2024. Also available on JSR as `@hk/tauri-plugin-keyring-api`. |
+| [tauri-plugin-keychain](https://github.com/lindongchen/tauri-plugin-keychain) | `tauri-plugin-keychain` v2.0.2 | Unknown | Compatible with Tauri ^2.0.6. Focused on iOS Keychain. |
+
+**Recommendation**: `tauri-plugin-keyring` (HuakunShen) has a cleaner API and broader platform support (macOS Keychain, Windows Credential Manager, Linux Secret Service). Both are relatively new — test thoroughly before shipping.
 
 ### Implementation steps
 
 #### 1. Add keyring plugin
 - `cargo add tauri-plugin-keyring` in `src-tauri/Cargo.toml`
-- `pnpm add @tauri-apps/plugin-keyring`
+- `pnpm add tauri-plugin-keyring-api` (or from JSR: `@hk/tauri-plugin-keyring-api`)
 - Register in `src-tauri/src/lib.rs`: `.plugin(tauri_plugin_keyring::init())`
 
-#### 2. Remove Stronghold
-- Remove `.plugin(tauri_plugin_stronghold::Builder::new(|_pass| todo!()).build())` from `src-tauri/src/lib.rs:134`
-- Remove `tauri-plugin-stronghold = "2"` from `src-tauri/Cargo.toml:34`
-- Run `cargo build` to verify the `iota_stronghold` dependency tree is gone (reduces binary size)
-
-#### 3. Create a credential service
+#### 2. Create a credential service
 Create `src/core/chorus/CredentialService.ts`:
 ```typescript
-import { getItem, setItem, deleteItem } from "@tauri-apps/plugin-keyring";
+import { getPassword, setPassword, deletePassword } from "tauri-plugin-keyring-api";
 
 const SERVICE_NAME = "sh.chorus.app";
 
 export async function getCredential(key: string): Promise<string | undefined> {
-    return await getItem(SERVICE_NAME, key) ?? undefined;
+    try {
+        return await getPassword(SERVICE_NAME, key) ?? undefined;
+    } catch {
+        return undefined;
+    }
 }
 
 export async function setCredential(key: string, value: string): Promise<void> {
-    await setItem(SERVICE_NAME, key, value);
+    await setPassword(SERVICE_NAME, key, value);
 }
 
 export async function deleteCredential(key: string): Promise<void> {
-    await deleteItem(SERVICE_NAME, key);
+    await deletePassword(SERVICE_NAME, key);
 }
 ```
 
-#### 4. Migrate model API keys
+#### 3. Migrate model API keys
 - Update `Settings.ts` to read/write API keys via `CredentialService` instead of Tauri Store
 - Update `AppMetadataAPI.ts` `getApiKeys()` to read from keyring
 - Key naming: `apiKey.anthropic`, `apiKey.openai`, `apiKey.google`, etc.
 
-#### 5. Migrate toolset credentials
+#### 4. Migrate toolset credentials
 - Update `ToolsetsAPI.ts` to read/write sensitive config values via keyring
 - Keep non-sensitive config (e.g., `enabled` flag) in SQLite `toolsets_config`
 - Identify which `parameter_id` values are secrets vs. config: `personalAccessToken`, `apiKey`, `apiToken` are secrets; `enabled`, `teamId` are not
 - Key naming: `toolset.github.personalAccessToken`, `toolset.linear.apiKey`, etc.
 
-#### 6. Migration for existing users
+#### 5. Migration for existing users
 On first launch after upgrade:
 1. Check if old-style credentials exist (in Tauri Store JSON / SQLite)
 2. Copy each credential to keyring
@@ -80,8 +80,8 @@ On first launch after upgrade:
 
 | File | Change |
 |---|---|
-| `src-tauri/Cargo.toml` | Remove `tauri-plugin-stronghold`, add `tauri-plugin-keyring` |
-| `src-tauri/src/lib.rs` | Swap Stronghold plugin for keyring plugin |
+| `src-tauri/Cargo.toml` | Add `tauri-plugin-keyring` |
+| `src-tauri/src/lib.rs` | Register keyring plugin |
 | `src/core/chorus/CredentialService.ts` | New — keyring read/write abstraction |
 | `src/core/utilities/Settings.ts` | Read API keys from keyring instead of store |
 | `src/core/chorus/api/AppMetadataAPI.ts` | Update `getApiKeys()` |
@@ -90,7 +90,7 @@ On first launch after upgrade:
 
 ### Risks
 
-- **keyring plugin maturity**: `tauri-plugin-keyring` is relatively new. Test thoroughly on macOS.
+- **Plugin maturity**: Both keyring plugins are relatively new (2024). Test thoroughly on macOS before shipping.
 - **Keychain access prompts**: macOS may show "Chorus wants to access keychain" on first use. This is expected and one-time.
 - **Migration failures**: If migration fails partway, credentials could be in an inconsistent state. Use a flag to track migration status per credential.
 - **Development workflow**: Developers need the keyring available in their environment. Consider a fallback to in-memory storage for `tauri dev` if keyring is unavailable.
