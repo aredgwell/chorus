@@ -40,6 +40,7 @@ import {
     Import,
     BookOpen,
     Globe,
+    BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { config } from "@core/config";
@@ -86,6 +87,7 @@ import ImportChatDialog from "./ImportChatDialog";
 import { dialogActions } from "@core/infra/DialogStore";
 import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
 import { PermissionsTab } from "./PermissionsTab";
+import { CostDashboard } from "./CostDashboard";
 import { cn } from "@ui/lib/utils";
 
 type ToolsetFormProps = {
@@ -1086,6 +1088,7 @@ export type SettingsTabId =
     | "connections"
     | "permissions"
     | "base-url"
+    | "usage"
     | "docs";
 
 interface TabConfig {
@@ -1102,6 +1105,7 @@ const TABS: Record<SettingsTabId, TabConfig> = {
     connections: { label: "Connections", icon: PlugIcon },
     permissions: { label: "Tool Permissions", icon: ShieldCheckIcon },
     "base-url": { label: "Base URL", icon: Globe },
+    usage: { label: "Usage", icon: BarChart3 },
     docs: { label: "Documentation", icon: BookOpen },
 } as const;
 
@@ -1955,6 +1959,21 @@ export default function Settings({ tab = "general" }: SettingsProps) {
                                     </Button>
                                 </div>
                             </div>
+                        </div>
+                    )}
+
+                    {activeTab === "usage" && (
+                        <div className="space-y-4 max-w-2xl">
+                            <div>
+                                <h2 className="text-2xl font-semibold mb-2">
+                                    Usage
+                                </h2>
+                                <p className="text-muted-foreground text-sm">
+                                    Track your API usage and costs across models
+                                    and projects.
+                                </p>
+                            </div>
+                            <CostDashboard />
                         </div>
                     )}
                 </div>
