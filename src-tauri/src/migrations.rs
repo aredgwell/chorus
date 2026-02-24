@@ -2788,5 +2788,13 @@ You have full access to bash commands on the user''''s computer. If you write a 
                 CREATE INDEX idx_gc_messages_thread_root ON gc_messages(thread_root_message_id);
             "#,
         },
+        Migration {
+            version: 147,
+            description: "add tool_calls column to gc_messages",
+            kind: MigrationKind::Up,
+            sql: r#"
+                ALTER TABLE gc_messages ADD COLUMN tool_calls TEXT;
+            "#,
+        },
     ];
 }

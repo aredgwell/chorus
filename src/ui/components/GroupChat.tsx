@@ -8,6 +8,8 @@ import {
     RefreshCcwIcon,
     Maximize2Icon,
     RemoveFormattingIcon,
+    ChevronDownIcon,
+    WrenchIcon,
 } from "lucide-react";
 import { HeaderBar } from "@ui/components/HeaderBar";
 import { MessageMarkdown } from "@ui/components/renderers/MessageMarkdown";
@@ -25,6 +27,11 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@ui/components/ui/tooltip";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@ui/components/ui/collapsible";
 import Composer from "@ui/components/Composer";
 import { dialogActions } from "@core/infra/DialogStore";
 import {
@@ -38,6 +45,7 @@ import {
     type GCMessage,
 } from "@core/chorus/api/GroupChatAPI";
 import { useChat } from "@core/chorus/api/ChatAPI";
+import { type UserToolCall } from "@core/chorus/Toolsets";
 import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
 import { getModelDisplayName } from "@core/chorus/gc-prototype/UtilsGC";
 
@@ -242,6 +250,53 @@ function FullScreenMessageDialog({
     );
 }
 
+// ---------------------------------------------------------------------------
+// GCToolCallView — compact collapsible tool call display
+// ---------------------------------------------------------------------------
+
+function GCToolCallView({ toolCall }: { toolCall: UserToolCall }) {
+    const label = toolCall.namespacedToolName ?? "tool";
+
+    const formattedArgs = useMemo(() => {
+        const args = toolCall.args as Record<string, unknown> | undefined;
+        if (!args) return [];
+        return Object.entries(args).map(([key, value]) => ({
+            key,
+            value:
+                typeof value === "string"
+                    ? value
+                    : JSON.stringify(value, null, 2),
+        }));
+    }, [toolCall.args]);
+
+    return (
+        <Collapsible className="my-2 rounded-md text-muted-foreground text-sm py-1.5 px-1.5 border w-fit max-w-full">
+            <CollapsibleTrigger className="group font-mono text-xs text-left flex items-center justify-left hover:text-foreground">
+                <WrenchIcon className="w-3 h-3 mr-2 flex-shrink-0" />
+                {label}
+                <ChevronDownIcon className="w-3 h-3 ml-2 transition-transform group-data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+                {formattedArgs.length > 0 && (
+                    <ul className="mt-2 space-y-1 text-xs font-mono">
+                        {formattedArgs.map((arg) => (
+                            <li key={arg.key}>
+                                <span className="text-muted-foreground">
+                                    {arg.key}
+                                </span>
+                                ={" "}
+                                <span className="break-all">
+                                    {arg.value}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </CollapsibleContent>
+        </Collapsible>
+    );
+}
+
 function AIMessageView({
     message,
     isStreaming,
@@ -350,6 +405,17 @@ function AIMessageView({
                     ) : (
                         <MessageMarkdown text={message.text} />
                     )}
+                    {/* Tool calls */}
+                    {message.toolCalls && message.toolCalls.length > 0 && (
+                        <div className="mt-2">
+                            {message.toolCalls.map((tc) => (
+                                <GCToolCallView
+                                    key={tc.id}
+                                    toolCall={tc}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -369,6 +435,11 @@ function GCMessageView({
     onRestore: (messageId: string) => void;
     onRegenerate: (messageId: string, modelConfigId: string) => void;
 }) {
+    // tool_result messages are internal — not displayed directly
+    if (message.modelConfigId === "tool_result") {
+        return null;
+    }
+
     if (message.modelConfigId === "user") {
         return (
             <UserMessageView

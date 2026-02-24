@@ -16,7 +16,13 @@ import {
     UsageData,
     streamResponse,
 } from "@core/chorus/Models";
-import { UserToolCall } from "@core/chorus/Toolsets";
+import {
+    UserTool,
+    UserToolCall,
+    UserToolResult,
+} from "@core/chorus/Toolsets";
+import { ToolsetsManager } from "@core/chorus/ToolsetsManager";
+import { useGetToolsets } from "@core/chorus/api/ToolsetsAPI";
 import { simpleLLM } from "@core/chorus/simpleLLM";
 import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
 import {
@@ -39,21 +45,32 @@ type GCMessageDBRow = {
     is_deleted: number;
     thread_root_message_id: string | null;
     promoted_from_message_id: string | null;
+    tool_calls: string | null;
 };
 
 export type GCMessage = {
     chatId: string;
     id: string;
     text: string;
-    modelConfigId: string; // "user" for human messages, model ID for AI
+    modelConfigId: string; // "user" for human messages, model ID for AI, "tool_result" for tool results
     createdAt: string;
     updatedAt: string;
     isDeleted: boolean;
     threadRootMessageId?: string;
     promotedFromMessageId?: string;
+    toolCalls?: UserToolCall[];
 };
 
 function readGCMessage(row: GCMessageDBRow): GCMessage {
+    let toolCalls: UserToolCall[] | undefined;
+    if (row.tool_calls) {
+        try {
+            toolCalls = JSON.parse(row.tool_calls) as UserToolCall[];
+        } catch {
+            console.warn("Failed to parse tool_calls for message", row.id);
+        }
+    }
+
     return {
         chatId: row.chat_id,
         id: row.id,
@@ -64,6 +81,7 @@ function readGCMessage(row: GCMessageDBRow): GCMessage {
         isDeleted: row.is_deleted === 1,
         threadRootMessageId: row.thread_root_message_id ?? undefined,
         promotedFromMessageId: row.promoted_from_message_id ?? undefined,
+        toolCalls,
     };
 }
 
@@ -86,11 +104,25 @@ async function insertGCMessage(
     id: string,
     text: string,
     modelConfigId: string,
+    options?: {
+        toolCalls?: UserToolCall[];
+        threadRootMessageId?: string;
+    },
 ): Promise<void> {
+    const toolCallsJson = options?.toolCalls
+        ? JSON.stringify(options.toolCalls)
+        : undefined;
     await db.execute(
-        `INSERT INTO gc_messages (chat_id, id, text, model_config_id)
-         VALUES (?, ?, ?, ?)`,
-        [chatId, id, text, modelConfigId],
+        `INSERT INTO gc_messages (chat_id, id, text, model_config_id, tool_calls, thread_root_message_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+            chatId,
+            id,
+            text,
+            modelConfigId,
+            toolCallsJson ?? null,
+            options?.threadRootMessageId ?? null,
+        ],
     );
 }
 
@@ -195,12 +227,28 @@ export async function encodeConversation(
     );
 
     for (const message of activeMessages) {
-        if (message.modelConfigId === povModelConfigId) {
+        if (message.modelConfigId === "tool_result") {
+            // Tool results: parse the JSON text back into UserToolResult[]
+            try {
+                const toolResults = JSON.parse(
+                    message.text,
+                ) as UserToolResult[];
+                result.push({
+                    role: "tool_results",
+                    toolResults,
+                });
+            } catch {
+                console.warn(
+                    "Failed to parse tool_result message",
+                    message.id,
+                );
+            }
+        } else if (message.modelConfigId === povModelConfigId) {
             result.push({
                 role: "assistant",
                 content: message.text,
                 model: povModelConfigId,
-                toolCalls: [],
+                toolCalls: message.toolCalls ?? [],
             });
         } else if (message.modelConfigId === "user") {
             result.push({
@@ -300,8 +348,9 @@ async function streamGCResponse(params: {
     conversation: LLMMessage[];
     queryClient: QueryClient;
     scopeId?: string;
+    tools?: UserTool[];
 }): Promise<{ toolCalls?: UserToolCall[] }> {
-    const { chatId, messageId, modelConfig, conversation, queryClient, scopeId } =
+    const { chatId, messageId, modelConfig, conversation, queryClient, scopeId, tools } =
         params;
     const apiKeys = await getApiKeys();
     const scope = scopeId ?? "main";
@@ -333,6 +382,7 @@ async function streamGCResponse(params: {
         await streamResponse({
             modelConfig,
             llmConversation: conversation,
+            tools: tools && tools.length > 0 ? tools : undefined,
             apiKeys,
             onChunk: (chunk: string) => {
                 partialResponse += chunk;
@@ -412,6 +462,141 @@ async function streamGCResponse(params: {
             scope,
         );
         throw err;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// streamGCResponseWithTools — tool call loop for a single model
+// ---------------------------------------------------------------------------
+
+const MAX_TOOL_TURNS = 40;
+
+async function streamGCResponseWithTools(params: {
+    chatId: string;
+    modelConfig: ModelConfig;
+    queryClient: QueryClient;
+    getTools: () => UserTool[];
+    scopeId?: string;
+    prefixMessages?: LLMMessage[];
+}): Promise<void> {
+    const { chatId, modelConfig, queryClient, getTools, scopeId, prefixMessages } =
+        params;
+
+    for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
+        // Fetch latest messages and encode conversation
+        const currentMessages = await fetchGCMainMessages(chatId);
+        const conversation = await encodeConversation(
+            currentMessages,
+            modelConfig.modelId,
+        );
+
+        // Add any prefix messages (e.g. variety prompts for multiplied instances)
+        if (prefixMessages && turn === 0) {
+            conversation.unshift(...prefixMessages);
+        }
+
+        // Gather tools if model supports them
+        const tools = modelConfig.supportsToolUse ? getTools() : [];
+
+        // Pre-insert empty AI message
+        const messageId = uuidv4().toLowerCase();
+        await insertGCMessage(chatId, messageId, "", modelConfig.modelId);
+
+        // Optimistically add to cache
+        queryClient.setQueryData(
+            gcMessageKeys.main(chatId),
+            produce(
+                queryClient.getQueryData(gcMessageKeys.main(chatId)),
+                (draft: GCMessage[] | undefined) => {
+                    if (!draft) return;
+                    draft.push({
+                        chatId,
+                        id: messageId,
+                        text: "",
+                        modelConfigId: modelConfig.modelId,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        isDeleted: false,
+                    });
+                },
+            ),
+        );
+
+        // Stream response
+        const { toolCalls } = await streamGCResponse({
+            chatId,
+            messageId,
+            modelConfig,
+            conversation,
+            queryClient,
+            scopeId,
+            tools,
+        });
+
+        // If no tool calls, we're done
+        if (!toolCalls || toolCalls.length === 0) {
+            break;
+        }
+
+        // Save tool calls on the AI message
+        await db.execute(
+            `UPDATE gc_messages SET tool_calls = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+            [JSON.stringify(toolCalls), messageId],
+        );
+
+        // Update cache with tool calls
+        queryClient.setQueryData(
+            gcMessageKeys.main(chatId),
+            produce(
+                queryClient.getQueryData(gcMessageKeys.main(chatId)),
+                (draft: GCMessage[] | undefined) => {
+                    if (!draft) return;
+                    const msg = draft.find((m) => m.id === messageId);
+                    if (msg) msg.toolCalls = toolCalls;
+                },
+            ),
+        );
+
+        // Execute each tool call
+        const toolResults: UserToolResult[] = await Promise.all(
+            toolCalls.map((toolCall) =>
+                ToolsetsManager.instance.executeToolCall(
+                    toolCall,
+                    modelConfig.displayName,
+                ),
+            ),
+        );
+
+        // Insert tool_result message
+        const toolResultId = uuidv4().toLowerCase();
+        await insertGCMessage(
+            chatId,
+            toolResultId,
+            JSON.stringify(toolResults),
+            "tool_result",
+        );
+
+        // Optimistically add tool result to cache
+        queryClient.setQueryData(
+            gcMessageKeys.main(chatId),
+            produce(
+                queryClient.getQueryData(gcMessageKeys.main(chatId)),
+                (draft: GCMessage[] | undefined) => {
+                    if (!draft) return;
+                    draft.push({
+                        chatId,
+                        id: toolResultId,
+                        text: JSON.stringify(toolResults),
+                        modelConfigId: "tool_result",
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        isDeleted: false,
+                    });
+                },
+            ),
+        );
+
+        // Continue to next turn — model will see the tool results
     }
 }
 
@@ -560,6 +745,7 @@ export function useRestoreGCMessage() {
 
 export function useRegenerateGCMessage() {
     const queryClient = useQueryClient();
+    const getToolsets = useGetToolsets();
 
     return useMutation({
         mutationKey: ["regenerateGCMessage"] as const,
@@ -578,13 +764,6 @@ export function useRegenerateGCMessage() {
                 queryKey: gcMessageKeys.main(chatId),
             });
 
-            // Fetch messages for context (excluding the deleted one)
-            const currentMessages = await fetchGCMainMessages(chatId);
-            const encodedConversation = await encodeConversation(
-                currentMessages,
-                modelConfigId,
-            );
-
             const allConfigs = await ModelsAPI.fetchModelConfigs();
             const modelConfig = allConfigs.find(
                 (c) => c.modelId === modelConfigId,
@@ -595,39 +774,17 @@ export function useRegenerateGCMessage() {
                 );
             }
 
-            // Pre-insert empty message, then stream into it
-            const newMessageId = uuidv4().toLowerCase();
-            await insertGCMessage(chatId, newMessageId, "", modelConfigId);
+            // Resolve tools
+            const toolsets = await getToolsets();
+            const tools = toolsets.flatMap((toolset) => toolset.listTools());
 
-            // Optimistically add to cache
-            queryClient.setQueryData(
-                gcMessageKeys.main(chatId),
-                produce(
-                    queryClient.getQueryData(gcMessageKeys.main(chatId)),
-                    (draft: GCMessage[] | undefined) => {
-                        if (!draft) return;
-                        draft.push({
-                            chatId,
-                            id: newMessageId,
-                            text: "",
-                            modelConfigId,
-                            createdAt: new Date().toISOString(),
-                            updatedAt: new Date().toISOString(),
-                            isDeleted: false,
-                        });
-                    },
-                ),
-            );
-
-            await streamGCResponse({
+            // Use the tool-aware streaming loop (handles message insertion internally)
+            await streamGCResponseWithTools({
                 chatId,
-                messageId: newMessageId,
                 modelConfig,
-                conversation: encodedConversation,
                 queryClient,
+                getTools: () => tools,
             });
-
-            return newMessageId;
         },
         onSuccess: async (_, variables) => {
             await queryClient.invalidateQueries({
@@ -639,6 +796,7 @@ export function useRegenerateGCMessage() {
 
 export function useGenerateAIResponses() {
     const queryClient = useQueryClient();
+    const getToolsets = useGetToolsets();
 
     return useMutation({
         mutationKey: ["generateGCAIResponses"] as const,
@@ -671,6 +829,10 @@ export function useGenerateAIResponses() {
                 error?: unknown;
             }> = [];
 
+            // Resolve tools once for all models
+            const toolsets = await getToolsets();
+            const tools = toolsets.flatMap((toolset) => toolset.listTools());
+
             const varietyPrompts = [
                 "Provide a unique perspective or approach to this question.",
                 "Offer a different angle or solution than what might be typical.",
@@ -680,60 +842,7 @@ export function useGenerateAIResponses() {
 
             await Promise.all(
                 modelInstances.map(async (modelInstance) => {
-                    // Pre-insert an empty message so it appears in the UI immediately
-                    const messageId = uuidv4().toLowerCase();
-                    await insertGCMessage(
-                        chatId,
-                        messageId,
-                        "",
-                        modelInstance.id,
-                    );
-
-                    // Optimistically add to cache
-                    queryClient.setQueryData(
-                        gcMessageKeys.main(chatId),
-                        produce(
-                            queryClient.getQueryData(
-                                gcMessageKeys.main(chatId),
-                            ),
-                            (draft: GCMessage[] | undefined) => {
-                                if (!draft) return;
-                                draft.push({
-                                    chatId,
-                                    id: messageId,
-                                    text: "",
-                                    modelConfigId: modelInstance.id,
-                                    createdAt: new Date().toISOString(),
-                                    updatedAt: new Date().toISOString(),
-                                    isDeleted: false,
-                                });
-                            },
-                        ),
-                    );
-
                     try {
-                        // Fetch latest messages for this model's POV
-                        const currentMessages =
-                            await fetchGCMainMessages(chatId);
-
-                        const encodedConversation =
-                            await encodeConversation(
-                                currentMessages,
-                                modelInstance.id,
-                            );
-
-                        // Add variety prompt for multiplied instances
-                        if (multiplier > 1) {
-                            const promptIndex =
-                                (modelInstance.instance - 1) %
-                                varietyPrompts.length;
-                            encodedConversation.unshift({
-                                role: "user",
-                                content: varietyPrompts[promptIndex],
-                                attachments: [],
-                            });
-                        }
-
                         const modelConfig = allConfigs.find(
                             (c) => c.modelId === modelInstance.id,
                         );
@@ -743,13 +852,29 @@ export function useGenerateAIResponses() {
                             );
                         }
 
-                        // Stream response — live updates go to cache + DB
-                        await streamGCResponse({
+                        // Build variety prompt for multiplied instances
+                        const prefixMessages: LLMMessage[] = [];
+                        if (multiplier > 1) {
+                            const promptIndex =
+                                (modelInstance.instance - 1) %
+                                varietyPrompts.length;
+                            prefixMessages.push({
+                                role: "user",
+                                content: varietyPrompts[promptIndex],
+                                attachments: [],
+                            });
+                        }
+
+                        // Use the tool-aware streaming loop
+                        await streamGCResponseWithTools({
                             chatId,
-                            messageId,
                             modelConfig,
-                            conversation: encodedConversation,
                             queryClient,
+                            getTools: () => tools,
+                            prefixMessages:
+                                prefixMessages.length > 0
+                                    ? prefixMessages
+                                    : undefined,
                         });
 
                         results.push({
@@ -761,38 +886,6 @@ export function useGenerateAIResponses() {
                             `Failed to generate response from ${modelInstance.name}:`,
                             error,
                         );
-
-                        // Error text is already saved by streamGCResponse.
-                        // If we failed before streaming, save it now.
-                        const currentText =
-                            (
-                                queryClient.getQueryData(
-                                    gcMessageKeys.main(chatId),
-                                ) as GCMessage[] | undefined
-                            )?.find((m) => m.id === messageId)?.text ?? "";
-                        if (!currentText) {
-                            const errorText = `Sorry, I encountered an error: ${error instanceof Error ? error.message : "Unknown error"}`;
-                            queryClient.setQueryData(
-                                gcMessageKeys.main(chatId),
-                                produce(
-                                    queryClient.getQueryData(
-                                        gcMessageKeys.main(chatId),
-                                    ),
-                                    (draft: GCMessage[] | undefined) => {
-                                        if (!draft) return;
-                                        const msg = draft.find(
-                                            (m) => m.id === messageId,
-                                        );
-                                        if (msg) msg.text = errorText;
-                                    },
-                                ),
-                            );
-                            await db.execute(
-                                `UPDATE gc_messages SET text = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-                                [errorText, messageId],
-                            );
-                        }
-
                         results.push({
                             model: modelInstance.id,
                             success: false,
