@@ -29,8 +29,8 @@ All safe patch/minor updates were applied in the codebase improvements PR. This 
 
 ### Compiler & Framework
 
-- [ ] **`typescript`** 5.8 -> 5.9 -- 11% faster type checking, expandable type hovers, `import defer` for lazy module evaluation. Minor breaking changes: stricter generic constraint inference, `moduleResolution: 'node'` deprecation warning, DOM type updates. Run `tsc --noEmit` first, expect ~30min of fixes.
-- [ ] **`babel-plugin-react-compiler`** -- React Compiler v1.0. Automatic memoization — eliminates need for manual `useMemo`/`useCallback`. Add as Babel plugin via Vite config. Opt-in per file with `'use memo'` directive, or enable globally. Test with streaming-heavy components first (`MultiChat`, `MessageMarkdown`).
+- [x] **`typescript`** 5.8 -> 5.9 -- Done. Upgraded, `tsc --noEmit` passes clean.
+- [x] **`babel-plugin-react-compiler`** -- Done. Enabled globally in `vite.config.ts`. Automatic memoization active.
 
 ### Dev Dependencies
 

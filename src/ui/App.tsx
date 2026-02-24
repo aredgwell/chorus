@@ -277,6 +277,13 @@ function AppContent() {
         }
     });
 
+    // Close current chat (navigate home)
+    useShortcut(["meta", "w"], () => {
+        if (!isQuickChatWindow && currentChatId) {
+            navigate("/");
+        }
+    });
+
     const createGroupChat = ChatAPI.useCreateGroupChat();
     useShortcut(["meta", "shift", "g"], () => {
         if (!isQuickChatWindow && !isDialogOpen) {

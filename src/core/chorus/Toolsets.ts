@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import React from "react";
 import _ from "lodash";
-import { SiElevenlabs, SiStripe, SiSupabase } from "react-icons/si";
+import { SiElevenlabs, SiLinear, SiStripe, SiSupabase } from "react-icons/si";
 
 /**
  * ### Notes on the Toolsets system
@@ -227,6 +227,10 @@ export function getToolsetIcon(toolsetName: string): React.ReactNode {
             className: "w-3 h-3",
         });
 
+    if (name === "linear")
+        return React.createElement(SiLinear, {
+            className: "w-3 h-3",
+        });
     if (name === "elevenlabs")
         return React.createElement(SiElevenlabs, {
             className: "w-3 h-3",

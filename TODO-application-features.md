@@ -68,14 +68,14 @@ Start with **Option A** for simplicity:
 ### UI rendering
 
 - **Message virtualization**: Long conversations render all messages in the DOM. Use `react-window` or `@tanstack/react-virtual` to only render visible messages. Biggest single UI perf win for long chats.
-- **Memoize MessageMarkdown**: `react-markdown` re-parses on every render. Wrap with `React.memo()` so sibling updates (streaming to other models) don't trigger re-parse.
-- **Chunk batching**: Every LLM text chunk triggers a React state update. Batch chunks with a ~50ms debounce for fast models (Haiku, GPT-4o-mini).
-- **Vite code splitting**: No manual chunk config exists. Split `pdfjs-dist`, `react-markdown`+plugins, `katex`, `mermaid` into lazy-loaded chunks.
+- ~~**Memoize MessageMarkdown**~~: Done — React Compiler handles this automatically now.
+- ~~**Chunk batching**~~: Done — implemented 50ms debounce in MessageAPI.ts streaming.
+- ~~**Vite code splitting**~~: Done — manual chunks for markdown, PDF, math, and UI vendor libs.
 - **Component decomposition**: `MultiChat.tsx` (2,848 lines) and `Settings.tsx` (2,012 lines) are large single files. Extract sub-components.
 
 ### Database
 
-- **Missing indexes**: Add indexes on `messages(chat_id, state)` and `message_parts(message_id)` for common query patterns.
+- ~~**Missing indexes**~~: Done — added indexes on `messages(chat_id, state)` and `message_parts(message_id)` in migration 144.
 - **Batch IPC for multi-step operations**: Operations like `duplicateMessageSet` make 5+ sequential IPC calls. A single Rust command that runs the whole transaction server-side would be faster.
 - **Chat list re-sorting**: `useCacheUpdateChat` re-sorts the entire chat list on every update. Guard to only sort when sort key changes.
 
@@ -90,29 +90,22 @@ Start with **Option A** for simplicity:
 ## React Patterns
 
 ### useOptimistic for Chat State
-- When user sends a message, show it in the UI immediately without waiting for the DB write
-- Currently optimistic updates are done via TanStack Query + Immer (`useCacheUpdateChat`)
-- `useOptimistic` would simplify cases where we want instant feedback with automatic rollback on failure
-- Good candidates: sending messages, toggling pins, renaming chats, deleting messages
-- Pattern: `const [optimisticMessages, addOptimisticMessage] = useOptimistic(messages, reducer)`
+- ~~Delete chat~~: Done — optimistic removal from cache with rollback on error.
+- ~~Rename chat~~: Done — optimistic title update in cache.
+- Remaining candidates: sending messages (show user message before DB write), toggling pins
+- Pattern uses TanStack Query `onMutate/onError/onSettled` with Immer `produce`
 
-### React Compiler
-- See `TODO-dependency-upgrades.md` for the dependency setup
-- Once enabled, eliminates the need for manual `React.memo()`, `useMemo`, `useCallback` throughout the codebase
-- Particularly impactful for streaming performance — currently every chunk update triggers re-renders of sibling components that could be auto-memoized
-- After enabling: audit and remove manual memoization that the compiler now handles automatically
-- Test carefully with `MultiChat.tsx` (concurrent model streaming) and `MessageMarkdown.tsx` (re-parse prevention)
+### ~~React Compiler~~
+Done — `babel-plugin-react-compiler` enabled globally in `vite.config.ts`. Automatic memoization active.
+- Follow-up: audit and remove manual `useMemo`/`useCallback` that the compiler now handles
 
 ---
 
 ## Integrations
 
-### Linear
-- Add as a new toolset in `src/core/chorus/toolsets/linear.ts`
-- Capabilities: create/update issues, search issues, list projects
-- Auth: API key (stored in `app_metadata` like other API keys) or OAuth via deep link (`chorus://linear`)
-- Use case: "Create a Linear issue from this conversation", "What's the status of issue X?"
-- Linear has an official MCP server — could also integrate as a custom MCP connection
+### ~~Linear~~
+Done — `src/core/chorus/toolsets/linear.ts` with 5 tools: `search_issues`, `get_issue`, `create_issue`, `update_issue`, `list_teams`. Uses Linear GraphQL API. Auth via manual API key in toolset config.
+- Follow-up: Add OAuth flow via deep link (`chorus://linear`) — requires backend endpoint on `app.chorus.sh`
 
 ### Google Drive / Docs
 - Add as a new toolset in `src/core/chorus/toolsets/gdrive.ts`
@@ -156,23 +149,30 @@ Add vector similarity search to find related conversations, even when keyword se
 
 ---
 
-## Conversation Search
-- Add full-text search across all chats using SQLite FTS5
-- Create a search UI (could integrate with existing CommandMenu or a dedicated search view)
+## ~~Conversation Search~~
+Done — FTS5 search was already implemented. Enhancements added:
+- Full-page search view at `/search` (`SearchView.tsx`)
+- Sidebar filter input in `AppSidebar.tsx`
+- `Cmd+Shift+F` global shortcut for search
+- "Search all conversations" action in command menu
 
 ## Export/Import
-- Export chats as markdown, JSON, or shareable formats
-- Import conversations from other tools
+- ~~Export chats as markdown, JSON~~: Done — `ExportService.ts` with `exportChatAsMarkdown` and `exportChatAsJSON`. Export dropdown in MultiChat header.
+- Import conversations from other tools — still TODO
 
-## Keyboard-First Navigation
-- Expand the existing `cmdk` command menu
-- Consider vim-style keybindings for power users
-- More keyboard shortcuts for common actions (next/prev chat, focus input, etc.)
+## ~~Keyboard-First Navigation~~
+Done — added shortcuts:
+- `Cmd+W` close current chat
+- `Cmd+Shift+F` global search
+- `Cmd+F` in-chat search (was already implemented via `FindInPage.tsx`)
+- `Cmd+B` toggle sidebar (was already implemented via `SidebarProvider`)
+- Remaining ideas: `Cmd+1..9` switch to nth chat, vim-style keybindings for power users
 
-## Token/Cost Dashboard
-- Cost tracking data already exists in the DB
-- Build an aggregate view: cost per model, per day/week/month, per project
-- Surface in Settings or a dedicated dashboard route
+## ~~Token/Cost Dashboard~~
+Done — `CostDashboard.tsx` in Settings > Usage tab. Shows:
+- Summary cards (all-time, 7-day, 30-day costs)
+- Cost breakdown by model, project, and day
+- Uses aggregate SQL queries in `CostAPI.ts`
 
 ## Local Model Management
 - Ollama and LM Studio providers exist but have no model management UI
