@@ -1198,16 +1198,9 @@ export default function Settings({ tab = "general" }: SettingsProps) {
     };
 
     const handleApiKeyChange = async (provider: string, value: string) => {
-        const currentSettings = await settingsManager.get();
-        const newApiKeys = {
-            ...currentSettings.apiKeys,
-            [provider]: value,
-        };
+        const newApiKeys = { ...apiKeys, [provider]: value };
         setApiKeys(newApiKeys);
-        void settingsManager.set({
-            ...currentSettings,
-            apiKeys: newApiKeys,
-        });
+        await settingsManager.setApiKey(provider, value);
 
         // Invalidate the API keys query so components using useApiKeys will refresh
         void queryClient.invalidateQueries({ queryKey: ["apiKeys"] });
@@ -1218,7 +1211,6 @@ export default function Settings({ tab = "general" }: SettingsProps) {
             const settings = (await settingsManager.get()) as Settings;
             setSansFont(settings.sansFont ?? "Geist");
             setMonoFont(settings.monoFont ?? "Fira Code");
-            setApiKeys(settings.apiKeys ?? {});
             setQuickChatEnabled(settings.quickChat?.enabled ?? true);
             setQuickChatShortcut(settings.quickChat?.shortcut ?? "Alt+Space");
             setAutoConvertLongText(settings.autoConvertLongText ?? true);
@@ -1228,6 +1220,10 @@ export default function Settings({ tab = "general" }: SettingsProps) {
             setLmStudioBaseUrl(
                 settings.lmStudioBaseUrl ?? "http://localhost:1234/v1",
             );
+
+            // Load API keys from keychain
+            const keychainKeys = await settingsManager.getApiKeys();
+            setApiKeys(keychainKeys);
         };
 
         void loadSettings();

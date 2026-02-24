@@ -176,8 +176,7 @@ export function useSetVisionModeEnabled() {
 
 export async function getApiKeys() {
     const settingsManager = SettingsManager.getInstance();
-    const settings = await settingsManager.get();
-    return (settings.apiKeys || {}) as Models.ApiKeys;
+    return (await settingsManager.getApiKeys()) as Models.ApiKeys;
 }
 
 export async function getCustomBaseUrl() {
