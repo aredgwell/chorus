@@ -18,7 +18,13 @@ const hmrPort = process.env.VITE_HMR_PORT
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
     plugins: [
-        react(),
+        react({
+            babel: {
+                plugins: [
+                    ["babel-plugin-react-compiler"],
+                ],
+            },
+        }),
         nodePolyfills({
             include: ["os"],
         }),
@@ -34,6 +40,28 @@ export default defineConfig(async () => ({
     },
     build: {
         target: ["safari15"], // add chrome105 if we add windows support
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    "vendor-markdown": [
+                        "react-markdown",
+                        "remark-gfm",
+                        "remark-breaks",
+                        "rehype-highlight",
+                        "rehype-raw",
+                    ],
+                    "vendor-pdf": ["pdfjs-dist"],
+                    "vendor-math": ["katex", "react-katex"],
+                    "vendor-ui": [
+                        "@radix-ui/react-dialog",
+                        "@radix-ui/react-dropdown-menu",
+                        "@radix-ui/react-tooltip",
+                        "@radix-ui/react-select",
+                        "@radix-ui/react-popover",
+                    ],
+                },
+            },
+        },
     },
 
     // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
