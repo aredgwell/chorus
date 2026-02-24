@@ -34,34 +34,15 @@ Done — removed the unused `ToolConfig` interface from `Models.ts`. No code ref
 
 ---
 
-## Custom Toolset Default Permissions
+## ~~Custom Toolset Default Permissions~~
 
-**Location**: `ToolsetsManager.ts:172`
-
-```typescript
-// TODO: Fetch from database when custom toolset configs include defaultPermission
-return "ask";
-```
-
-Custom MCP toolsets always default to "ask" permission. The `CustomToolsetConfig` type already has a `defaultPermission?: ToolPermissionType` field but it's never read. Implementation: read the value from the `custom_toolsets` table and pass it through.
+Done — `ToolsetsManager` now stores custom toolset configs and reads `defaultPermission` from the database instead of hardcoding `"ask"`.
 
 ---
 
-## Deep Link Listener Safety
+## ~~Deep Link Listener Safety~~
 
-**Location**: `App.tsx:370`
-
-```typescript
-// TODO figure out a safe solution for this (we want it to run only on app load)
-// eslint-disable-next-line react-hooks/exhaustive-deps
-```
-
-The deep link check runs inside a `useEffect` with an empty dependency array, but the `handleDeepLink` callback references state that could be stale. The ESLint suppression is a workaround.
-
-### Options
-1. Move `handleDeepLink` to a `useRef` so the effect doesn't need it as a dependency
-2. Use a module-level flag (`let deepLinkChecked = false`) to ensure single execution
-3. Move the initial deep link check to the Rust side (check and forward on app init)
+Done — replaced empty dependency array + ESLint suppression with a module-level `deepLinkChecked` flag. The effect now properly lists `handleDeepLink` as a dependency while ensuring single execution.
 
 ---
 
@@ -97,12 +78,8 @@ The fixed header bar with drag region, navigation buttons, and title is duplicat
 
 ## UI Polish
 
-### Tabs Color Token
-**Location**: `tabs.tsx:15`
-```typescript
-// TODO: Is there an actual color we can use in place of gray alternates here?
-```
-The `TabsList` uses hardcoded `bg-gray-100 dark:bg-gray-900`. Should use a design token from the theme (e.g., `bg-muted`).
+### ~~Tabs Color Token~~
+Done — replaced hardcoded `bg-gray-100 dark:bg-gray-900` with `bg-muted text-muted-foreground`.
 
 ### LMStudio Logo
 **Location**: `provider-logo.tsx:55`
@@ -111,20 +88,11 @@ The `TabsList` uses hardcoded `bg-gray-100 dark:bg-gray-900`. Should use a desig
 ```
 Currently uses a generic `BoxIcon` placeholder. Need to find or create an LMStudio logo asset.
 
-### Markdown Indented Code Blocks
-**Location**: `MessageMarkdown.tsx:171`
-```typescript
-// TODO: there's an exception for code blocks only, but it should
-// also do an exception for indented blocks (4 spaces or 1 tab)
-```
-The `safeEncodeMarkdown` function correctly preserves fenced code blocks (`` ``` ``) but doesn't handle indented code blocks (4 spaces / 1 tab prefix), which remark also renders as `<pre><code>`. HTML inside these blocks gets incorrectly encoded.
+### ~~Markdown Indented Code Blocks~~
+Done — the `preBlocks` extraction was already implemented correctly. Removed stale TODO comment.
 
-### `sentAttachmentTypes` Unused Prop
-**Location**: `ChatInput.tsx:85`
-```typescript
-sentAttachmentTypes: AttachmentType[]; // todo: should we bring this back for something?
-```
-This prop is passed through but appears unused. Either remove it or document what it was intended for.
+### ~~`sentAttachmentTypes` Unused Prop~~
+Done — removed unused prop from `ChatInput.tsx`, its `useMemo` computation in `MultiChat.tsx`, and call sites in `MultiChat.tsx` and `ReplyChat.tsx`.
 
 ---
 

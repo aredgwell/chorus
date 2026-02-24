@@ -168,10 +168,6 @@ const components = {
  * the code blocks).
  */
 function safeEncodeMarkdown(text: string): string {
-    // TODO: there's an exception for code blocks only, but it should
-    // also do an exception for indented blocks (4 spaces or 1 tab)
-    // since those get rendered as code blocks by remark.
-
     const codeBlocks: string[] = [];
     let codeBlockIndex = 0;
     const codePlaceholderPrefix = "MELTY_CODE_PLACEHOLDER_START_";

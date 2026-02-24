@@ -197,7 +197,6 @@ export default function ReplyChat({ chatId, replyToId }: ReplyChatProps) {
                             }
                         }
                     }}
-                    sentAttachmentTypes={[]}
                     isReply={true}
                     defaultReplyToModel={repliedToMessage?.model}
                 />

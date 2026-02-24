@@ -1808,16 +1808,6 @@ export default function MultiChat() {
         [navigate, chatId, location.search],
     );
 
-    const sentAttachmentTypes: Models.AttachmentType[] = useMemo(() => {
-        if (!messageSetsQuery.data) return [];
-        const sentAttachments = messageSetsQuery.data?.flatMap((msc) =>
-            msc.selectedBlockType === "user"
-                ? msc.userBlock.message?.attachments || []
-                : [],
-        );
-        return [...new Set(sentAttachments.map((a) => a.type))];
-    }, [messageSetsQuery.data]);
-
     const currentMessageSet =
         messageSetsQuery.data && messageSetsQuery.data.length > 0
             ? messageSetsQuery.data[messageSetsQuery.data.length - 1]
@@ -2587,7 +2577,6 @@ export default function MultiChat() {
                                     scrollToLatestMessageSet={
                                         scrollToLatestMessageSet
                                     }
-                                    sentAttachmentTypes={sentAttachmentTypes}
                                     showScrollButton={showScrollButton}
                                     handleScrollToBottom={handleScrollToBottom}
                                 />

@@ -130,6 +130,8 @@ const queryClient = new QueryClient({
 //     );
 // }
 
+let deepLinkChecked = false;
+
 function AppContent() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -364,8 +366,11 @@ function AppContent() {
         [updateToolsetsConfig, navigate],
     );
 
-    // Check for deep link on app load
+    // Check for deep link on app load (module-level flag ensures single execution)
     useEffect(() => {
+        if (deepLinkChecked) return;
+        deepLinkChecked = true;
+
         const checkDeepLink = async () => {
             const urls = await getCurrentDeepLink();
             if (urls) {
@@ -374,9 +379,7 @@ function AppContent() {
         };
 
         void checkDeepLink().catch(console.error);
-        // TODO figure out a safe solution for this (we want it to run only on app load)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [handleDeepLink]);
 
     // Deep link listener for when app is already running
     useEffect(() => {

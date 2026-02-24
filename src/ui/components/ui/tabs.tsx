@@ -12,8 +12,7 @@ const TabsList = React.forwardRef<
     <TabsPrimitive.List
         ref={ref}
         className={cn(
-            // TODO: Is there an actual color we can use in place of gray alternates here?
-            "inline-flex items-center justify-center rounded-md bg-gray-100 dark:bg-gray-900 p-1 text-gray-800 dark:text-gray-200 font-[350]",
+            "inline-flex items-center justify-center rounded-md bg-muted p-1 text-muted-foreground font-[350]",
             className,
         )}
         {...props}
