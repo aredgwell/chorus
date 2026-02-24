@@ -4,10 +4,7 @@ import { Loader2, X, Undo2, Users } from "lucide-react";
 import { HeaderBar } from "@ui/components/HeaderBar";
 import { MessageMarkdown } from "@ui/components/renderers/MessageMarkdown";
 import { ProviderLogo } from "@ui/components/ui/provider-logo";
-import { Button } from "@ui/components/ui/button";
 import Composer from "@ui/components/Composer";
-import { displayDate, convertDate } from "@ui/lib/utils";
-import { getProviderName } from "@core/chorus/Models";
 import {
     useGCMainMessages,
     useSendGCMessage,
@@ -19,10 +16,7 @@ import {
 } from "@core/chorus/api/GroupChatAPI";
 import { useChat } from "@core/chorus/api/ChatAPI";
 import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
-import {
-    getModelDisplayName,
-    getModelAvatar,
-} from "@core/chorus/gc-prototype/UtilsGC";
+import { getModelDisplayName } from "@core/chorus/gc-prototype/UtilsGC";
 
 // NOTE: useRef is used here for auto-scroll (standard DOM pattern).
 // useState is used for thinking state tracking (event-driven from ModelThinkingTracker).
@@ -86,6 +80,126 @@ function formatThinkingModels(instances: ModelInstance[]): string {
 // GCMessageView
 // ---------------------------------------------------------------------------
 
+function UserMessageView({
+    message,
+    onDelete,
+    onRestore,
+}: {
+    message: GCMessage;
+    onDelete: (messageId: string) => void;
+    onRestore: (messageId: string) => void;
+}) {
+    return (
+        <div className="group/message-set-view relative mb-6 flex justify-end px-4">
+            {/* Hover actions — floating above the bubble */}
+            <div className="flex items-center justify-end absolute -top-2.5 left-0 right-1 invisible group-hover/message-set-view:visible text-muted-foreground z-10">
+                <div className="bg-background rounded-lg flex items-center justify-center px-2 py-1 gap-2">
+                    {message.isDeleted ? (
+                        <button
+                            className="hover:text-foreground transition-colors"
+                            onClick={() => onRestore(message.id)}
+                            title="Restore message"
+                        >
+                            <Undo2 className="h-3.5 w-3.5" />
+                        </button>
+                    ) : (
+                        <button
+                            className="hover:text-foreground transition-colors"
+                            onClick={() => onDelete(message.id)}
+                            title="Delete message"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* User bubble */}
+            <div className="relative bg-highlight text-highlight-foreground inline-block max-w-full rounded">
+                <div className="px-5 py-3 text-base whitespace-pre-wrap">
+                    {message.isDeleted ? (
+                        <span className="italic text-muted-foreground">
+                            Message deleted
+                        </span>
+                    ) : (
+                        message.text
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function AIMessageView({
+    message,
+    onDelete,
+    onRestore,
+}: {
+    message: GCMessage;
+    onDelete: (messageId: string) => void;
+    onRestore: (messageId: string) => void;
+}) {
+    const displayName = getModelDisplayName(message.modelConfigId);
+
+    return (
+        <div className="group/message-set-view relative mb-6 px-4">
+            {/* Card with thin border */}
+            <div className="relative rounded-md border-[0.090rem] bg-background">
+                {/* Header bar: model name + actions, floating above the card */}
+                <div className="absolute left-0 right-0 -top-3 h-6 flex items-center justify-between z-5">
+                    {/* Model name */}
+                    <div className="flex items-center h-6 gap-2">
+                        <div className="ml-2 px-2 bg-background text-muted-foreground">
+                            <div className="flex items-center gap-2 h-6">
+                                <ProviderLogo
+                                    size="sm"
+                                    modelId={message.modelConfigId}
+                                    className="-mt-px"
+                                />
+                                <div className="text-sm">{displayName}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Hover action buttons */}
+                    <div className="mr-3 flex items-center h-6 gap-2">
+                        <div className="gap-2 text-muted-foreground px-2 hidden group-hover/message-set-view:flex bg-background">
+                            {message.isDeleted ? (
+                                <button
+                                    className="hover:text-foreground transition-colors"
+                                    onClick={() => onRestore(message.id)}
+                                    title="Restore message"
+                                >
+                                    <Undo2 className="h-3.5 w-3.5" />
+                                </button>
+                            ) : (
+                                <button
+                                    className="hover:text-foreground transition-colors"
+                                    onClick={() => onDelete(message.id)}
+                                    title="Delete message"
+                                >
+                                    <X className="h-3.5 w-3.5" />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Message content */}
+                <div className="p-4 pb-6 relative overflow-y-auto select-text">
+                    {message.isDeleted ? (
+                        <div className="text-sm text-muted-foreground italic">
+                            Message deleted
+                        </div>
+                    ) : (
+                        <MessageMarkdown text={message.text} />
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function GCMessageView({
     message,
     onDelete,
@@ -95,80 +209,22 @@ function GCMessageView({
     onDelete: (messageId: string) => void;
     onRestore: (messageId: string) => void;
 }) {
-    const isUser = message.modelConfigId === "user";
-    const avatar = getModelAvatar(message.modelConfigId);
-    const displayName = getModelDisplayName(message.modelConfigId);
+    if (message.modelConfigId === "user") {
+        return (
+            <UserMessageView
+                message={message}
+                onDelete={onDelete}
+                onRestore={onRestore}
+            />
+        );
+    }
 
     return (
-        <div className="group relative flex gap-3 py-3 px-4">
-            {/* Avatar */}
-            <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center">
-                {isUser ? (
-                    <div
-                        className={`w-8 h-8 rounded-full ${avatar.bgColor} ${avatar.textColor} flex items-center justify-center text-xs font-medium`}
-                    >
-                        {avatar.initials}
-                    </div>
-                ) : (
-                    <ProviderLogo
-                        provider={getProviderName(message.modelConfigId)}
-                        modelId={message.modelConfigId}
-                        size="sm"
-                    />
-                )}
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-sm font-medium">{displayName}</span>
-                    <span className="text-xs text-muted-foreground">
-                        {displayDate(convertDate(message.createdAt))}
-                    </span>
-                </div>
-
-                {message.isDeleted ? (
-                    <div className="text-sm text-muted-foreground italic">
-                        Message deleted
-                    </div>
-                ) : (
-                    <div className="text-sm">
-                        {isUser ? (
-                            <p className="whitespace-pre-wrap">
-                                {message.text}
-                            </p>
-                        ) : (
-                            <MessageMarkdown text={message.text} />
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* Hover actions */}
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                {message.isDeleted ? (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => onRestore(message.id)}
-                        title="Restore message"
-                    >
-                        <Undo2 className="h-3 w-3" />
-                    </Button>
-                ) : (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => onDelete(message.id)}
-                        title="Delete message"
-                    >
-                        <X className="h-3 w-3" />
-                    </Button>
-                )}
-            </div>
-        </div>
+        <AIMessageView
+            message={message}
+            onDelete={onDelete}
+            onRestore={onRestore}
+        />
     );
 }
 
@@ -329,20 +385,20 @@ export default function GroupChat() {
 
                     {/* Thinking indicator */}
                     {thinkingModelInstances.length > 0 && (
-                        <div className="flex gap-3 py-3 px-4">
-                            <div className="shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            </div>
-                            <div className="flex-1 flex items-center">
-                                <span className="text-sm text-muted-foreground">
-                                    {formatThinkingModels(
-                                        thinkingModelInstances,
-                                    )}
-                                    {thinkingModelInstances.length === 1
-                                        ? " is"
-                                        : " are"}{" "}
-                                    thinking...
-                                </span>
+                        <div className="px-4 mb-6">
+                            <div className="rounded-md border-[0.090rem] bg-background p-4">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span>
+                                        {formatThinkingModels(
+                                            thinkingModelInstances,
+                                        )}
+                                        {thinkingModelInstances.length === 1
+                                            ? " is"
+                                            : " are"}{" "}
+                                        thinking...
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     )}
