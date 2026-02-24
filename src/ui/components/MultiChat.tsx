@@ -1723,6 +1723,11 @@ function ModelSelectorWrapper() {
     return <QuickChatModelSelector onModelSelect={handleModelSelect} />;
 }
 
+// Module-level scroll position cache: saves scroll position per chat
+// so it can be restored when switching back to a previously viewed chat.
+const scrollPositionCache = new Map<string, number>();
+let previousChatId: string | undefined;
+
 export const SHARE_CHAT_DIALOG_ID = "share-chat-dialog";
 
 export default function MultiChat() {
@@ -2784,14 +2789,33 @@ function MainScrollableContentView({
         manageScrollBottomButton();
     }, [messageSetsQuery.data, manageScrollBottomButton]);
 
-    // scroll to bottom after initial message load
-    // (TODO: save and restore previous scroll position)
+    // Save scroll position when leaving a chat, restore when entering
     useEffect(() => {
+        // Save previous chat's scroll position
+        if (previousChatId && previousChatId !== chatId) {
+            const container = chatContainerRef.current;
+            if (container) {
+                scrollPositionCache.set(previousChatId, container.scrollTop);
+            }
+        }
+        previousChatId = chatId;
+
+        // Restore saved position or scroll to bottom for the new chat
         // using hacky timeout because requestAnimationFrame isn't working for unknown reasons
         setTimeout(() => {
-            handleScrollToBottom(false);
+            const container = chatContainerRef.current;
+            if (!container) return;
+
+            const savedPosition = chatId
+                ? scrollPositionCache.get(chatId)
+                : undefined;
+            if (savedPosition !== undefined) {
+                container.scrollTo({ top: savedPosition, behavior: "instant" });
+            } else {
+                handleScrollToBottom(false);
+            }
         }, 50);
-    }, [chatId, messageSetsQuery.isSuccess, handleScrollToBottom]);
+    }, [chatId, messageSetsQuery.isSuccess, handleScrollToBottom, chatContainerRef]);
 
     // --------------------------------------------------------------------------
     // Spacers
