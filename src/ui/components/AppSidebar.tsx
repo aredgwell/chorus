@@ -9,6 +9,7 @@ import {
     SquarePlusIcon,
     ArrowBigUpIcon,
     EllipsisIcon,
+    SearchIcon,
 } from "lucide-react";
 import {
     Sidebar,
@@ -435,11 +436,13 @@ export function AppSidebarInner() {
     const chatsQuery = useQuery(ChatAPI.chatQueries.list());
     const createProject = ProjectAPI.useCreateProject();
     const location = useLocation();
+    const navigate = useNavigate();
     const currentChatId = location.pathname.split("/").pop()!; // well this is super hacky
     const updateChatProject = ProjectAPI.useSetChatProject();
     const getOrCreateNewChat = ChatAPI.useGetOrCreateNewChat();
 
     const [showAllChats, setShowAllChats] = useState(false);
+    const [sidebarFilter, setSidebarFilter] = useState("");
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -460,14 +463,19 @@ export function AppSidebarInner() {
             ),
         [chatsQuery.data],
     );
-    const defaultChats = useMemo(
-        () =>
-            filterChatsForDisplay(
-                chatsByProject["default"] || [],
-                currentChatId,
-            ),
-        [chatsByProject, currentChatId],
-    );
+    const defaultChats = useMemo(() => {
+        const chats = filterChatsForDisplay(
+            chatsByProject["default"] || [],
+            currentChatId,
+        );
+        if (!sidebarFilter) return chats;
+        const lower = sidebarFilter.toLowerCase();
+        return chats.filter(
+            (chat) =>
+                chat.title?.toLowerCase().includes(lower) ||
+                chat.id === currentChatId,
+        );
+    }, [chatsByProject, currentChatId, sidebarFilter]);
     const groupedChats = useMemo(
         () =>
             groupChatsByDate(
@@ -566,6 +574,46 @@ export function AppSidebarInner() {
                                         ⌘N
                                     </span>
                                 </button>
+
+                                {/* Search input */}
+                                <div className="px-2 mb-2">
+                                    <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-sidebar-accent/50 border border-border/50">
+                                        <SearchIcon className="size-3.5 text-muted-foreground shrink-0" />
+                                        <input
+                                            type="text"
+                                            value={sidebarFilter}
+                                            onChange={(e) =>
+                                                setSidebarFilter(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            onKeyDown={(e) => {
+                                                if (
+                                                    e.key === "Enter" &&
+                                                    sidebarFilter.trim()
+                                                ) {
+                                                    navigate(
+                                                        `/search?q=${encodeURIComponent(sidebarFilter)}`,
+                                                    );
+                                                }
+                                            }}
+                                            placeholder="Filter chats..."
+                                            className="bg-transparent border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-hidden w-full"
+                                        />
+                                        {sidebarFilter && (
+                                            <button
+                                                className="text-muted-foreground hover:text-foreground"
+                                                onClick={() =>
+                                                    setSidebarFilter("")
+                                                }
+                                            >
+                                                <span className="text-xs">
+                                                    ✕
+                                                </span>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
 
                                 {/* add new project */}
                                 {hasNonQuickChats && (

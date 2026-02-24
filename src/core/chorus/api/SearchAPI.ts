@@ -108,3 +108,79 @@ export interface SearchResult {
 export function useSearchMessages(query: string) {
     return useQuery(searchQuery(query));
 }
+
+/**
+ * Full search query that returns all matching messages (not deduplicated by chat).
+ * Used by the dedicated search view for richer results.
+ */
+const fullSearchQuery = (query: string) => ({
+    queryKey: ["searchResults", "full", query] as const,
+    queryFn: async () => {
+        const ftsQuery = escapeFtsQuery(query);
+        if (!ftsQuery) return [];
+
+        const results = await db.select<SearchResult[]>(
+            `
+                SELECT DISTINCT
+                    m.id,
+                    m.chat_id,
+                    CASE
+                        WHEN m.model = 'user' THEN COALESCE(m.text, '')
+                        ELSE COALESCE(NULLIF(m.text, ''), mp.content, '')
+                    END as text,
+                    m.model,
+                    m.created_at,
+                    c.title,
+                    ms.type,
+                    CASE
+                        WHEN m.model = 'user' THEN 'You'
+                        ELSE m.model
+                    END as message_type,
+                    c.project_id,
+                    c.parent_chat_id,
+                    c.reply_to_id
+                FROM messages_fts fts
+                INNER JOIN messages m ON fts.message_id = m.id AND fts.chat_id = m.chat_id
+                INNER JOIN chats c ON m.chat_id = c.id
+                LEFT JOIN message_sets ms ON m.message_set_id = ms.id
+                LEFT JOIN message_parts mp ON m.id = mp.message_id AND m.chat_id = mp.chat_id
+                WHERE messages_fts MATCH $1
+
+                UNION
+
+                SELECT DISTINCT
+                    m.id,
+                    m.chat_id,
+                    COALESCE(m.text, '') as text,
+                    m.model,
+                    m.created_at,
+                    c.title,
+                    ms.type,
+                    CASE
+                        WHEN m.model = 'user' THEN 'You'
+                        ELSE m.model
+                    END as message_type,
+                    c.project_id,
+                    c.parent_chat_id,
+                    c.reply_to_id
+                FROM chats c
+                INNER JOIN messages m ON m.chat_id = c.id
+                LEFT JOIN message_sets ms ON m.message_set_id = ms.id
+                LEFT JOIN message_parts mp ON m.id = mp.message_id AND m.chat_id = mp.chat_id
+                WHERE c.title LIKE '%' || $2 || '%'
+                    AND c.title IS NOT NULL
+                    AND c.title != 'Untitled Chat'
+
+                ORDER BY created_at DESC
+                LIMIT 200
+            `,
+            [ftsQuery, query],
+        );
+
+        return results;
+    },
+});
+
+export function useFullSearchMessages(query: string) {
+    return useQuery(fullSearchQuery(query));
+}

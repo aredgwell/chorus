@@ -16,6 +16,7 @@ import {
     MessageCircle,
     Plus,
     ScanTextIcon,
+    SearchIcon,
     Settings,
 } from "lucide-react";
 import { useState, useMemo, ReactNode, useCallback } from "react";
@@ -88,6 +89,15 @@ export function CommandMenu() {
                 shortcut: "⌘⇧N",
                 action: () => {
                     createProject.mutate();
+                },
+            },
+            {
+                id: "search",
+                label: "Search all conversations",
+                icon: SearchIcon,
+                shortcut: "⌘⇧F",
+                action: () => {
+                    navigate("/search");
                 },
             },
             {
