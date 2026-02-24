@@ -59,6 +59,7 @@ import { platform, arch, version } from "@tauri-apps/plugin-os";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { resourceDir, homeDir } from "@tauri-apps/api/path";
+import { invoke } from "@tauri-apps/api/core";
 import { v4 as uuidv4 } from "uuid";
 import {
     MutationCache,
@@ -79,6 +80,7 @@ import * as ToolsetsAPI from "@core/chorus/api/ToolsetsAPI";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
 import { SettingsManager } from "@core/utilities/Settings";
+import { SimilarChatsDialog } from "./components/SimilarChatsDialog";
 
 scan({
     enabled: import.meta.env.DEV,
@@ -922,6 +924,7 @@ function AppContent() {
                         <Settings tab={defaultSettingsTab || "general"} />
                     )}
                     <ToolPermissionDialog />
+                    {!isQuickChatWindow && <SimilarChatsDialog />}
                     <Toaster
                         theme={
                             mode === "system"
@@ -1031,6 +1034,11 @@ function App() {
         return () => {
             window.removeEventListener("beforeunload", handleBeforeUnload);
         };
+    }, []);
+
+    // Initialize sqlite-vec virtual table for semantic search
+    useEffect(() => {
+        void invoke("ensure_vec_table").catch(console.error);
     }, []);
 
     return (

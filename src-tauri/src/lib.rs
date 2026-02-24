@@ -120,6 +120,13 @@ fn parse_shortcut(shortcut_str: &str) -> Option<Shortcut> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Register sqlite-vec as an auto-extension so every rusqlite connection loads it
+    unsafe {
+        rusqlite::ffi::sqlite3_auto_extension(Some(std::mem::transmute(
+            sqlite_vec::sqlite3_vec_init as *const (),
+        )));
+    }
+
     #[cfg(debug_assertions)] // only enable instrumentation in development builds
     let devtools = tauri_plugin_devtools::init();
 
@@ -455,6 +462,9 @@ pub fn run() {
             command::write_file_async,
             command::get_file_metadata,
             command::branch_chat,
+            command::ensure_vec_table,
+            command::upsert_chat_embedding,
+            command::find_similar_chats,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

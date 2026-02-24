@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use tauri::{AppHandle, Emitter, Manager};
 #[cfg(target_os = "macos")]
 use tauri_nspanel::ManagerExt;
+use zerocopy::AsBytes;
 
 use crate::SPOTLIGHT_LABEL;
 
@@ -1045,6 +1046,130 @@ pub async fn branch_chat(
             "messageSetIdMap": message_set_id_map,
             "messageIdMap": message_id_map,
         }))
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+}
+
+/// Create the vec0 virtual table for storing chat embeddings if it doesn't exist.
+#[tauri::command]
+pub async fn ensure_vec_table(app_handle: AppHandle) -> Result<(), String> {
+    let db_path = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("chats.db");
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        conn.execute_batch(
+            "CREATE VIRTUAL TABLE IF NOT EXISTS chat_embeddings USING vec0(
+                chat_id TEXT PRIMARY KEY,
+                embedding FLOAT[1536]
+            );",
+        )
+        .map_err(|e| e.to_string())?;
+        Ok::<(), String>(())
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+}
+
+/// Store or update an embedding for a chat. vec0 doesn't support UPSERT,
+/// so we delete-then-insert inside a transaction.
+#[tauri::command]
+pub async fn upsert_chat_embedding(
+    app_handle: AppHandle,
+    chat_id: String,
+    embedding: Vec<f32>,
+) -> Result<(), String> {
+    let db_path = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("chats.db");
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "DELETE FROM chat_embeddings WHERE chat_id = ?1",
+            rusqlite::params![chat_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "INSERT INTO chat_embeddings(chat_id, embedding) VALUES (?1, ?2)",
+            rusqlite::params![chat_id, embedding.as_bytes()],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok::<(), String>(())
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+}
+
+/// Find chats with similar embeddings using KNN search.
+#[tauri::command]
+pub async fn find_similar_chats(
+    app_handle: AppHandle,
+    embedding: Vec<f32>,
+    limit: i32,
+    exclude_chat_id: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let db_path = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("chats.db");
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+
+        // KNN query against the vec0 table, joined with chats for metadata
+        let sql = "
+            SELECT
+                ce.chat_id,
+                c.title,
+                ce.distance,
+                c.project_id,
+                c.updated_at
+            FROM chat_embeddings ce
+            INNER JOIN chats c ON c.id = ce.chat_id
+            WHERE ce.embedding MATCH ?1
+              AND k = ?2
+            ORDER BY ce.distance
+        ";
+
+        let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(rusqlite::params![embedding.as_bytes(), limit], |row| {
+                Ok(serde_json::json!({
+                    "chatId": row.get::<_, String>(0)?,
+                    "title": row.get::<_, Option<String>>(1)?,
+                    "distance": row.get::<_, f64>(2)?,
+                    "projectId": row.get::<_, Option<String>>(3)?,
+                    "updatedAt": row.get::<_, Option<String>>(4)?,
+                }))
+            })
+            .map_err(|e| e.to_string())?;
+
+        let mut results: Vec<serde_json::Value> = Vec::new();
+        for row in rows {
+            let val = row.map_err(|e| e.to_string())?;
+            // Filter out the excluded chat
+            if let Some(ref exclude_id) = exclude_chat_id {
+                if val.get("chatId").and_then(|v| v.as_str()) == Some(exclude_id.as_str()) {
+                    continue;
+                }
+            }
+            results.push(val);
+        }
+
+        Ok(serde_json::json!(results))
     })
     .await
     .map_err(|e| format!("Task join error: {}", e))?

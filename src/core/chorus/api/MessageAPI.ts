@@ -50,6 +50,7 @@ import {
     useMarkProjectContextSummaryAsStale,
 } from "./ProjectAPI";
 import { useGetToolsets } from "./ToolsetsAPI";
+import { generateAndStoreEmbedding } from "@core/chorus/EmbeddingService";
 import { fetchAppMetadata } from "./AppMetadataAPI";
 import {
     modelConfigQueries,
@@ -2098,6 +2099,12 @@ export function useSummarizeChat() {
                 summary,
                 chatId,
             ]);
+
+            // Generate and store embedding asynchronously (fire-and-forget)
+            void generateAndStoreEmbedding(chatId, summary).catch(
+                console.error,
+            );
+
             return { summary };
         },
     });
