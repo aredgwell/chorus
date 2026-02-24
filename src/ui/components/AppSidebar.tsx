@@ -867,6 +867,7 @@ function ChatListItem({ chat, isActive }: { chat: Chat; isActive: boolean }) {
     const { data: parentChat } = useQuery(
         ChatAPI.chatQueries.detail(chat.parentChatId ?? undefined),
     );
+    const branchCount = ChatAPI.useBranchCount(chat.id);
 
     const handleOpenDeleteDialog = useCallback(() => {
         dialogActions.openDialog(deleteChatDialogId(chat.id));
@@ -933,6 +934,7 @@ function ChatListItem({ chat, isActive }: { chat: Chat; isActive: boolean }) {
             isNewChat={chat.isNewChat}
             parentChatId={parentChat?.id ?? null}
             parentChatTitle={parentChat?.title || null}
+            branchCount={branchCount}
             isActive={isActive}
             isEditingTitle={isEditingTitle}
             onStartEdit={handleStartEdit}
@@ -955,6 +957,7 @@ type ChatListItemViewProps = {
     isNewChat: boolean;
     parentChatId: string | null;
     parentChatTitle: string | null;
+    branchCount: number;
     isActive: boolean;
     isEditingTitle: boolean;
     onStartEdit: () => void;
@@ -976,6 +979,7 @@ const ChatListItemView = React.memo(
         isNewChat,
         parentChatId,
         parentChatTitle,
+        branchCount,
         isActive,
         isEditingTitle,
         onStartEdit,
@@ -1057,6 +1061,20 @@ const ChatListItemView = React.memo(
                                         {formatCost(chatCost)}
                                     </span>
                                 )}
+                            {branchCount > 0 && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span className="ml-auto pl-2 text-xs text-muted-foreground shrink-0 flex items-center gap-0.5">
+                                            <SplitOptimized className="w-2.5 h-2.5" />
+                                            {branchCount}
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {branchCount} branch
+                                        {branchCount !== 1 ? "es" : ""}
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
                         </div>
 
                         {/* Gradient overlay that appears when hovering */}
