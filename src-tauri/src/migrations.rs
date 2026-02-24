@@ -2745,5 +2745,15 @@ You have full access to bash commands on the user''''s computer. If you write a 
                 UPDATE models SET supports_tool_use = 0 WHERE id LIKE 'perplexity::%';
             "#,
         },
+        Migration {
+            version: 144,
+            description: "add indexes for messages and message_parts lookups",
+            kind: MigrationKind::Up,
+            sql: r#"
+                CREATE INDEX IF NOT EXISTS idx_messages_chat_state ON messages(chat_id, state);
+                CREATE INDEX IF NOT EXISTS idx_message_parts_message_id ON message_parts(message_id);
+                CREATE INDEX IF NOT EXISTS idx_message_parts_chat_id ON message_parts(chat_id);
+            "#,
+        },
     ];
 }
