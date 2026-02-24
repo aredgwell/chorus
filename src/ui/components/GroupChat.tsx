@@ -244,11 +244,13 @@ function FullScreenMessageDialog({
 
 function AIMessageView({
     message,
+    isStreaming,
     onDelete,
     onRestore,
     onRegenerate,
 }: {
     message: GCMessage;
+    isStreaming?: boolean;
     onDelete: (messageId: string) => void;
     onRestore: (messageId: string) => void;
     onRegenerate: (messageId: string, modelConfigId: string) => void;
@@ -275,9 +277,9 @@ function AIMessageView({
                         </div>
                     </div>
 
-                    {/* Hover action buttons */}
+                    {/* Hover action buttons (hidden while streaming) */}
                     <div className="mr-3 flex items-center h-6 gap-2">
-                        <div className="gap-2 text-muted-foreground px-2 hidden group-hover/message-set-view:flex bg-background">
+                        <div className={`gap-2 text-muted-foreground px-2 bg-background ${isStreaming ? "hidden" : "hidden group-hover/message-set-view:flex"}`}>
                             {message.isDeleted ? (
                                 <button
                                     className="hover:text-foreground transition-colors"
@@ -341,6 +343,8 @@ function AIMessageView({
                         <div className="text-sm text-muted-foreground italic">
                             Message deleted
                         </div>
+                    ) : !message.text && isStreaming ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                     ) : API_KEY_ERROR_PATTERN.test(message.text) ? (
                         <ErrorMessageWithSettingsLink text={message.text} />
                     ) : (
@@ -354,11 +358,13 @@ function AIMessageView({
 
 function GCMessageView({
     message,
+    isStreaming,
     onDelete,
     onRestore,
     onRegenerate,
 }: {
     message: GCMessage;
+    isStreaming?: boolean;
     onDelete: (messageId: string) => void;
     onRestore: (messageId: string) => void;
     onRegenerate: (messageId: string, modelConfigId: string) => void;
@@ -376,6 +382,7 @@ function GCMessageView({
     return (
         <AIMessageView
             message={message}
+            isStreaming={isStreaming}
             onDelete={onDelete}
             onRestore={onRestore}
             onRegenerate={onRegenerate}
@@ -404,10 +411,11 @@ export default function GroupChat() {
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll when messages change
+    // Auto-scroll only when new messages appear (not on every streaming chunk)
+    const messageCount = messages?.length ?? 0;
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+    }, [messageCount]);
 
     // Subscribe to thinking state changes
     useEffect(() => {
@@ -452,6 +460,33 @@ export default function GroupChat() {
     }, [generatingModels]);
 
     const isGenerating = thinkingModelInstances.length > 0;
+
+    // Set of model IDs currently streaming (for inline streaming indicators)
+    const streamingModelIds = useMemo(() => {
+        const ids = new Set<string>();
+        generatingModels.forEach((count, modelId) => {
+            if (count > 0) ids.add(modelId);
+        });
+        return ids;
+    }, [generatingModels]);
+
+    // Set of message IDs that are actively streaming (last message per streaming model)
+    const streamingMessageIds = useMemo(() => {
+        const ids = new Set<string>();
+        if (!messages || streamingModelIds.size === 0) return ids;
+        const seenModels = new Set<string>();
+        for (let i = messages.length - 1; i >= 0; i--) {
+            const msg = messages[i];
+            if (
+                streamingModelIds.has(msg.modelConfigId) &&
+                !seenModels.has(msg.modelConfigId)
+            ) {
+                ids.add(msg.id);
+                seenModels.add(msg.modelConfigId);
+            }
+        }
+        return ids;
+    }, [messages, streamingModelIds]);
 
     const handleSend = useCallback(
         async (text: string) => {
@@ -542,6 +577,9 @@ export default function GroupChat() {
                         <GCMessageView
                             key={message.id}
                             message={message}
+                            isStreaming={streamingMessageIds.has(
+                                message.id,
+                            )}
                             onDelete={handleDelete}
                             onRestore={handleRestore}
                             onRegenerate={handleRegenerate}

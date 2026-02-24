@@ -1,4 +1,5 @@
 import {
+    QueryClient,
     useMutation,
     useQuery,
     useQueryClient,
@@ -9,13 +10,20 @@ import { db } from "@core/chorus/DB";
 import { chatQueries } from "@core/chorus/api/ChatAPI";
 import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
 import { getApiKeys } from "@core/chorus/api/AppMetadataAPI";
-import { LLMMessage, ModelConfig, streamResponse } from "@core/chorus/Models";
+import {
+    LLMMessage,
+    ModelConfig,
+    UsageData,
+    streamResponse,
+} from "@core/chorus/Models";
+import { UserToolCall } from "@core/chorus/Toolsets";
 import { simpleLLM } from "@core/chorus/simpleLLM";
 import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
 import {
     getChatFormatPrompt,
     getNonConductorPrompt,
 } from "@core/chorus/gc-prototype/PromptsGC";
+import { UpdateQueue } from "@core/chorus/UpdateQueue";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -282,19 +290,44 @@ async function getRespondingModels(text: string): Promise<{
 }
 
 // ---------------------------------------------------------------------------
-// generateResponseWithStreamAPI — collect full response (no partial streaming)
+// streamGCResponse — stream response with live cache + DB updates
 // ---------------------------------------------------------------------------
 
-async function generateResponseWithStreamAPI(
-    modelConfig: ModelConfig,
-    conversation: LLMMessage[],
-    chatId: string,
-): Promise<string> {
+async function streamGCResponse(params: {
+    chatId: string;
+    messageId: string;
+    modelConfig: ModelConfig;
+    conversation: LLMMessage[];
+    queryClient: QueryClient;
+    scopeId?: string;
+}): Promise<{ toolCalls?: UserToolCall[] }> {
+    const { chatId, messageId, modelConfig, conversation, queryClient, scopeId } =
+        params;
     const apiKeys = await getApiKeys();
-    let fullResponse = "";
-    let error: string | undefined;
+    const scope = scopeId ?? "main";
 
-    modelThinkingTracker.startThinking(modelConfig.modelId, chatId, "main");
+    let partialResponse = "";
+    let priority = 0;
+    let error: string | undefined;
+    let resultToolCalls: UserToolCall[] | undefined;
+
+    const streamKey = UpdateQueue.getInstance().startUpdateStream();
+
+    modelThinkingTracker.startThinking(modelConfig.modelId, chatId, scope);
+
+    const updateMessageTextInCache = (text: string) => {
+        queryClient.setQueryData(
+            gcMessageKeys.main(chatId),
+            produce(
+                queryClient.getQueryData(gcMessageKeys.main(chatId)),
+                (draft: GCMessage[] | undefined) => {
+                    if (!draft) return;
+                    const msg = draft.find((m) => m.id === messageId);
+                    if (msg) msg.text = text;
+                },
+            ),
+        );
+    };
 
     try {
         await streamResponse({
@@ -302,22 +335,56 @@ async function generateResponseWithStreamAPI(
             llmConversation: conversation,
             apiKeys,
             onChunk: (chunk: string) => {
-                fullResponse += chunk;
+                partialResponse += chunk;
+                priority += 1;
+
+                // Optimistic UI update
+                updateMessageTextInCache(partialResponse);
+
+                // Queue batched DB write
+                const textSnapshot = partialResponse;
+                UpdateQueue.getInstance().addUpdate(
+                    streamKey,
+                    priority,
+                    async () => {
+                        await db.execute(
+                            `UPDATE gc_messages SET text = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+                            [textSnapshot, messageId],
+                        );
+                    },
+                );
             },
-            onComplete: async () => {
+            onComplete: async (
+                finalText?: string,
+                toolCalls?: UserToolCall[],
+                _usageData?: UsageData,
+            ) => {
+                const text = finalText ?? partialResponse;
+                resultToolCalls = toolCalls;
+
+                // Final cache update
+                updateMessageTextInCache(text);
+
+                // Final DB write (bypasses queue for guaranteed write)
+                await db.execute(
+                    `UPDATE gc_messages SET text = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+                    [text, messageId],
+                );
+
+                UpdateQueue.getInstance().closeUpdateStream(streamKey);
                 modelThinkingTracker.stopThinking(
                     modelConfig.modelId,
                     chatId,
-                    "main",
+                    scope,
                 );
-                await Promise.resolve();
             },
             onError: (errorMessage: string) => {
                 error = errorMessage;
+                UpdateQueue.getInstance().closeUpdateStream(streamKey);
                 modelThinkingTracker.stopThinking(
                     modelConfig.modelId,
                     chatId,
-                    "main",
+                    scope,
                 );
             },
             additionalHeaders: {
@@ -326,14 +393,23 @@ async function generateResponseWithStreamAPI(
         });
 
         if (error) {
+            // Save error text to the message so the user sees it
+            const errorText = `Sorry, I encountered an error: ${error}`;
+            updateMessageTextInCache(errorText);
+            await db.execute(
+                `UPDATE gc_messages SET text = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+                [errorText, messageId],
+            );
             throw new Error(error);
         }
-        return fullResponse;
+
+        return { toolCalls: resultToolCalls };
     } catch (err) {
+        UpdateQueue.getInstance().closeUpdateStream(streamKey);
         modelThinkingTracker.stopThinking(
             modelConfig.modelId,
             chatId,
-            "main",
+            scope,
         );
         throw err;
     }
@@ -519,14 +595,37 @@ export function useRegenerateGCMessage() {
                 );
             }
 
-            const responseText = await generateResponseWithStreamAPI(
-                modelConfig,
-                encodedConversation,
-                chatId,
+            // Pre-insert empty message, then stream into it
+            const newMessageId = uuidv4().toLowerCase();
+            await insertGCMessage(chatId, newMessageId, "", modelConfigId);
+
+            // Optimistically add to cache
+            queryClient.setQueryData(
+                gcMessageKeys.main(chatId),
+                produce(
+                    queryClient.getQueryData(gcMessageKeys.main(chatId)),
+                    (draft: GCMessage[] | undefined) => {
+                        if (!draft) return;
+                        draft.push({
+                            chatId,
+                            id: newMessageId,
+                            text: "",
+                            modelConfigId,
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                            isDeleted: false,
+                        });
+                    },
+                ),
             );
 
-            const newMessageId = uuidv4().toLowerCase();
-            await insertGCMessage(chatId, newMessageId, responseText, modelConfigId);
+            await streamGCResponse({
+                chatId,
+                messageId: newMessageId,
+                modelConfig,
+                conversation: encodedConversation,
+                queryClient,
+            });
 
             return newMessageId;
         },
@@ -581,6 +680,37 @@ export function useGenerateAIResponses() {
 
             await Promise.all(
                 modelInstances.map(async (modelInstance) => {
+                    // Pre-insert an empty message so it appears in the UI immediately
+                    const messageId = uuidv4().toLowerCase();
+                    await insertGCMessage(
+                        chatId,
+                        messageId,
+                        "",
+                        modelInstance.id,
+                    );
+
+                    // Optimistically add to cache
+                    queryClient.setQueryData(
+                        gcMessageKeys.main(chatId),
+                        produce(
+                            queryClient.getQueryData(
+                                gcMessageKeys.main(chatId),
+                            ),
+                            (draft: GCMessage[] | undefined) => {
+                                if (!draft) return;
+                                draft.push({
+                                    chatId,
+                                    id: messageId,
+                                    text: "",
+                                    modelConfigId: modelInstance.id,
+                                    createdAt: new Date().toISOString(),
+                                    updatedAt: new Date().toISOString(),
+                                    isDeleted: false,
+                                });
+                            },
+                        ),
+                    );
+
                     try {
                         // Fetch latest messages for this model's POV
                         const currentMessages =
@@ -613,24 +743,13 @@ export function useGenerateAIResponses() {
                             );
                         }
 
-                        const responseText =
-                            await generateResponseWithStreamAPI(
-                                modelConfig,
-                                encodedConversation,
-                                chatId,
-                            );
-
-                        const messageId = uuidv4().toLowerCase();
-                        await insertGCMessage(
+                        // Stream response — live updates go to cache + DB
+                        await streamGCResponse({
                             chatId,
                             messageId,
-                            responseText,
-                            modelInstance.id,
-                        );
-
-                        // Invalidate immediately so the message appears in the UI
-                        await queryClient.invalidateQueries({
-                            queryKey: gcMessageKeys.main(chatId),
+                            modelConfig,
+                            conversation: encodedConversation,
+                            queryClient,
                         });
 
                         results.push({
@@ -643,18 +762,36 @@ export function useGenerateAIResponses() {
                             error,
                         );
 
-                        // Save error message so the user sees something
-                        const messageId = uuidv4().toLowerCase();
-                        const errorText = `Sorry, I encountered an error: ${error instanceof Error ? error.message : "Unknown error"}`;
-                        await insertGCMessage(
-                            chatId,
-                            messageId,
-                            errorText,
-                            modelInstance.id,
-                        );
-                        await queryClient.invalidateQueries({
-                            queryKey: gcMessageKeys.main(chatId),
-                        });
+                        // Error text is already saved by streamGCResponse.
+                        // If we failed before streaming, save it now.
+                        const currentText =
+                            (
+                                queryClient.getQueryData(
+                                    gcMessageKeys.main(chatId),
+                                ) as GCMessage[] | undefined
+                            )?.find((m) => m.id === messageId)?.text ?? "";
+                        if (!currentText) {
+                            const errorText = `Sorry, I encountered an error: ${error instanceof Error ? error.message : "Unknown error"}`;
+                            queryClient.setQueryData(
+                                gcMessageKeys.main(chatId),
+                                produce(
+                                    queryClient.getQueryData(
+                                        gcMessageKeys.main(chatId),
+                                    ),
+                                    (draft: GCMessage[] | undefined) => {
+                                        if (!draft) return;
+                                        const msg = draft.find(
+                                            (m) => m.id === messageId,
+                                        );
+                                        if (msg) msg.text = errorText;
+                                    },
+                                ),
+                            );
+                            await db.execute(
+                                `UPDATE gc_messages SET text = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+                                [errorText, messageId],
+                            );
+                        }
 
                         results.push({
                             model: modelInstance.id,
