@@ -58,8 +58,7 @@ import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
 import { formatCost } from "@core/chorus/api/CostAPI";
 import RetroSpinner from "./ui/retro-spinner";
-import FeedbackButton from "./FeedbackButton";
-import { SpeakerLoudIcon } from "@radix-ui/react-icons";
+
 import { emit } from "@tauri-apps/api/event";
 import { projectDisplayName } from "@ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -709,10 +708,6 @@ function QuickChats({ chats }: { chats: Chat[] }) {
                     <SidebarMenuItem className="w-full">
                         <div className="h-6 w-full flex justify-between">
                             <span className="h-full group-data-[state=open]/collapsible:hidden px-3 flex items-center gap-2">
-                                <FeedbackButton className="h-full text-sm flex items-center text-muted-foreground rounded-full px-2 py-1 border border-sidebar-border hover:text-sidebar-accent-foreground">
-                                    Feedback
-                                    <SpeakerLoudIcon className="inline-block ml-2 h-3 w-3" />
-                                </FeedbackButton>
                             </span>
                             <div className="flex items-center gap-2">
                                 <Tooltip>

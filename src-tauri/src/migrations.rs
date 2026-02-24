@@ -2755,5 +2755,16 @@ You have full access to bash commands on the user''''s computer. If you write a 
                 CREATE INDEX IF NOT EXISTS idx_message_parts_chat_id ON message_parts(chat_id);
             "#,
         },
+        Migration {
+            version: 145,
+            description: "default to Claude Opus 4.6",
+            kind: MigrationKind::Up,
+            sql: r#"
+                UPDATE app_metadata
+                SET value = 'anthropic::claude-opus-4-6'
+                WHERE key = 'selected_model_config_chat'
+                AND value = 'google::gemini-2.5-pro-latest';
+            "#,
+        },
     ];
 }

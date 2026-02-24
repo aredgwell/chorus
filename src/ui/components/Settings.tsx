@@ -80,7 +80,7 @@ import { SiElevenlabs } from "react-icons/si";
 import { ToolsetsManager } from "@core/chorus/ToolsetsManager";
 import { getToolsetIcon } from "@core/chorus/Toolsets";
 import ShortcutRecorder from "./ShortcutRecorder";
-import FeedbackButton from "./FeedbackButton";
+
 import { SiOpenai } from "react-icons/si";
 import ImportChatDialog from "./ImportChatDialog";
 import { dialogActions } from "@core/infra/DialogStore";
@@ -1048,19 +1048,6 @@ function ToolsTab() {
                 </Tabs>
             )}
 
-            <div className="flex flex-col gap-2  ">
-                <p>
-                    MCP servers are complicated. If you have any trouble, please
-                    email us at{" "}
-                    <a
-                        href="mailto:humans@chorus.sh"
-                        className="text-foreground"
-                    >
-                        humans@chorus.sh
-                    </a>
-                    .
-                </p>
-            </div>
         </div>
     );
 }
@@ -1453,11 +1440,6 @@ export default function Settings({ tab = "general" }: SettingsProps) {
                                     </Button>
                                 </div>
                                 <p className="text-sm text-muted-foreground flex items-center flex-wrap gap-1">
-                                    Send us
-                                    <FeedbackButton className="underline hover:no-underline">
-                                        feedback
-                                    </FeedbackButton>
-                                    anytime, or
                                     <button
                                         className="underline hover:no-underline"
                                         onClick={() => {
@@ -1466,7 +1448,7 @@ export default function Settings({ tab = "general" }: SettingsProps) {
                                             );
                                         }}
                                     >
-                                        book a call
+                                        Book a call
                                     </button>
                                     with the founders.
                                 </p>
