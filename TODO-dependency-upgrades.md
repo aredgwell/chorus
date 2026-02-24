@@ -10,13 +10,15 @@ All safe patch/minor updates were applied in the codebase improvements PR. This 
 - [ ] **`tailwind-merge`** 2 -> 3 -- Used in `cn()` utility. May need config changes for Tailwind v4 compatibility.
 - [ ] **`lucide-react`** 0.453 -> 0.575 -- Icon library, minor version but large jump. Check for renamed/removed icons.
 
-### Medium Priority (provider SDKs with breaking API changes)
+### Medium Priority (provider SDKs)
 
-- [ ] **`@anthropic-ai/sdk`** 0.33 -> 0.78 -- Large jump. Check streaming API changes, type renames. Used in `ProviderAnthropic.ts`.
-- [ ] **`@google/generative-ai`** 0.21 -> 0.24 -- Check for API changes. Used in `ProviderGoogle.ts`.
+> **Note**: Provider SDKs are now decoupled from model registration. The database-driven model registry means upgrading an SDK no longer requires updating model allowlists — providers read capabilities from the DB.
+
+- [x] **`@anthropic-ai/sdk`** 0.33 -> 0.78 -- Done. Updated in codebase improvements PR. Streaming API compatible.
+- [ ] **`@google/generative-ai`** 0.21 -> 0.24 -- **Likely removable**: Not imported by any source file. ProviderGoogle uses the OpenAI SDK against Google's OpenAI-compatible endpoint.
 - [ ] **`@mendable/firecrawl-js`** 1 -> 4 -- Major version jump. Used for web scraping in tools. Check API compatibility.
 - [ ] **`@octokit/rest`** 21 -> 22 -- GitHub API client. Used in tools.
-- [ ] **`openai`** 6.10 -> 6.22 -- Minor within v6, but large jump. Check streaming changes. Used in `ProviderOpenAI.ts`.
+- [x] **`openai`** 6.10 -> 6.22 -- Done. Updated in codebase improvements PR.
 
 ### Lower Priority (utility libraries)
 
@@ -24,6 +26,11 @@ All safe patch/minor updates were applied in the codebase improvements PR. This 
 - [ ] **`simple-icons`** 13 -> 16 -- Icon data, likely just new/renamed icons.
 - [ ] **`react-window`** 1 -> 2 -- Virtualized list. Used for model lists. API may differ significantly.
 - [ ] **`react-syntax-highlighter`** 15 -> 16 -- Code highlighting. Check for breaking changes.
+
+### Compiler & Framework
+
+- [ ] **`typescript`** 5.8 -> 5.9 -- 11% faster type checking, expandable type hovers, `import defer` for lazy module evaluation. Minor breaking changes: stricter generic constraint inference, `moduleResolution: 'node'` deprecation warning, DOM type updates. Run `tsc --noEmit` first, expect ~30min of fixes.
+- [ ] **`babel-plugin-react-compiler`** -- React Compiler v1.0. Automatic memoization — eliminates need for manual `useMemo`/`useCallback`. Add as Babel plugin via Vite config. Opt-in per file with `'use memo'` directive, or enable globally. Test with streaming-heavy components first (`MultiChat`, `MessageMarkdown`).
 
 ### Dev Dependencies
 
@@ -54,8 +61,9 @@ All safe patch/minor updates were applied in the codebase improvements PR. This 
 
 ## Suggested PR Groupings
 
-1. **Tauri Rust ecosystem** -- All `tauri*` crates together (Cargo.toml version bumps)
-2. **Node provider SDKs** -- `@anthropic-ai/sdk`, `openai`, `@google/generative-ai`
-3. **Node UI libraries** -- `@hello-pangea/dnd`, `tailwind-merge`, `react-window`
-4. **Rust utility crates** -- `thiserror`, `base64`, `image`, `rusqlite`
-5. **Dev tooling** -- `@eslint/js`, `vite`
+1. **TypeScript 5.9 + React Compiler** -- Compiler upgrades together. Run `tsc --noEmit`, fix any new errors, add React Compiler Babel plugin, test streaming perf.
+2. **Tauri Rust ecosystem** -- All `tauri*` crates together (Cargo.toml version bumps)
+3. **Node provider SDKs** -- `@google/generative-ai` (remove), `@mendable/firecrawl-js`, `@octokit/rest`
+4. **Node UI libraries** -- `@hello-pangea/dnd`, `tailwind-merge`, `react-window`
+5. **Rust utility crates** -- `thiserror`, `base64`, `image`, `rusqlite`
+6. **Dev tooling** -- `@eslint/js`, `vite`
