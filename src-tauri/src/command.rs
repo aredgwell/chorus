@@ -1,6 +1,7 @@
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 #[cfg(not(target_os = "macos"))]
 use screenshots::Screen;
+use std::collections::HashMap;
 use tauri::{AppHandle, Emitter, Manager};
 #[cfg(target_os = "macos")]
 use tauri_nspanel::ManagerExt;
@@ -17,6 +18,8 @@ pub enum CommandError {
     WindowNotFound(String),
     #[error("Permission denied: {0}")]
     PermissionDenied(String),
+    #[error("SQLite error: {0}")]
+    Sqlite(#[from] rusqlite::Error),
     #[error("{0}")]
     Other(String),
 }
@@ -779,12 +782,270 @@ pub async fn write_file_async(path: String, content: Option<Vec<u8>>, source_pat
 #[tauri::command]
 pub fn get_file_metadata(path: String) -> Result<serde_json::Value, String> {
     use std::fs;
-    
+
     let metadata = fs::metadata(&path).map_err(|e| e.to_string())?;
-    
+
     Ok(serde_json::json!({
         "size": metadata.len(),
         "isFile": metadata.is_file(),
         "isDirectory": metadata.is_dir()
     }))
+}
+
+fn gen_id() -> String {
+    use std::fmt::Write;
+    let bytes: [u8; 16] = rand::random();
+    let mut s = String::with_capacity(32);
+    for b in bytes {
+        write!(s, "{:02x}", b).unwrap();
+    }
+    s
+}
+
+fn gen_uuid() -> String {
+    let hex = gen_id();
+    format!(
+        "{}-{}-{}-{}-{}",
+        &hex[0..8],
+        &hex[8..12],
+        &hex[12..16],
+        &hex[16..20],
+        &hex[20..32]
+    )
+}
+
+/// Runs the entire chat branch operation in a single SQLite transaction.
+///
+/// Steps:
+/// 1. Create a new chat cloned from the source chat
+/// 2. Duplicate all message sets up to and including the target level
+/// 3. For each message set, duplicate messages, message_parts, and message_attachments
+/// 4. Select the target message in the new chat
+/// 5. Optionally set reply metadata
+///
+/// Returns a JSON object with:
+/// - newChatId: the ID of the new chat
+/// - messageSetIdMap: mapping of old message set IDs to new ones
+/// - messageIdMap: mapping of old message IDs to new ones
+#[tauri::command]
+pub async fn branch_chat(
+    app_handle: AppHandle,
+    chat_id: String,
+    message_set_id: String,
+    message_id: String,
+    reply_to_id: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let db_path = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("chats.db");
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        // Enable WAL mode to avoid conflicts with tauri-plugin-sql
+        conn.execute_batch("PRAGMA journal_mode=WAL;")
+            .map_err(|e| e.to_string())?;
+
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+        // 1. Create new chat from source
+        let new_chat_id = gen_id();
+        tx.execute(
+            "INSERT INTO chats (id, created_at, updated_at, project_id, title, quick_chat, parent_chat_id, reply_to_id)
+             SELECT ?1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, project_id, title, 0, id, ?3
+             FROM chats WHERE id = ?2",
+            rusqlite::params![new_chat_id, chat_id, reply_to_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        // 2. Get message sets to duplicate (up to the target message set's level)
+        let target_level: i64 = tx
+            .query_row(
+                "SELECT level FROM message_sets WHERE id = ?1",
+                rusqlite::params![message_set_id],
+                |row| row.get(0),
+            )
+            .map_err(|e| e.to_string())?;
+
+        let mut stmt = tx
+            .prepare(
+                "SELECT id, level, type, selected_block_type FROM message_sets
+                 WHERE chat_id = ?1 AND level <= ?2
+                 ORDER BY level",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let source_message_sets: Vec<(String, i64, String, String)> = stmt
+            .query_map(rusqlite::params![chat_id, target_level], |row| {
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        drop(stmt);
+
+        let mut message_set_id_map: HashMap<String, String> = HashMap::new();
+        let mut message_id_map: HashMap<String, String> = HashMap::new();
+
+        // 3. Duplicate each message set
+        for (src_ms_id, level, ms_type, selected_block_type) in &source_message_sets {
+            let new_ms_id = gen_uuid().to_lowercase();
+
+            tx.execute(
+                "INSERT INTO message_sets (id, chat_id, level, type, selected_block_type)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                rusqlite::params![new_ms_id, new_chat_id, level, ms_type, selected_block_type],
+            )
+            .map_err(|e| e.to_string())?;
+
+            message_set_id_map.insert(src_ms_id.clone(), new_ms_id.clone());
+
+            // Duplicate messages (ORDER BY selected DESC so selected ones come first)
+            let mut msg_stmt = tx
+                .prepare(
+                    "SELECT id, text, model, selected, is_review, review_state, block_type, state, level
+                     FROM messages WHERE message_set_id = ?1
+                     ORDER BY selected DESC",
+                )
+                .map_err(|e| e.to_string())?;
+
+            let source_messages: Vec<(
+                String,
+                String,
+                String,
+                i64,
+                Option<i64>,
+                Option<String>,
+                Option<String>,
+                Option<String>,
+                Option<i64>,
+            )> = msg_stmt
+                .query_map(rusqlite::params![src_ms_id], |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                        row.get(6)?,
+                        row.get(7)?,
+                        row.get(8)?,
+                    ))
+                })
+                .map_err(|e| e.to_string())?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|e| e.to_string())?;
+            drop(msg_stmt);
+
+            for (
+                src_msg_id,
+                text,
+                model,
+                selected,
+                is_review,
+                review_state,
+                block_type,
+                _state,
+                msg_level,
+            ) in &source_messages
+            {
+                let new_msg_id = gen_uuid().to_lowercase();
+
+                tx.execute(
+                    "INSERT INTO messages (id, chat_id, message_set_id, text, model, selected, streaming_token, is_review, review_state, block_type, state, level, branched_from_id)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, ?7, ?8, ?9, 'idle', ?10, ?11)",
+                    rusqlite::params![
+                        new_msg_id,
+                        new_chat_id,
+                        new_ms_id,
+                        text,
+                        model,
+                        selected,
+                        is_review,
+                        review_state,
+                        block_type,
+                        msg_level,
+                        src_msg_id,
+                    ],
+                )
+                .map_err(|e| e.to_string())?;
+
+                message_id_map.insert(src_msg_id.clone(), new_msg_id.clone());
+
+                // Duplicate message_attachments
+                tx.execute(
+                    "INSERT INTO message_attachments (message_id, attachment_id)
+                     SELECT ?1, attachment_id FROM message_attachments WHERE message_id = ?2",
+                    rusqlite::params![new_msg_id, src_msg_id],
+                )
+                .map_err(|e| e.to_string())?;
+
+                // Duplicate message_parts
+                tx.execute(
+                    "INSERT INTO message_parts (chat_id, message_id, level, content, tool_calls, tool_results)
+                     SELECT ?1, ?2, level, content, tool_calls, tool_results
+                     FROM message_parts WHERE message_id = ?3",
+                    rusqlite::params![new_chat_id, new_msg_id, src_msg_id],
+                )
+                .map_err(|e| e.to_string())?;
+            }
+        }
+
+        // 4. Select the target message in the new chat
+        let new_target_ms_id = message_set_id_map
+            .get(&message_set_id)
+            .ok_or_else(|| "Target message set not found in map".to_string())?;
+        let new_target_msg_id = message_id_map
+            .get(&message_id)
+            .ok_or_else(|| "Target message not found in map".to_string())?;
+
+        tx.execute(
+            "UPDATE messages SET selected = (CASE WHEN id = ?1 THEN 1 ELSE 0 END)
+             WHERE message_set_id = ?2 AND block_type = 'tools'",
+            rusqlite::params![new_target_msg_id, new_target_ms_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        // 5. Handle reply metadata
+        if let Some(ref reply_id) = reply_to_id {
+            // Set reply_chat_id on the source message
+            tx.execute(
+                "UPDATE messages SET reply_chat_id = ?1 WHERE id = ?2",
+                rusqlite::params![new_chat_id, message_id],
+            )
+            .map_err(|e| e.to_string())?;
+
+            // Set the reply model config
+            let reply_model: Option<String> = tx
+                .query_row(
+                    "SELECT model FROM messages WHERE id = ?1",
+                    rusqlite::params![reply_id],
+                    |row| row.get(0),
+                )
+                .ok();
+
+            if let Some(model) = reply_model {
+                let config_id = gen_uuid();
+                let model_ids_json = serde_json::json!([model]).to_string();
+                tx.execute(
+                    "INSERT INTO saved_model_configs_chats (id, chat_id, model_ids, created_at, updated_at)
+                     VALUES (?1, ?2, ?3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                    rusqlite::params![config_id, new_chat_id, model_ids_json],
+                )
+                .map_err(|e| e.to_string())?;
+            }
+        }
+
+        tx.commit().map_err(|e| e.to_string())?;
+
+        Ok(serde_json::json!({
+            "newChatId": new_chat_id,
+            "messageSetIdMap": message_set_id_map,
+            "messageIdMap": message_id_map,
+        }))
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
 }

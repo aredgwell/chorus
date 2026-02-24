@@ -28,11 +28,11 @@ import { useNavigate } from "react-router-dom";
 import { ToolsetsManager } from "../ToolsetsManager";
 import { UserTool, UserToolCall, UserToolResult } from "../Toolsets";
 import { produce } from "immer";
+import { invoke } from "@tauri-apps/api/core";
 import _ from "lodash";
 import { useAppContext } from "@ui/hooks/useAppContext";
 import { db } from "../DB";
 import { draftKeys } from "./DraftAPI";
-import { updateSavedModelConfigChat } from "./ModelConfigChatAPI";
 import { chatIsLoadingQueries, chatQueries } from "./ChatAPI";
 import {
     appMetadataKeys,
@@ -342,210 +342,6 @@ export async function fetchMessageReplyId(
     return existingReply.length > 0 ? existingReply[0].id : null;
 }
 
-/**
- * Duplicates a message set and all its messages to a new chat
- * @param sourceMessageSetId The ID of the message set to duplicate
- * @param targetChatId The ID of the target chat
- * @returns The ID of the newly created message set
- */
-export async function duplicateMessageSet(
-    sourceMessageSetId: string,
-    targetChatId: string,
-): Promise<{
-    messageSetIdMap: Record<string, string>;
-    messageIdMap: Record<string, string>;
-}> {
-    // Create a new message set in the target chat
-    const sourceMessageSet = await db.select<MessageSetDBRow[]>(
-        "SELECT * FROM message_sets WHERE id = ?",
-        [sourceMessageSetId],
-    );
-
-    if (sourceMessageSet.length === 0) {
-        throw new Error(`Message set not found: ${sourceMessageSetId}`);
-    }
-
-    const newMessageSetId = uuidv4().toLowerCase();
-
-    // Insert the new message set
-    await db.execute(
-        `INSERT INTO message_sets (
-            id,
-            chat_id,
-            level,
-            type,
-            selected_block_type
-        ) VALUES (?, ?, ?, ?, ?)`,
-        [
-            newMessageSetId,
-            targetChatId,
-            sourceMessageSet[0].level,
-            sourceMessageSet[0].type,
-            sourceMessageSet[0].selected_block_type,
-        ],
-    );
-
-    // Copy all messages from the source message set to the new one
-    const messageIdMap = await duplicateMessagesForMessageSet(
-        sourceMessageSetId,
-        newMessageSetId,
-        targetChatId,
-    );
-
-    return {
-        messageSetIdMap: { [sourceMessageSetId]: newMessageSetId },
-        messageIdMap,
-    };
-}
-
-/**
- * Duplicates message parts from one message to another
- * @param sourceMessageId The ID of the source message
- * @param targetMessageId The ID of the target message
- * @param targetChatId The ID of the target chat
- */
-export async function duplicateMessagePartsForMessage(
-    sourceMessageId: string,
-    targetMessageId: string,
-    targetChatId: string,
-): Promise<void> {
-    // Get all message parts for the source message
-    const sourceMessageParts = await db.select<MessagePartDBRow[]>(
-        `SELECT * FROM message_parts WHERE message_id = ?`,
-        [sourceMessageId],
-    );
-
-    // Insert message parts for the new message
-    for (const part of sourceMessageParts) {
-        await db.execute(
-            `INSERT INTO message_parts (
-                chat_id,
-                message_id,
-                level,
-                content,
-                tool_calls,
-                tool_results
-            ) VALUES (?, ?, ?, ?, ?, ?)`,
-            [
-                targetChatId,
-                targetMessageId,
-                part.level,
-                part.content,
-                part.tool_calls,
-                part.tool_results,
-            ],
-        );
-    }
-}
-
-/**
- * Duplicates attachments from one message to another
- * @param sourceMessageId The ID of the source message
- * @param targetMessageId The ID of the target message
- * @param targetChatId The ID of the target chat
- */
-export async function duplicateAttachmentsForMessage(
-    sourceMessageId: string,
-    targetMessageId: string,
-): Promise<void> {
-    // Get all attachments for the source message
-    const sourceAttachmentIds = await db
-        .select<
-            {
-                attachment_id: string;
-            }[]
-        >(
-            `SELECT attachment_id FROM message_attachments WHERE message_id = ?`,
-            [sourceMessageId],
-        )
-        .then((rows) => rows.map((row) => row.attachment_id));
-
-    // Insert attachments for the new message
-    for (const attachmentId of sourceAttachmentIds) {
-        await db.execute(
-            `INSERT INTO message_attachments (message_id, attachment_id) VALUES (?, ?)`,
-            [targetMessageId, attachmentId],
-        );
-    }
-}
-
-/**
- * Duplicates all messages from one message set to another
- * @param sourceMessageSetId The ID of the source message set
- * @param targetMessageSetId The ID of the target message set
- * @param targetChatId The ID of the target chat
- * @returns A map of source message IDs to target message IDs
- */
-export async function duplicateMessagesForMessageSet(
-    sourceMessageSetId: string,
-    targetMessageSetId: string,
-    targetChatId: string,
-): Promise<Record<string, string>> {
-    // Get all messages from the source message set
-    const sourceMessages = await db.select<MessageDBRow[]>(
-        // order by selected so that we'll copy the selected ones first so that
-        // the trigger that ensures one message is always selected will not fire
-        // *nervous laugh*
-        "SELECT * FROM messages WHERE message_set_id = ? ORDER BY selected DESC",
-        [sourceMessageSetId],
-    );
-
-    const messageIdMap: Record<string, string> = {};
-
-    // Insert each message into the target message set
-    for (const message of sourceMessages) {
-        const newMessageId = uuidv4().toLowerCase();
-
-        const result = await db.select<{ id: string }[]>(
-            `INSERT INTO messages (
-                id,
-                chat_id,
-                message_set_id,
-                text,
-                model,
-                selected,
-                streaming_token,
-                is_review,
-                review_state,
-                block_type,
-                state,
-                level,
-                branched_from_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-             RETURNING id`,
-            [
-                newMessageId,
-                targetChatId,
-                targetMessageSetId,
-                message.text,
-                message.model,
-                message.selected,
-                null, // Reset streaming token
-                message.is_review,
-                message.review_state,
-                message.block_type,
-                "idle", // Reset state to idle
-                message.level,
-                message.id,
-            ],
-        );
-
-        messageIdMap[message.id] = result[0].id;
-
-        // Duplicate attachments for this message
-        await duplicateAttachmentsForMessage(message.id, newMessageId);
-
-        // Duplicate message parts for this message
-        await duplicateMessagePartsForMessage(
-            message.id,
-            newMessageId,
-            targetChatId,
-        );
-    }
-
-    return messageIdMap;
-}
-
 export async function fetchMessageAttachments(
     messageId: string,
 ): Promise<Attachment[]> {
@@ -647,6 +443,9 @@ export function useConvertDraftAttachmentsToMessageAttachments() {
  * - Chat is equivalent up to the target message
  * - Target message is the last message in the new chat
  * - Target message becomes selected, siblings are deselected
+ *
+ * Runs the entire operation in a single SQLite transaction via Rust,
+ * eliminating many sequential IPC round-trips.
  */
 export function useBranchChat({
     chatId,
@@ -664,96 +463,24 @@ export function useBranchChat({
 }) {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const selectMessage = useSelectMessage();
 
     return useMutation({
         mutationKey: ["branchChat"] as const,
         mutationFn: async () => {
             console.log("branching on message", messageId);
 
-            // Create a new chat with the same metadata
-            const result = await db.select<{ id: string }[]>(
-                `WITH source_chat AS (
-                    SELECT * FROM chats WHERE id = ?
-                )
-                INSERT INTO chats (
-                    id,
-                    created_at,
-                    project_id,
-                    title,
-                    quick_chat,
-                    parent_chat_id,
-                    reply_to_id
-                )
-                SELECT
-                    lower(hex(randomblob(16))),
-                    CURRENT_TIMESTAMP,
-                    project_id,
-                    title,
-                    0, -- never a quick chat
-                    id, -- set parent_chat_id to the source chat's id
-                    ? -- reply_to_id parameter
-                FROM source_chat
-                RETURNING id`,
-                [chatId, replyToId],
-            );
-
-            const newChatId = result[0].id;
-
-            // Get message sets to duplicate
-            const messageSets = await db.select<{ id: string }[]>(
-                `SELECT id FROM message_sets
-                WHERE chat_id = ? AND level <= (
-                    SELECT level FROM message_sets WHERE id = ?
-                )
-                ORDER BY level`,
-                [chatId, messageSetId],
-            );
-
-            let messageSetIdMap: Record<string, string> = {};
-            let messageIdMap: Record<string, string> = {};
-
-            // Duplicate each message set and its messages
-            for (const { id: messageSetId } of messageSets) {
-                const {
-                    messageSetIdMap: localMessageSetIdMap,
-                    messageIdMap: localMessageIdMap,
-                } = await duplicateMessageSet(messageSetId, newChatId);
-                messageSetIdMap = {
-                    ...messageSetIdMap,
-                    ...localMessageSetIdMap,
-                };
-                messageIdMap = { ...messageIdMap, ...localMessageIdMap };
-            }
-
-            // last step: select the target message
-            await selectMessage.mutateAsync({
-                chatId: newChatId,
-                messageSetId: messageSetIdMap[messageSetId],
-                messageId: messageIdMap[messageId],
-                blockType: "tools",
+            const result = await invoke<{
+                newChatId: string;
+                messageSetIdMap: Record<string, string>;
+                messageIdMap: Record<string, string>;
+            }>("branch_chat", {
+                chatId,
+                messageSetId,
+                messageId,
+                replyToId: replyToId ?? undefined,
             });
 
-            if (replyToId) {
-                await db.execute(
-                    "UPDATE messages SET reply_chat_id = ? WHERE id = ?",
-                    [newChatId, messageId],
-                );
-
-                // Set the reply model config to the model of the message being replied to
-                const replyMessage = await db.select<{ model: string }[]>(
-                    "SELECT model FROM messages WHERE id = ?",
-                    [replyToId],
-                );
-
-                if (replyMessage.length > 0) {
-                    await updateSavedModelConfigChat(newChatId, [
-                        replyMessage[0].model,
-                    ]);
-                }
-            }
-
-            return newChatId;
+            return result.newChatId;
         },
         onSuccess: async (newChatId: string) => {
             if (replyToId) {
