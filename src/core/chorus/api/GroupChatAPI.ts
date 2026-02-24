@@ -482,6 +482,62 @@ export function useRestoreGCMessage() {
     });
 }
 
+export function useRegenerateGCMessage() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationKey: ["regenerateGCMessage"] as const,
+        mutationFn: async ({
+            chatId,
+            messageId,
+            modelConfigId,
+        }: {
+            chatId: string;
+            messageId: string;
+            modelConfigId: string;
+        }) => {
+            // Delete the old message
+            await softDeleteGCMessage(messageId);
+            await queryClient.invalidateQueries({
+                queryKey: gcMessageKeys.main(chatId),
+            });
+
+            // Fetch messages for context (excluding the deleted one)
+            const currentMessages = await fetchGCMainMessages(chatId);
+            const encodedConversation = await encodeConversation(
+                currentMessages,
+                modelConfigId,
+            );
+
+            const allConfigs = await ModelsAPI.fetchModelConfigs();
+            const modelConfig = allConfigs.find(
+                (c) => c.modelId === modelConfigId,
+            );
+            if (!modelConfig) {
+                throw new Error(
+                    `Model config not found for: ${modelConfigId}`,
+                );
+            }
+
+            const responseText = await generateResponseWithStreamAPI(
+                modelConfig,
+                encodedConversation,
+                chatId,
+            );
+
+            const newMessageId = uuidv4().toLowerCase();
+            await insertGCMessage(chatId, newMessageId, responseText, modelConfigId);
+
+            return newMessageId;
+        },
+        onSuccess: async (_, variables) => {
+            await queryClient.invalidateQueries({
+                queryKey: gcMessageKeys.main(variables.chatId),
+            });
+        },
+    });
+}
+
 export function useGenerateAIResponses() {
     const queryClient = useQueryClient();
 

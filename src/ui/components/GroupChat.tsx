@@ -1,9 +1,30 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { Loader2, X, Undo2, Users } from "lucide-react";
+import {
+    Loader2,
+    X,
+    Undo2,
+    Users,
+    RefreshCcwIcon,
+    Maximize2Icon,
+    RemoveFormattingIcon,
+} from "lucide-react";
 import { HeaderBar } from "@ui/components/HeaderBar";
 import { MessageMarkdown } from "@ui/components/renderers/MessageMarkdown";
 import { ProviderLogo } from "@ui/components/ui/provider-logo";
+import SimpleCopyButton from "@ui/components/unused/CopyButton";
+import {
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    DialogTrigger,
+} from "@ui/components/ui/dialog";
+import { Toggle } from "@ui/components/ui/toggle";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@ui/components/ui/tooltip";
 import Composer from "@ui/components/Composer";
 import {
     useGCMainMessages,
@@ -11,6 +32,7 @@ import {
     useGenerateAIResponses,
     useDeleteGCMessage,
     useRestoreGCMessage,
+    useRegenerateGCMessage,
     useGenerateGCChatTitle,
     type GCMessage,
 } from "@core/chorus/api/GroupChatAPI";
@@ -130,14 +152,79 @@ function UserMessageView({
     );
 }
 
+function FullScreenMessageDialog({
+    message,
+    displayName,
+    children,
+}: {
+    message: GCMessage;
+    displayName: string;
+    children: React.ReactNode;
+}) {
+    const [raw, setRaw] = useState(false);
+
+    return (
+        <Dialog id={`gc-fullscreen-${message.id}`}>
+            <DialogTrigger asChild>{children}</DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[95vh] w-full overflow-auto">
+                <DialogTitle className="pt-2 px-3">
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-lg font-medium">{displayName}</h1>
+                        <div className="flex items-center gap-2.5">
+                            <Tooltip>
+                                <TooltipTrigger asChild tabIndex={-1}>
+                                    <Toggle
+                                        pressed={raw}
+                                        onPressedChange={() => setRaw(!raw)}
+                                    >
+                                        <RemoveFormattingIcon className="w-3 h-3" />
+                                    </Toggle>
+                                </TooltipTrigger>
+                                <TooltipContent
+                                    className="font-normal"
+                                    side="bottom"
+                                >
+                                    Toggle raw text
+                                </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger asChild tabIndex={-1}>
+                                    <SimpleCopyButton text={message.text} />
+                                </TooltipTrigger>
+                                <TooltipContent
+                                    className="font-normal"
+                                    side="bottom"
+                                >
+                                    Copy
+                                </TooltipContent>
+                            </Tooltip>
+                        </div>
+                    </div>
+                </DialogTitle>
+                <div className="px-3 pb-4">
+                    {raw ? (
+                        <pre className="whitespace-pre-wrap text-sm">
+                            {message.text}
+                        </pre>
+                    ) : (
+                        <MessageMarkdown text={message.text} />
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 function AIMessageView({
     message,
     onDelete,
     onRestore,
+    onRegenerate,
 }: {
     message: GCMessage;
     onDelete: (messageId: string) => void;
     onRestore: (messageId: string) => void;
+    onRegenerate: (messageId: string, modelConfigId: string) => void;
 }) {
     const displayName = getModelDisplayName(message.modelConfigId);
 
@@ -173,13 +260,49 @@ function AIMessageView({
                                     <Undo2 className="h-3.5 w-3.5" />
                                 </button>
                             ) : (
-                                <button
-                                    className="hover:text-foreground transition-colors"
-                                    onClick={() => onDelete(message.id)}
-                                    title="Delete message"
-                                >
-                                    <X className="h-3.5 w-3.5" />
-                                </button>
+                                <>
+                                    <button
+                                        className="hover:text-foreground transition-colors"
+                                        onClick={() =>
+                                            onRegenerate(
+                                                message.id,
+                                                message.modelConfigId,
+                                            )
+                                        }
+                                        title="Regenerate"
+                                    >
+                                        <RefreshCcwIcon
+                                            strokeWidth={1.5}
+                                            className="w-3.5 h-3.5"
+                                        />
+                                    </button>
+                                    <SimpleCopyButton
+                                        className="hover:text-foreground transition-colors"
+                                        text={message.text}
+                                        size="sm"
+                                    />
+                                    <FullScreenMessageDialog
+                                        message={message}
+                                        displayName={displayName}
+                                    >
+                                        <button
+                                            className="hover:text-foreground transition-colors"
+                                            title="Open full screen"
+                                        >
+                                            <Maximize2Icon
+                                                strokeWidth={1.5}
+                                                className="w-3.5 h-3.5"
+                                            />
+                                        </button>
+                                    </FullScreenMessageDialog>
+                                    <button
+                                        className="hover:text-foreground transition-colors"
+                                        onClick={() => onDelete(message.id)}
+                                        title="Delete message"
+                                    >
+                                        <X className="h-3.5 w-3.5" />
+                                    </button>
+                                </>
                             )}
                         </div>
                     </div>
@@ -204,10 +327,12 @@ function GCMessageView({
     message,
     onDelete,
     onRestore,
+    onRegenerate,
 }: {
     message: GCMessage;
     onDelete: (messageId: string) => void;
     onRestore: (messageId: string) => void;
+    onRegenerate: (messageId: string, modelConfigId: string) => void;
 }) {
     if (message.modelConfigId === "user") {
         return (
@@ -224,6 +349,7 @@ function GCMessageView({
             message={message}
             onDelete={onDelete}
             onRestore={onRestore}
+            onRegenerate={onRegenerate}
         />
     );
 }
@@ -240,6 +366,7 @@ export default function GroupChat() {
     const generateAIResponses = useGenerateAIResponses();
     const deleteMessage = useDeleteGCMessage();
     const restoreMessage = useRestoreGCMessage();
+    const regenerateMessage = useRegenerateGCMessage();
     const generateTitle = useGenerateGCChatTitle();
 
     const [generatingModels, setGeneratingModels] = useState<
@@ -332,6 +459,14 @@ export default function GroupChat() {
         [chatId, restoreMessage],
     );
 
+    const handleRegenerate = useCallback(
+        (messageId: string, modelConfigId: string) => {
+            if (!chatId) return;
+            regenerateMessage.mutate({ chatId, messageId, modelConfigId });
+        },
+        [chatId, regenerateMessage],
+    );
+
     // Empty state
     if (!messages || messages.length === 0) {
         return (
@@ -380,6 +515,7 @@ export default function GroupChat() {
                             message={message}
                             onDelete={handleDelete}
                             onRestore={handleRestore}
+                            onRegenerate={handleRegenerate}
                         />
                     ))}
 
