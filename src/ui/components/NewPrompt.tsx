@@ -46,7 +46,7 @@ export function NewPromptInner() {
     const baseModelOptions = useMemo(
         () =>
             (models.data ?? [])
-                .filter((model) => !model.isInternal)
+                .filter((model) => !model.isInternal && model.isEnabled)
                 .filter((model) => {
                     const provider = model.id.split("::")[0];
                     return CUSTOM_PROMPT_PROVIDERS.includes(provider);
