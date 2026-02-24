@@ -1106,8 +1106,8 @@ export function ToolsReplyCountView({
     onReplyClick: () => void;
 }) {
     const chatQuery = ChatAPI.useChat(replyChatId);
-    // TODO: we _could_ make this more efficient by just fetching the count - but we do re-use this exact query when rendering replies
-    // and query this conservatively (only if replyChatId is not null)
+    // Fetching full message sets (not just the count) is intentional:
+    // the same query is reused when rendering the reply thread, so React Query caches it.
     const messageSetsQuery = MessageAPI.useMessageSets(replyChatId);
 
     const replyCount = useMemo(() => {
