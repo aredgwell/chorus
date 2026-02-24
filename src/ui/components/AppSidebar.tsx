@@ -10,6 +10,7 @@ import {
     ArrowBigUpIcon,
     EllipsisIcon,
     SearchIcon,
+    SparklesIcon,
 } from "lucide-react";
 import {
     Sidebar,
@@ -77,6 +78,7 @@ import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import { projectQueries, useCreateProject } from "@core/chorus/api/ProjectAPI";
 import { chatQueries } from "@core/chorus/api/ChatAPI";
 import { useToggleProjectIsCollapsed } from "@core/chorus/api/ProjectAPI";
+import { SIMILAR_CHATS_DIALOG_ID } from "./SimilarChatsDialog";
 
 function isToday(date: Date) {
     const today = new Date();
@@ -927,6 +929,15 @@ function ChatListItem({ chat, isActive }: { chat: Chat; isActive: boolean }) {
     );
     const showCost = settings?.showCost ?? false;
 
+    const handleFindSimilar = useCallback(() => {
+        window.dispatchEvent(
+            new CustomEvent("find-similar-chats", {
+                detail: { chatId: chat.id },
+            }),
+        );
+        dialogActions.openDialog(SIMILAR_CHATS_DIALOG_ID);
+    }, [chat.id]);
+
     return (
         <ChatListItemView
             chatId={chat.id}
@@ -941,6 +952,7 @@ function ChatListItem({ chat, isActive }: { chat: Chat; isActive: boolean }) {
             onStopEdit={handleStopEdit}
             onSubmitEdit={handleSubmitEdit}
             onDelete={handleOpenDeleteDialog}
+            onFindSimilar={handleFindSimilar}
             onConfirmDelete={handleConfirmDelete}
             deleteIsPending={deleteChatIsPending}
             navigate={navigate}
@@ -964,6 +976,7 @@ type ChatListItemViewProps = {
     onStopEdit: () => void;
     onSubmitEdit: (newTitle: string) => Promise<void>;
     onDelete: () => void;
+    onFindSimilar: () => void;
     onConfirmDelete: () => void;
     deleteIsPending: boolean;
     navigate: MutableRefObject<NavigateFunction>;
@@ -986,6 +999,7 @@ const ChatListItemView = React.memo(
         onStopEdit,
         onSubmitEdit,
         onDelete,
+        onFindSimilar,
         onConfirmDelete,
         deleteIsPending,
         navigate,
@@ -1095,6 +1109,22 @@ const ChatListItemView = React.memo(
                                 </TooltipTrigger>
                                 <TooltipContent side="bottom">
                                     Rename chat
+                                </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            onFindSimilar();
+                                        }}
+                                    >
+                                        <SparklesIcon className="h-[13px] w-[13px] opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground" />
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom">
+                                    Find similar
                                 </TooltipContent>
                             </Tooltip>
                             <Tooltip>
