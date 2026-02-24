@@ -5,6 +5,7 @@ export type SettingsTabId =
     | "import"
     | "system-prompt"
     | "api-keys"
+    | "integrations"
     | "quick-chat"
     | "permissions"
     | "base-url"

@@ -193,7 +193,7 @@ function ToolsBoxContent() {
                                     e.preventDefault();
                                     // Emit an event to open settings with integrations tab
                                     void emit("open_settings", {
-                                        tab: "api-keys",
+                                        tab: "integrations",
                                     });
                                 }}
                             >
@@ -217,7 +217,7 @@ function ToolsBoxContent() {
                         onSelect={() => {
                             // Emit an event to open settings with integrations tab
                             void emit("open_settings", {
-                                tab: "api-keys",
+                                tab: "integrations",
                             });
                         }}
                     >

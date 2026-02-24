@@ -23,6 +23,7 @@ import {
     BookOpen,
     Globe,
     BarChart3,
+    Puzzle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { config } from "@core/config";
@@ -59,7 +60,8 @@ const TABS: Record<SettingsTabId, TabConfig> = {
     general: { label: "General", icon: User2 },
     import: { label: "Import", icon: Import },
     "system-prompt": { label: "System Prompt", icon: FileText },
-    "api-keys": { label: "API Keys & Integrations", icon: Key },
+    "api-keys": { label: "API Keys", icon: Key },
+    integrations: { label: "Integrations", icon: Puzzle },
     "quick-chat": { label: "Ambient Chat", icon: Fullscreen },
     permissions: { label: "Tool Permissions", icon: ShieldCheckIcon },
     "base-url": { label: "Base URL", icon: Globe },
@@ -485,17 +487,20 @@ export default function Settings({ tab = "general" }: SettingsProps) {
                     )}
 
                     {activeTab === "api-keys" && (
-                        <div className="space-y-8 max-w-2xl">
-                            <ApiKeysTab
-                                apiKeys={apiKeys}
-                                lmStudioBaseUrl={lmStudioBaseUrl}
-                                onApiKeyChange={(provider, value) =>
-                                    void handleApiKeyChange(provider, value)
-                                }
-                                onLmStudioBaseUrlChange={(e) =>
-                                    void onLmStudioBaseUrlChange(e)
-                                }
-                            />
+                        <ApiKeysTab
+                            apiKeys={apiKeys}
+                            lmStudioBaseUrl={lmStudioBaseUrl}
+                            onApiKeyChange={(provider, value) =>
+                                void handleApiKeyChange(provider, value)
+                            }
+                            onLmStudioBaseUrlChange={(e) =>
+                                void onLmStudioBaseUrlChange(e)
+                            }
+                        />
+                    )}
+
+                    {activeTab === "integrations" && (
+                        <div className="max-w-2xl">
                             <ConnectionsTab />
                         </div>
                     )}
