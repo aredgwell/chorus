@@ -28,6 +28,7 @@ import { ToolsetLinear } from "./toolsets/linear";
 export class ToolsetsManager {
     private _builtInToolsets: Toolset[] = [];
     private _customToolsets: CustomToolset[] = [];
+    private _customToolsetConfigs: CustomToolsetConfig[] = [];
 
     private static _instance: ToolsetsManager | null = null;
 
@@ -162,15 +163,11 @@ export class ToolsetsManager {
     private getCustomToolsetDefaultPermission(
         toolsetName: string,
     ): ToolPermissionType | null {
-        // This would be fetched from the database
-        const customConfig = this._customToolsets.find(
+        const customConfig = this._customToolsetConfigs.find(
             (t) => t.name === toolsetName,
         );
         if (!customConfig) return null;
-
-        // For now, return 'ask' as default
-        // TODO: Fetch from database when custom toolset configs include defaultPermission
-        return "ask";
+        return customConfig.defaultPermission ?? "ask";
     }
 
     private requestUserPermission(
@@ -225,6 +222,7 @@ export class ToolsetsManager {
         );
 
         // handle custom toolsets
+        this._customToolsetConfigs = customToolsetConfigs;
         const removedToolsetConfigs = this._customToolsets.filter(
             (t) => !customToolsetConfigs.find((c) => c.name === t.name),
         );
