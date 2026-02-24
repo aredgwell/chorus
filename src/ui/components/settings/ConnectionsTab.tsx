@@ -30,8 +30,8 @@ import {
     SiBrave,
     SiAmazonwebservices,
     SiCloudflare,
+    SiGithub,
 } from "react-icons/si";
-import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { toast } from "sonner";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { CustomToolsetConfig, getEnvFromJSON } from "@core/chorus/Toolsets";
@@ -277,18 +277,25 @@ function RecommendedIntegrationRow({
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                    {rec.docsUrl && (
+                {/* Fixed-width icon area: two slots so icons stay aligned */}
+                <div className="flex items-center shrink-0 w-[52px] justify-end gap-0">
+                    {rec.docsUrl ? (
                         <Button
                             variant="ghost"
                             size="iconSm"
                             onClick={() => void openUrl(rec.docsUrl)}
                             title="Documentation"
                         >
-                            <InfoCircledIcon className="size-3.5" />
+                            {rec.docsUrl.includes("github.com") ? (
+                                <SiGithub className="size-3.5" />
+                            ) : (
+                                <ExternalLinkIcon className="size-3.5" />
+                            )}
                         </Button>
+                    ) : (
+                        <div className="w-6" />
                     )}
-                    {rec.apiKeyUrl && (
+                    {rec.apiKeyUrl ? (
                         <Button
                             variant="ghost"
                             size="iconSm"
@@ -297,6 +304,8 @@ function RecommendedIntegrationRow({
                         >
                             <ExternalLinkIcon className="size-3.5" />
                         </Button>
+                    ) : (
+                        <div className="w-6" />
                     )}
                 </div>
             </div>
