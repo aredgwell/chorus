@@ -65,20 +65,9 @@ The deep link check runs inside a `useEffect` with an empty dependency array, bu
 
 ---
 
-## Scroll Position Persistence
+## ~~Scroll Position Persistence~~
 
-**Location**: `MultiChat.tsx:2683`
-
-```typescript
-// (TODO: save and restore previous scroll position)
-```
-
-When switching between chats, the view always scrolls to the bottom. Should save scroll position per chat and restore it when returning.
-
-### Implementation
-- Store scroll position in a `Map<chatId, number>` (in-memory, not persisted)
-- On chat switch: save current scroll position, restore target chat's position
-- On new messages in the active chat: auto-scroll only if user was already at the bottom
+Done — module-level `scrollPositionCache` Map in `MultiChat.tsx` saves scroll position when leaving a chat and restores it when returning. New chats (with no saved position) still scroll to bottom.
 
 ---
 
