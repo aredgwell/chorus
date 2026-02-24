@@ -3,7 +3,6 @@ import React from "react";
 import { useAppContext } from "@ui/hooks/useAppContext";
 import AutoExpandingTextarea from "./AutoExpandingTextarea";
 import { AttachmentAddPill, AttachmentDropArea } from "./AttachmentsViews";
-import { AttachmentType } from "@core/chorus/Models";
 import {
     MANAGE_MODELS_COMPARE_DIALOG_ID,
     ManageModelsBox,
@@ -82,7 +81,6 @@ export function ChatInput({
     inputRef: React.RefObject<HTMLTextAreaElement | null>;
     eyeRef: React.RefObject<MouseTrackingEyeRef | null>;
     scrollToLatestMessageSet: () => void;
-    sentAttachmentTypes: AttachmentType[]; // todo: should we bring this back for something?
     isReply?: boolean;
     defaultReplyToModel?: string;
     showScrollButton?: boolean;
