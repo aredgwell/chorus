@@ -26,8 +26,6 @@ import {
     CircleXIcon,
     BellIcon,
     PlusIcon,
-    ArrowLeftIcon,
-    ArrowRightIcon,
     ChevronRightIcon,
     FolderOpenIcon,
     ReplyIcon,
@@ -100,8 +98,7 @@ import {
 } from "@core/chorus/Toolsets";
 import { CodeBlock } from "./renderers/CodeBlock";
 import * as Toolsets from "@core/chorus/Toolsets";
-import { SidebarTrigger } from "@ui/components/ui/sidebar";
-import { useSidebar } from "@ui/hooks/useSidebar";
+import { HeaderBar } from "./HeaderBar";
 import { useShortcut } from "@ui/hooks/useShortcut";
 import { projectDisplayName, sendTauriNotification } from "@ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -1733,8 +1730,6 @@ export const SHARE_CHAT_DIALOG_ID = "share-chat-dialog";
 export default function MultiChat() {
     const { chatId } = useParams();
     const chatQuery = ChatAPI.useChat(chatId!);
-    const { open: isSidebarOpen } = useSidebar();
-
     const navigate = useNavigate();
     const location = useLocation();
     const appMetadata = useWaitForAppMetadata();
@@ -1750,14 +1745,6 @@ export default function MultiChat() {
         return state && state.idx < window.history.length - 1;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [location]); // Re-evaluate when location changes
-
-    const handleForwardNavigation = useCallback(() => {
-        navigate(1);
-    }, [navigate]);
-
-    const handleBackNavigation = useCallback(() => {
-        navigate(-1);
-    }, [navigate]);
 
     const { isQuickChatWindow } = useAppContext();
 
@@ -2332,228 +2319,173 @@ export default function MultiChat() {
                     </div>
                 </div>
             ) : (
-                <div
-                    data-tauri-drag-region
-                    className={`absolute top-0 left-0 ${isSidebarOpen ? "" : "left-0 pl-20"} right-0 h-[52px] z-10
-                     items-center justify-between px-3 -mt-px flex bg-background
-                hover:bg-background
-                active:bg-background
-                border-b
-                active:border-b
-                active:border-border!`}
-                >
-                    <div className="flex items-center gap-1">
-                        {!isSidebarOpen && (
-                            <SidebarTrigger className="size-4! ml-2" />
-                        )}
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="link"
-                                    size="iconSm"
-                                    onClick={handleBackNavigation}
-                                >
-                                    <ArrowLeftIcon
-                                        strokeWidth={1.5}
-                                        className="size-3.5! ml-2"
-                                    />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom">
-                                Back{" "}
-                                <kbd>
-                                    <span>⌘</span>[
-                                </kbd>
-                            </TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="link"
-                                    size="iconSm"
-                                    onClick={handleForwardNavigation}
-                                    disabled={!canGoForward}
-                                    className={
-                                        !canGoForward
-                                            ? "text-helper"
-                                            : "text-accent-foreground"
-                                    }
-                                >
-                                    <ArrowRightIcon
-                                        strokeWidth={1.5}
-                                        className="size-3.5!"
-                                    />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom">
-                                Forward{" "}
-                                <kbd>
-                                    <span>⌘</span>]
-                                </kbd>
-                            </TooltipContent>
-                        </Tooltip>
-
-                        <ProjectSwitcher />
-                    </div>
-
-                    {/* chat actions - show as individual icon buttons if there are multiple message sets AND we're not in quick chat */}
-                    <div className="flex items-center gap-1">
-                        {!isQuickChatWindow &&
-                            messageSetsQuery.data &&
-                            messageSetsQuery.data.length > 1 && (
-                                <>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="iconSm"
-                                                className="px-2 text-accent-foreground hover:text-foreground"
-                                                tabIndex={-1}
-                                                onClick={() => {
-                                                    // Dispatch Cmd+F to trigger find UI
-                                                    document.dispatchEvent(
-                                                        new KeyboardEvent(
-                                                            "keydown",
-                                                            {
-                                                                key: "f",
-                                                                metaKey: true,
-                                                                bubbles: true,
-                                                            },
-                                                        ),
-                                                    );
-                                                }}
-                                            >
-                                                <SearchIcon
-                                                    strokeWidth={1.5}
-                                                    className="size-3.5!"
-                                                />
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            Find (⌘F)
-                                        </TooltipContent>
-                                    </Tooltip>
-
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="iconSm"
-                                                className="px-2 text-accent-foreground hover:text-foreground"
-                                                tabIndex={-1}
-                                                onClick={() =>
-                                                    void handleSummarizeChat()
-                                                }
-                                                disabled={isSummarizing}
-                                            >
-                                                {isSummarizing ? (
-                                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                                ) : (
-                                                    <FileTextIcon
-                                                        strokeWidth={1.5}
-                                                        className="size-3.5!"
-                                                    />
-                                                )}
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            Summarize
-                                        </TooltipContent>
-                                    </Tooltip>
-
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="iconSm"
-                                                className="px-2 text-accent-foreground hover:text-foreground"
-                                                tabIndex={-1}
-                                                onClick={handleShareChat}
-                                                disabled={isGeneratingShareLink}
-                                            >
-                                                {isGeneratingShareLink ? (
-                                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                                ) : (
-                                                    <ShareIcon
-                                                        strokeWidth={1.5}
-                                                        className="size-3.5!"
-                                                    />
-                                                )}
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            Share (⌘⇧S)
-                                        </TooltipContent>
-                                    </Tooltip>
-
-                                    <DropdownMenu>
+                <HeaderBar
+                    positioning="absolute"
+                    canGoForward={canGoForward}
+                    actions={
+                        <div className="flex items-center gap-1">
+                            {!isQuickChatWindow &&
+                                messageSetsQuery.data &&
+                                messageSetsQuery.data.length > 1 && (
+                                    <>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <DropdownMenuTrigger
-                                                    asChild
+                                                <Button
+                                                    variant="ghost"
+                                                    size="iconSm"
+                                                    className="px-2 text-accent-foreground hover:text-foreground"
+                                                    tabIndex={-1}
+                                                    onClick={() => {
+                                                        document.dispatchEvent(
+                                                            new KeyboardEvent(
+                                                                "keydown",
+                                                                {
+                                                                    key: "f",
+                                                                    metaKey: true,
+                                                                    bubbles: true,
+                                                                },
+                                                            ),
+                                                        );
+                                                    }}
                                                 >
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="iconSm"
-                                                        className="px-2 text-accent-foreground hover:text-foreground"
-                                                        tabIndex={-1}
-                                                    >
-                                                        <DownloadIcon
-                                                            strokeWidth={
-                                                                1.5
-                                                            }
-                                                            className="size-3.5!"
-                                                        />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
+                                                    <SearchIcon
+                                                        strokeWidth={1.5}
+                                                        className="size-3.5!"
+                                                    />
+                                                </Button>
                                             </TooltipTrigger>
                                             <TooltipContent>
-                                                Export
+                                                Find (⌘F)
                                             </TooltipContent>
                                         </Tooltip>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem
-                                                onClick={catchAsyncErrors(
-                                                    () =>
-                                                        handleExportChat(
-                                                            "markdown",
-                                                        ),
-                                                )}
-                                            >
-                                                Export as Markdown
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                onClick={catchAsyncErrors(
-                                                    () =>
-                                                        handleExportChat(
-                                                            "json",
-                                                        ),
-                                                )}
-                                            >
-                                                Export as JSON
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </>
-                            )}
 
-                        {/* Move to button - always show in non-quick chat */}
-                        {!isQuickChatWindow && projectsQuery.data && (
-                            <MoveToProjectDropdown
-                                chatId={chatId!}
-                                currentProjectId={chatQuery.data?.projectId}
-                                projects={projectsQuery.data}
-                                onMoveToProject={(chatId, projectId) =>
-                                    setChatProject.mutate({
-                                        chatId,
-                                        projectId,
-                                    })
-                                }
-                                onNewProject={onNewProject}
-                            />
-                        )}
-                    </div>
-                </div>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="iconSm"
+                                                    className="px-2 text-accent-foreground hover:text-foreground"
+                                                    tabIndex={-1}
+                                                    onClick={() =>
+                                                        void handleSummarizeChat()
+                                                    }
+                                                    disabled={isSummarizing}
+                                                >
+                                                    {isSummarizing ? (
+                                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                                    ) : (
+                                                        <FileTextIcon
+                                                            strokeWidth={1.5}
+                                                            className="size-3.5!"
+                                                        />
+                                                    )}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                Summarize
+                                            </TooltipContent>
+                                        </Tooltip>
+
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="iconSm"
+                                                    className="px-2 text-accent-foreground hover:text-foreground"
+                                                    tabIndex={-1}
+                                                    onClick={handleShareChat}
+                                                    disabled={
+                                                        isGeneratingShareLink
+                                                    }
+                                                >
+                                                    {isGeneratingShareLink ? (
+                                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                                    ) : (
+                                                        <ShareIcon
+                                                            strokeWidth={1.5}
+                                                            className="size-3.5!"
+                                                        />
+                                                    )}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                Share (⌘⇧S)
+                                            </TooltipContent>
+                                        </Tooltip>
+
+                                        <DropdownMenu>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <DropdownMenuTrigger
+                                                        asChild
+                                                    >
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="iconSm"
+                                                            className="px-2 text-accent-foreground hover:text-foreground"
+                                                            tabIndex={-1}
+                                                        >
+                                                            <DownloadIcon
+                                                                strokeWidth={
+                                                                    1.5
+                                                                }
+                                                                className="size-3.5!"
+                                                            />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    Export
+                                                </TooltipContent>
+                                            </Tooltip>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem
+                                                    onClick={catchAsyncErrors(
+                                                        () =>
+                                                            handleExportChat(
+                                                                "markdown",
+                                                            ),
+                                                    )}
+                                                >
+                                                    Export as Markdown
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={catchAsyncErrors(
+                                                        () =>
+                                                            handleExportChat(
+                                                                "json",
+                                                            ),
+                                                    )}
+                                                >
+                                                    Export as JSON
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </>
+                                )}
+
+                            {/* Move to button - always show in non-quick chat */}
+                            {!isQuickChatWindow && projectsQuery.data && (
+                                <MoveToProjectDropdown
+                                    chatId={chatId!}
+                                    currentProjectId={
+                                        chatQuery.data?.projectId
+                                    }
+                                    projects={projectsQuery.data}
+                                    onMoveToProject={(chatId, projectId) =>
+                                        setChatProject.mutate({
+                                            chatId,
+                                            projectId,
+                                        })
+                                    }
+                                    onNewProject={onNewProject}
+                                />
+                            )}
+                        </div>
+                    }
+                >
+                    <ProjectSwitcher />
+                </HeaderBar>
             )}
 
             {/* Main container that handles both layouts */}
