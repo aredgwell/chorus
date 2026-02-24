@@ -9,7 +9,7 @@ import {
     PopoverTrigger,
 } from "@ui/components/ui/popover";
 import { MODEL_HANDLE_MAP } from "@core/chorus/api/GroupChatAPI";
-import { getProviderName } from "@core/chorus/Models";
+
 
 // NOTE: useRef is used here for (1) textarea focus via Cmd+L and
 // (2) caret position tracking for @mention insertion. Both are standard
@@ -190,9 +190,6 @@ export default function Composer({ onSend, disabled }: ComposerProps) {
                                         </span>
                                     ) : (
                                         <ProviderLogo
-                                            provider={getProviderName(
-                                                `${item.handle}::placeholder`,
-                                            )}
                                             modelId={
                                                 typeof MODEL_HANDLE_MAP[
                                                     item.handle
