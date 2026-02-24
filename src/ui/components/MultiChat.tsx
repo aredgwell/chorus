@@ -32,6 +32,7 @@ import {
     FolderOpenIcon,
     ReplyIcon,
     Trash2Icon,
+    DownloadIcon,
 } from "lucide-react";
 import { useAppContext } from "@ui/hooks/useAppContext";
 import { ChevronDownIcon, CopyIcon, CheckIcon, XIcon } from "lucide-react";
@@ -53,8 +54,18 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "./ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { MessageMarkdown } from "./renderers/MessageMarkdown";
 import { catchAsyncErrors } from "@core/chorus/utilities";
+import {
+    exportChatAsMarkdown,
+    exportChatAsJSON,
+} from "@core/chorus/ExportService";
 import GroupChat from "./gc-prototype/GroupChat";
 import { MouseTrackingEye, MouseTrackingEyeRef } from "./MouseTrackingEye";
 import {
@@ -108,7 +119,8 @@ import {
     ResizablePanel,
     ResizableHandle,
 } from "@ui/components/ui/resizable";
-import { readFile } from "@tauri-apps/plugin-fs";
+import { readFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import { save } from "@tauri-apps/plugin-dialog";
 import { filterReplyMessageSets } from "@ui/lib/replyUtils";
 import * as MessageAPI from "@core/chorus/api/MessageAPI";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
@@ -1984,6 +1996,50 @@ export default function MultiChat() {
         await doShareChat(chatContainer.outerHTML);
     }, [doShareChat]);
 
+    const handleExportChat = useCallback(
+        async (format: "markdown" | "json") => {
+            if (!chatId) return;
+            try {
+                const extension = format === "markdown" ? "md" : "json";
+                const title = chatQuery.data?.title || "chat";
+                const safeName = title
+                    .replace(/[^a-zA-Z0-9 _-]/g, "")
+                    .slice(0, 50);
+                const defaultName = `${safeName}.${extension}`;
+
+                const filePath = await save({
+                    defaultPath: defaultName,
+                    filters: [
+                        {
+                            name:
+                                format === "markdown"
+                                    ? "Markdown"
+                                    : "JSON",
+                            extensions: [extension],
+                        },
+                    ],
+                });
+
+                if (!filePath) return; // user cancelled
+
+                const content =
+                    format === "markdown"
+                        ? await exportChatAsMarkdown(chatId)
+                        : await exportChatAsJSON(chatId);
+
+                await writeTextFile(filePath, content);
+                toast.success(`Exported as ${extension.toUpperCase()}`);
+            } catch (error) {
+                console.error("Export failed:", error);
+                toast.error("Export failed", {
+                    description:
+                        error instanceof Error ? error.message : "Unknown error",
+                });
+            }
+        },
+        [chatId, chatQuery.data?.title],
+    );
+
     const selectMessage = MessageAPI.useSelectMessage();
     const selectSynthesis = MessageAPI.useSelectSynthesis();
     const setReviewsEnabled = MessageAPI.useSetReviewsEnabled();
@@ -2424,6 +2480,55 @@ export default function MultiChat() {
                                             Share (⌘⇧S)
                                         </TooltipContent>
                                     </Tooltip>
+
+                                    <DropdownMenu>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <DropdownMenuTrigger
+                                                    asChild
+                                                >
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="iconSm"
+                                                        className="px-2 text-accent-foreground hover:text-foreground"
+                                                        tabIndex={-1}
+                                                    >
+                                                        <DownloadIcon
+                                                            strokeWidth={
+                                                                1.5
+                                                            }
+                                                            className="size-3.5!"
+                                                        />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                Export
+                                            </TooltipContent>
+                                        </Tooltip>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem
+                                                onClick={catchAsyncErrors(
+                                                    () =>
+                                                        handleExportChat(
+                                                            "markdown",
+                                                        ),
+                                                )}
+                                            >
+                                                Export as Markdown
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={catchAsyncErrors(
+                                                    () =>
+                                                        handleExportChat(
+                                                            "json",
+                                                        ),
+                                                )}
+                                            >
+                                                Export as JSON
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </>
                             )}
 

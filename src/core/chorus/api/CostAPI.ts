@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { db } from "../DB";
 
 /**
@@ -186,4 +187,93 @@ export async function updateChatAndProjectCosts(
     }
 
     return projectId;
+}
+
+// --- Aggregate cost queries for the dashboard ---
+
+export interface CostByModel {
+    model: string;
+    total_cost: number;
+    message_count: number;
+}
+
+export interface CostByDay {
+    date: string;
+    total_cost: number;
+}
+
+export interface CostByProject {
+    project_id: string;
+    project_name: string;
+    total_cost: number;
+}
+
+async function fetchCostByModel(): Promise<CostByModel[]> {
+    return db.select<CostByModel[]>(
+        `SELECT model, COALESCE(SUM(cost_usd), 0) as total_cost, COUNT(*) as message_count
+         FROM messages
+         WHERE cost_usd IS NOT NULL AND cost_usd > 0
+         GROUP BY model
+         ORDER BY total_cost DESC`,
+    );
+}
+
+async function fetchCostByDay(): Promise<CostByDay[]> {
+    return db.select<CostByDay[]>(
+        `SELECT DATE(created_at) as date, COALESCE(SUM(cost_usd), 0) as total_cost
+         FROM messages
+         WHERE cost_usd IS NOT NULL AND cost_usd > 0
+         GROUP BY DATE(created_at)
+         ORDER BY date DESC
+         LIMIT 30`,
+    );
+}
+
+async function fetchCostByProject(): Promise<CostByProject[]> {
+    return db.select<CostByProject[]>(
+        `SELECT c.project_id, COALESCE(p.name, c.project_id) as project_name,
+                COALESCE(SUM(c.total_cost_usd), 0) as total_cost
+         FROM chats c
+         LEFT JOIN projects p ON c.project_id = p.id
+         WHERE c.total_cost_usd IS NOT NULL AND c.total_cost_usd > 0
+         GROUP BY c.project_id
+         ORDER BY total_cost DESC`,
+    );
+}
+
+async function fetchTotalCost(): Promise<number> {
+    const rows = await db.select<{ total: number }[]>(
+        `SELECT COALESCE(SUM(cost_usd), 0) as total
+         FROM messages
+         WHERE cost_usd IS NOT NULL`,
+    );
+    return rows[0]?.total ?? 0;
+}
+
+export function useCostByModel() {
+    return useQuery({
+        queryKey: ["costs", "byModel"] as const,
+        queryFn: fetchCostByModel,
+    });
+}
+
+export function useCostByDay() {
+    return useQuery({
+        queryKey: ["costs", "byDay"] as const,
+        queryFn: fetchCostByDay,
+    });
+}
+
+export function useCostByProject() {
+    return useQuery({
+        queryKey: ["costs", "byProject"] as const,
+        queryFn: fetchCostByProject,
+    });
+}
+
+export function useTotalCost() {
+    return useQuery({
+        queryKey: ["costs", "total"] as const,
+        queryFn: fetchTotalCost,
+    });
 }

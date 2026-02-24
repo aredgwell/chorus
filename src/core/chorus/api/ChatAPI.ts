@@ -358,15 +358,32 @@ export function useDeleteChat() {
         mutationFn: async ({ chatId }: { chatId: string }) => {
             await db.execute("DELETE FROM chats WHERE id = $1", [chatId]);
         },
-        onSuccess: async (_data, variables) => {
+        onMutate: async ({ chatId }) => {
+            await queryClient.cancelQueries(chatQueries.list());
+            const previousChats = queryClient.getQueryData<Chat[]>(
+                chatQueries.list().queryKey,
+            );
+            queryClient.setQueryData<Chat[]>(
+                chatQueries.list().queryKey,
+                (old) => old?.filter((c) => c.id !== chatId),
+            );
+            return { previousChats };
+        },
+        onError: (_err, _vars, context) => {
+            if (context?.previousChats) {
+                queryClient.setQueryData(
+                    chatQueries.list().queryKey,
+                    context.previousChats,
+                );
+            }
+        },
+        onSettled: async (_data, _err, variables) => {
             await queryClient.invalidateQueries(chatQueries.list());
             await queryClient.invalidateQueries(
                 chatQueries.detail(variables.chatId),
             );
-
-            // Invalidate all search results when a chat is deleted
             await queryClient.invalidateQueries({
-                queryKey: ["search", "results"],
+                queryKey: ["searchResults"],
             });
         },
     });
@@ -374,6 +391,7 @@ export function useDeleteChat() {
 
 export function useRenameChat() {
     const queryClient = useQueryClient();
+    const cacheUpdateChat = useCacheUpdateChat();
     return useMutation({
         mutationKey: ["renameChat"] as const,
         mutationFn: async ({
@@ -388,7 +406,35 @@ export function useRenameChat() {
                 chatId,
             ]);
         },
-        onSuccess: async (_data, variables) => {
+        onMutate: async ({ chatId, newTitle }) => {
+            await queryClient.cancelQueries(chatQueries.list());
+            await queryClient.cancelQueries(chatQueries.detail(chatId));
+            const previousChats = queryClient.getQueryData<Chat[]>(
+                chatQueries.list().queryKey,
+            );
+            const previousChat = queryClient.getQueryData<Chat>(
+                chatQueries.detail(chatId).queryKey,
+            );
+            cacheUpdateChat(chatId, (chat) => {
+                chat.title = newTitle;
+            });
+            return { previousChats, previousChat };
+        },
+        onError: (_err, variables, context) => {
+            if (context?.previousChats) {
+                queryClient.setQueryData(
+                    chatQueries.list().queryKey,
+                    context.previousChats,
+                );
+            }
+            if (context?.previousChat) {
+                queryClient.setQueryData(
+                    chatQueries.detail(variables.chatId).queryKey,
+                    context.previousChat,
+                );
+            }
+        },
+        onSettled: async (_data, _err, variables) => {
             await queryClient.invalidateQueries(chatQueries.list());
             await queryClient.invalidateQueries(
                 chatQueries.detail(variables.chatId),
