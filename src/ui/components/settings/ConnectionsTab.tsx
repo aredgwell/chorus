@@ -8,9 +8,19 @@ import {
     TabsTrigger,
 } from "@ui/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/components/ui/tooltip";
-import { Loader2, ExternalLinkIcon, Pencil, Trash2, Plus, LinkIcon } from "lucide-react";
+import { Loader2, ExternalLinkIcon, Pencil, Trash2, Plus, LinkIcon, Flame, Search } from "lucide-react";
 import { RiClaudeFill, RiSupabaseFill } from "react-icons/ri";
-import { SiStripe, SiElevenlabs } from "react-icons/si";
+import {
+    SiStripe,
+    SiElevenlabs,
+    SiSentry,
+    SiVercel,
+    SiPostgresql,
+    SiSlack,
+    SiBrave,
+    SiAmazonwebservices,
+    SiCloudflare,
+} from "react-icons/si";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { toast } from "sonner";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -145,7 +155,7 @@ function RemoteToolsetForm({
     return (
         <div className="space-y-4 border rounded-md p-4 max-w-full overflow-hidden">
             <h4 className="font-semibold flex items-center justify-between gap-1">
-                Add Remote MCP
+                Add Remote Integration
             </h4>
 
             <div className="space-y-2">
@@ -190,7 +200,7 @@ function RemoteToolsetForm({
                     <div className="text-destructive text-sm">{errors.url}</div>
                 )}
                 <p className="text-xs text-muted-foreground">
-                    The URL of the remote MCP server.
+                    The URL of the remote integration server.
                 </p>
             </div>
 
@@ -519,6 +529,103 @@ const RECOMMENDED_TOOLSETS = [
         apiKeyUrl: "https://supabase.com/dashboard/project/settings/api",
         needsUserInput: true,
     },
+    {
+        name: "sentry",
+        command: "npx",
+        args: "-y @sentry/mcp-server@latest",
+        env: `{"SENTRY_AUTH_TOKEN": "your-sentry-auth-token"}`,
+        description: "Monitor errors, performance, and application health.",
+        logo: <SiSentry className="size-8" />,
+        docsUrl: "https://github.com/getsentry/sentry-mcp",
+        apiKeyUrl: "https://sentry.io/settings/account/api/auth-tokens/",
+        needsUserInput: true,
+    },
+    {
+        name: "vercel",
+        command: "npx",
+        args: "-y @vercel/mcp@latest",
+        env: `{"VERCEL_API_TOKEN": "your-vercel-api-token"}`,
+        description: "Deploy, manage, and monitor Vercel projects.",
+        logo: <SiVercel className="size-8" />,
+        docsUrl: "https://vercel.com/docs/mcp",
+        apiKeyUrl: "https://vercel.com/account/tokens",
+        needsUserInput: true,
+    },
+    {
+        name: "postgres",
+        command: "npx",
+        args: "-y @modelcontextprotocol/server-postgres postgres://user:password@localhost:5432/dbname",
+        description: "Query and manage PostgreSQL databases.",
+        logo: <SiPostgresql className="size-8" />,
+        docsUrl: "https://github.com/modelcontextprotocol/servers/tree/main/src/postgres",
+        needsUserInput: true,
+    },
+    {
+        name: "slack",
+        command: "npx",
+        args: "-y @modelcontextprotocol/server-slack",
+        env: `{"SLACK_BOT_TOKEN": "xoxb-your-slack-bot-token"}`,
+        description: "Read and send messages in Slack workspaces.",
+        logo: <SiSlack className="size-8" />,
+        docsUrl: "https://github.com/modelcontextprotocol/servers/tree/main/src/slack",
+        apiKeyUrl: "https://api.slack.com/apps",
+        needsUserInput: true,
+    },
+    {
+        name: "firecrawl",
+        command: "npx",
+        args: "-y firecrawl-mcp",
+        env: `{"FIRECRAWL_API_KEY": "your-firecrawl-api-key"}`,
+        description: "Scrape and crawl websites, extract structured data.",
+        logo: <Flame className="size-8" />,
+        docsUrl: "https://github.com/firecrawl/firecrawl-mcp-server",
+        apiKeyUrl: "https://www.firecrawl.dev/app/api-keys",
+        needsUserInput: true,
+    },
+    {
+        name: "brave-search",
+        command: "npx",
+        args: "-y @modelcontextprotocol/server-brave-search",
+        env: `{"BRAVE_API_KEY": "your-brave-api-key"}`,
+        description: "Search the web using Brave Search API.",
+        logo: <SiBrave className="size-8" />,
+        docsUrl: "https://github.com/modelcontextprotocol/servers/tree/main/src/brave-search",
+        apiKeyUrl: "https://brave.com/search/api/",
+        needsUserInput: true,
+    },
+    {
+        name: "exa",
+        command: "npx",
+        args: "-y exa-mcp-server",
+        env: `{"EXA_API_KEY": "your-exa-api-key"}`,
+        description: "Semantic search across the web with AI-powered results.",
+        logo: <Search className="size-8" />,
+        docsUrl: "https://github.com/exa-labs/exa-mcp-server",
+        apiKeyUrl: "https://dashboard.exa.ai/api-keys",
+        needsUserInput: true,
+    },
+    {
+        name: "aws",
+        command: "npx",
+        args: "-y @aws/amazon-q-developer-mcp-server",
+        env: `{"AWS_ACCESS_KEY_ID": "your-access-key", "AWS_SECRET_ACCESS_KEY": "your-secret-key", "AWS_REGION": "us-east-1"}`,
+        description: "Manage AWS resources and services.",
+        logo: <SiAmazonwebservices className="size-8" />,
+        docsUrl: "https://github.com/aws/amazon-q-developer-mcp-server",
+        apiKeyUrl: "https://console.aws.amazon.com/iam/home#/security_credentials",
+        needsUserInput: true,
+    },
+    {
+        name: "cloudflare",
+        command: "npx",
+        args: "-y @cloudflare/mcp-server-cloudflare",
+        env: `{"CLOUDFLARE_API_TOKEN": "your-cloudflare-api-token"}`,
+        description: "Manage Cloudflare Workers, D1 databases, and R2 storage.",
+        logo: <SiCloudflare className="size-8" />,
+        docsUrl: "https://github.com/cloudflare/mcp-server-cloudflare",
+        apiKeyUrl: "https://dash.cloudflare.com/profile/api-tokens",
+        needsUserInput: true,
+    },
 ];
 
 const CORE_BUILTIN_TOOLSETS_DATA = ToolsetsManager.instance
@@ -634,14 +741,14 @@ export default function ConnectionsTab() {
                 toolset: editingToolset,
             });
             toast.success("Success", {
-                description: `Connection ${formMode === "create" ? "created" : "updated"} successfully`,
+                description: `Integration ${formMode === "create" ? "created" : "updated"} successfully`,
             });
             setFormMode(null);
             setEditingToolset({ name: "", command: "", args: "", env: "{}" });
             setFormErrors({});
         } catch {
             setFormErrors({
-                _general: `Failed to ${formMode} connection`,
+                _general: `Failed to ${formMode} integration`,
             });
         }
     };
@@ -656,7 +763,7 @@ export default function ConnectionsTab() {
             },
         });
         toast.success("Success", {
-            description: `Remote connection created successfully`,
+            description: `Remote integration created successfully`,
         });
         setFormMode(null);
     };
@@ -665,11 +772,11 @@ export default function ConnectionsTab() {
         try {
             await deleteToolset.mutateAsync(name);
             toast.success("Success", {
-                description: "Connection deleted successfully",
+                description: "Integration deleted successfully",
             });
         } catch {
             toast.error("Error", {
-                description: "Failed to delete connection",
+                description: "Failed to delete integration",
             });
         }
     };
@@ -701,12 +808,12 @@ export default function ConnectionsTab() {
                 })
                 .then(() => {
                     toast.success("Success", {
-                        description: `${name} connection added successfully`,
+                        description: `${name} integration added successfully`,
                     });
                 })
                 .catch((err) => {
                     toast.error("Error", {
-                        description: `Failed to add ${name} connection ${err}`,
+                        description: `Failed to add ${name} integration ${err}`,
                     });
                 });
         }
@@ -731,7 +838,7 @@ export default function ConnectionsTab() {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h3 className="text-2xl font-semibold">MCP Connections</h3>
+                <h3 className="text-2xl font-semibold">Integrations</h3>
             </div>
 
             {formMode === "remote" ? (
@@ -762,7 +869,7 @@ export default function ConnectionsTab() {
                     }
                     title={
                         formMode === "create"
-                            ? "New MCP"
+                            ? "New Integration"
                             : `Edit ${editingToolset.name}`
                     }
                 />
@@ -778,7 +885,7 @@ export default function ConnectionsTab() {
                                 className={`flex flex-col font-semibold items-center gap-2 border border-border hover:bg-muted rounded-md w-full py-4 disabled:opacity-50 disabled:hover:bg-transparent disabled:cursor-not-allowed`}
                             >
                                 <Plus className="size-9" />
-                                New Local MCP
+                                Add Local Integration
                             </button>
                         </div>
                         <div className="col-span-1">
@@ -787,7 +894,7 @@ export default function ConnectionsTab() {
                                 className={`flex flex-col font-medium items-center gap-2 border border-border hover:bg-muted rounded-md w-full py-4 disabled:opacity-50 disabled:hover:bg-transparent disabled:cursor-not-allowed`}
                             >
                                 <Plus className="size-9" />
-                                New Remote MCP
+                                Add Remote Integration
                             </button>
                         </div>
                         <div className="col-span-1">
@@ -816,10 +923,10 @@ export default function ConnectionsTab() {
                                     side="bottom"
                                     className="max-w-[300px]"
                                 >
-                                    Import MCPs from Claude Desktop. If you've
-                                    made changes to your MCPs in Claude Desktop,
-                                    you can click this button again to refresh
-                                    your Chorus MCPs.
+                                    Import integrations from Claude Desktop. If
+                                    you've made changes in Claude Desktop, you
+                                    can click this button again to refresh your
+                                    Chorus integrations.
                                 </TooltipContent>
                             </Tooltip>
                         </div>
@@ -915,7 +1022,7 @@ export default function ConnectionsTab() {
                                 <span className="mt-2 block">
                                     <Plus className="size-12 mx-auto text-muted-foreground" />
                                     <span className="mt-2 block  font-semibold">
-                                        New MCP
+                                        New Integration
                                     </span>
                                 </span>
                             </button>
@@ -952,7 +1059,7 @@ export default function ConnectionsTab() {
                                             size="iconSm"
                                         >
                                             <LinkIcon className="size-4" />
-                                            Manage Connection
+                                            Manage Integration
                                         </Button>
                                     )}
                                 </div>

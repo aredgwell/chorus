@@ -156,7 +156,7 @@ function ToolsBoxContent() {
     if (toolsetConfigs.isError || toolsets.isError) {
         return (
             <div>
-                Error loading connections: {toolsetConfigs.error?.message}
+                Error loading integrations: {toolsetConfigs.error?.message}
                 {toolsets.error?.message}
             </div>
         );
@@ -168,9 +168,9 @@ function ToolsBoxContent() {
 
     return (
         <Command>
-            <CommandInput placeholder="Search connections..." autoFocus />
+            <CommandInput placeholder="Search integrations..." autoFocus />
             <CommandList>
-                <CommandEmpty>No connections found.</CommandEmpty>
+                <CommandEmpty>No integrations found.</CommandEmpty>
                 <CommandGroup heading="Built-in">
                     {toolsets.data
                         ?.filter((toolset) => toolset.isBuiltIn)
@@ -191,7 +191,7 @@ function ToolsBoxContent() {
                                 className="text-sm p-1 hover:bg-gray-100 rounded flex items-center gap-1 uppercase tracking-wider font-geist-mono"
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    // Emit an event to open settings with connections tab
+                                    // Emit an event to open settings with integrations tab
                                     void emit("open_settings", {
                                         tab: "api-keys",
                                     });
@@ -215,7 +215,7 @@ function ToolsBoxContent() {
 
                     <CommandItem
                         onSelect={() => {
-                            // Emit an event to open settings with connections tab
+                            // Emit an event to open settings with integrations tab
                             void emit("open_settings", {
                                 tab: "api-keys",
                             });
@@ -225,7 +225,7 @@ function ToolsBoxContent() {
                             <div className="flex items-center gap-1">
                                 <PlusIcon className="w-3 h-3 mr-1 text-muted-foreground" />
                                 <span className="font-medium">
-                                    Add MCP server
+                                    Add integration
                                 </span>
                             </div>
                             <ArrowRightIcon className="w-3 h-3 text-muted-foreground" />

@@ -59,7 +59,7 @@ const TABS: Record<SettingsTabId, TabConfig> = {
     general: { label: "General", icon: User2 },
     import: { label: "Import", icon: Import },
     "system-prompt": { label: "System Prompt", icon: FileText },
-    "api-keys": { label: "API Keys & Connections", icon: Key },
+    "api-keys": { label: "API Keys & Integrations", icon: Key },
     "quick-chat": { label: "Ambient Chat", icon: Fullscreen },
     permissions: { label: "Tool Permissions", icon: ShieldCheckIcon },
     "base-url": { label: "Base URL", icon: Globe },
