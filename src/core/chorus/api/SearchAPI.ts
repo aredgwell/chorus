@@ -1,15 +1,32 @@
 import { useQuery } from "@tanstack/react-query";
 import { db } from "../DB";
 
+/**
+ * Escape a user query for FTS5 MATCH syntax.
+ * Wraps each token in double quotes to treat them as literals,
+ * preventing FTS5 syntax errors from special characters.
+ */
+function escapeFtsQuery(query: string): string {
+    return query
+        .split(/\s+/)
+        .filter((token) => token.length > 0)
+        .map((token) => `"${token.replace(/"/g, '""')}"`)
+        .join(" ");
+}
+
 const searchQuery = (query: string) => ({
     queryKey: ["searchResults", query] as const,
     queryFn: async () => {
+        const ftsQuery = escapeFtsQuery(query);
+        if (!ftsQuery) return [];
+
+        // FTS5 search across message content + fallback LIKE for chat titles
         const results = await db.select<SearchResult[]>(
             `
                 SELECT DISTINCT
                     m.id,
                     m.chat_id,
-                    CASE 
+                    CASE
                         WHEN m.model = 'user' THEN COALESCE(m.text, '')
                         ELSE COALESCE(NULLIF(m.text, ''), mp.content, '')
                     END as text,
@@ -17,29 +34,49 @@ const searchQuery = (query: string) => ({
                     m.created_at,
                     c.title,
                     ms.type,
-                    CASE 
+                    CASE
                         WHEN m.model = 'user' THEN 'You'
                         ELSE m.model
                     END as message_type,
                     c.project_id,
                     c.parent_chat_id,
                     c.reply_to_id
-                FROM messages m
-                INNER JOIN chats c ON m.chat_id = c.id  -- Use INNER JOIN to ensure chat exists
+                FROM messages_fts fts
+                INNER JOIN messages m ON fts.message_id = m.id AND fts.chat_id = m.chat_id
+                INNER JOIN chats c ON m.chat_id = c.id
                 LEFT JOIN message_sets ms ON m.message_set_id = ms.id
                 LEFT JOIN message_parts mp ON m.id = mp.message_id AND m.chat_id = mp.chat_id
-                WHERE (
-                    -- Search in message text (for user messages)
-                    m.text LIKE '%' || $1 || '%'
-                    -- Search in message parts content (for AI messages)
-                    OR mp.content LIKE '%' || $1 || '%'
-                    -- Search in chat titles
-                    OR (c.title LIKE '%' || $1 || '%' AND c.title IS NOT NULL AND c.title != 'Untitled Chat')
-                )
-                ORDER BY m.created_at DESC
+                WHERE messages_fts MATCH $1
+
+                UNION
+
+                SELECT DISTINCT
+                    m.id,
+                    m.chat_id,
+                    COALESCE(m.text, '') as text,
+                    m.model,
+                    m.created_at,
+                    c.title,
+                    ms.type,
+                    CASE
+                        WHEN m.model = 'user' THEN 'You'
+                        ELSE m.model
+                    END as message_type,
+                    c.project_id,
+                    c.parent_chat_id,
+                    c.reply_to_id
+                FROM chats c
+                INNER JOIN messages m ON m.chat_id = c.id
+                LEFT JOIN message_sets ms ON m.message_set_id = ms.id
+                LEFT JOIN message_parts mp ON m.id = mp.message_id AND m.chat_id = mp.chat_id
+                WHERE c.title LIKE '%' || $2 || '%'
+                    AND c.title IS NOT NULL
+                    AND c.title != 'Untitled Chat'
+
+                ORDER BY created_at DESC
                 LIMIT 50
             `,
-            [query],
+            [ftsQuery, query],
         );
 
         // Deduplicate by chat_id, keeping the most recent message

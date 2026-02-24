@@ -96,6 +96,16 @@ Other features:
 
 I've put some screenshots of the app in the `screenshots` directory. If you're working on the UI at all, take a look at them. Keep in mind, though, that they may not be up to date with the latest code changes.
 
+## Adding a new model
+
+Adding a new model requires only a database migration. **No TypeScript provider code changes are needed.**
+
+1. **Create a migration** in `src-tauri/src/migrations.rs` — see the "HOW TO ADD A NEW MODEL" comment block there for the exact columns and a template (use migration 142 as an example).
+2. **Add to UI tier list** (optional) in `src/ui/lib/models.ts` if it should appear in the model picker tiers.
+3. **Test** by running the app and verifying the model appears and generates responses correctly.
+
+The `models` table stores all per-model configuration: API name aliases (`api_model_name`), output token limits (`max_output_tokens`), reasoning model flag (`is_reasoning_model`), tool support flag (`supports_tool_use`), and provider-specific overrides (`model_flags` JSON). Providers read this configuration at runtime instead of maintaining hardcoded allowlists.
+
 ## Data model changes
 
 Changes to the data model will typically require most of the following steps:

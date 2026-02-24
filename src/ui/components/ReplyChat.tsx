@@ -105,7 +105,7 @@ export default function ReplyChat({ chatId, replyToId }: ReplyChatProps) {
                         </div>
                     )}
 
-                    <div className="pt-6 pb-2 flex-shrink-0">
+                    <div className="pt-6 pb-2 shrink-0">
                         <p className="text-sm font-medium text-muted-foreground">
                             Replies are not added to context.
                         </p>
@@ -174,7 +174,7 @@ export default function ReplyChat({ chatId, replyToId }: ReplyChatProps) {
             </div>
 
             {/* Input - with dedicated space */}
-            <div className="flex-shrink-0">
+            <div className="shrink-0">
                 <ChatInput
                     isNewChat={false}
                     chatId={chatId}

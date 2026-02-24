@@ -27,68 +27,6 @@ type MeltyAnthrMessageParam = {
     hasAttachments: boolean;
 };
 
-type AnthropicModelConfig = {
-    inputModelName: string;
-    anthropicModelName: string;
-    maxTokens: number;
-};
-
-const ANTHROPIC_MODELS: AnthropicModelConfig[] = [
-    {
-        inputModelName: "claude-3-5-sonnet-latest",
-        anthropicModelName: "claude-3-5-sonnet-latest",
-        maxTokens: 8192,
-    },
-    {
-        inputModelName: "claude-3-7-sonnet-latest",
-        anthropicModelName: "claude-3-7-sonnet-latest",
-        maxTokens: 20000,
-    },
-    {
-        inputModelName: "claude-3-7-sonnet-latest-thinking",
-        anthropicModelName: "claude-3-7-sonnet-latest",
-        maxTokens: 10000,
-    },
-    {
-        inputModelName: "claude-sonnet-4-latest",
-        // https://docs.anthropic.com/en/docs/about-claude/models/overview 0 is the new alias for latest
-        anthropicModelName: "claude-sonnet-4-0",
-        maxTokens: 10000,
-    },
-    {
-        inputModelName: "claude-sonnet-4-5-20250929",
-        anthropicModelName: "claude-sonnet-4-5-20250929",
-        maxTokens: 10000,
-    },
-    {
-        inputModelName: "claude-opus-4-latest",
-        anthropicModelName: "claude-opus-4-0",
-        maxTokens: 10000,
-    },
-    {
-        inputModelName: "claude-opus-4.1-latest",
-        anthropicModelName: "claude-opus-4-1-20250805",
-        maxTokens: 10000,
-    },
-    {
-        inputModelName: "claude-haiku-4-5-20251001",
-        anthropicModelName: "claude-haiku-4-5-20251001",
-        maxTokens: 20000,
-    },
-    {
-        inputModelName: "claude-opus-4-5-20251101",
-        anthropicModelName: "claude-opus-4-5-20251101",
-        maxTokens: 20000,
-    },
-];
-
-function getAnthropicModelName(modelName: string): string | undefined {
-    const modelConfig = ANTHROPIC_MODELS.find(
-        (m) => m.inputModelName === modelName,
-    );
-    return modelConfig?.anthropicModelName;
-}
-
 export class ProviderAnthropic implements IProvider {
     async streamResponse({
         modelConfig,
@@ -102,10 +40,8 @@ export class ProviderAnthropic implements IProvider {
         customBaseUrl,
     }: StreamResponseParams) {
         const modelName = modelConfig.modelId.split("::")[1];
-        const anthropicModelName = getAnthropicModelName(modelName);
-        if (!anthropicModelName) {
-            throw new Error(`Unsupported model: ${modelConfig.modelId}`);
-        }
+        // Use the API model name from the database if set, otherwise use the model ID suffix
+        const anthropicModelName = modelConfig.apiModelName ?? modelName;
 
         const { canProceed, reason } = canProceedWithProvider(
             "anthropic",
@@ -157,13 +93,14 @@ export class ProviderAnthropic implements IProvider {
             messages,
             system: modelConfig.systemPrompt,
             stream: true,
-            max_tokens: getMaxTokens(modelName),
-            ...(isThinking && {
-                thinking: {
-                    type: "enabled",
-                    budget_tokens: modelConfig.budgetTokens,
-                },
-            }),
+            max_tokens: modelConfig.maxOutputTokens ?? 8192,
+            ...(isThinking &&
+                modelConfig.budgetTokens !== undefined && {
+                    thinking: {
+                        type: "enabled" as const,
+                        budget_tokens: modelConfig.budgetTokens,
+                    },
+                }),
             ...(tools &&
                 tools.length > 0 && {
                     tools: anthropicTools,
@@ -248,7 +185,7 @@ async function formatMessageWithAttachments(
         };
     }
 
-    const attachmentBlocks: Anthropic.Messages.ContentBlock[] = [];
+    const attachmentBlocks: Anthropic.Messages.ContentBlockParam[] = [];
 
     const attachments = message.role === "user" ? message.attachments : [];
 
@@ -256,7 +193,7 @@ async function formatMessageWithAttachments(
         switch (attachment.type) {
             case "text": {
                 attachmentBlocks.push({
-                    // @ts-expect-error: Anthropic sdk types are outdated
+
                     type: "document",
                     source: {
                         type: "text",
@@ -272,7 +209,7 @@ async function formatMessageWithAttachments(
             }
             case "webpage": {
                 attachmentBlocks.push({
-                    // @ts-expect-error: Anthropic sdk types are outdated
+
                     type: "document",
                     source: {
                         type: "text",
@@ -329,7 +266,7 @@ async function formatMessageWithAttachments(
                 );
 
                 attachmentBlocks.push({
-                    // @ts-expect-error: Anthropic sdk types are outdated
+
                     type: "image",
                     source: {
                         type: "base64",
@@ -341,7 +278,7 @@ async function formatMessageWithAttachments(
             }
             case "pdf": {
                 attachmentBlocks.push({
-                    // @ts-expect-error: Anthropic sdk types are outdated
+
                     type: "document",
                     source: {
                         type: "base64",
@@ -396,16 +333,6 @@ async function formatMessageWithAttachments(
     };
 }
 
-const getMaxTokens = (modelId: string) => {
-    const modelConfig = ANTHROPIC_MODELS.find(
-        (m) => m.inputModelName === modelId,
-    );
-    if (!modelConfig) {
-        throw new Error(`Unsupported model: ${modelId}`);
-    }
-    return modelConfig.maxTokens;
-};
-
 /**
  * Adds cache control block to the last message in `messages`
  * that contains attachments (per the hasAttachments flag).
@@ -436,9 +363,9 @@ function addCacheControlToLastAttachment(
             // add cache control block to the last attachment-containing message
             const blocks = outputMessage.content;
 
-            blocks[blocks.length - 1]["cache_control"] = {
-                type: "ephemeral",
-            };
+            // All content block types we create (text, document, image) support cache_control
+            const lastBlock = blocks[blocks.length - 1] as { cache_control?: { type: "ephemeral" } };
+            lastBlock.cache_control = { type: "ephemeral" };
 
             outputMessages.push({
                 ...outputMessage,

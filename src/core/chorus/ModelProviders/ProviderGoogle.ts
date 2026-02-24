@@ -25,33 +25,6 @@ function isProviderError(error: unknown): error is ProviderError {
     );
 }
 
-function getGoogleModelName(modelName: string): string | undefined {
-    if (
-        [
-            "gemini-2.0-flash-exp",
-            "gemini-2.0-flash-thinking-exp",
-            "gemini-2.0-flash-lite-preview-02-05",
-            "gemini-2.0-pro-exp-02-05",
-            "gemini-2.5-pro-exp-03-25",
-            "gemini-2.0-flash",
-            "gemini-2.5-pro-preview-03-25",
-            "gemini-2.5-flash",
-            "gemini-3-flash-preview",
-            "gemini-3-pro-preview",
-        ].includes(modelName)
-    ) {
-        // allowed model names
-        return modelName;
-    } else if (modelName === "gemini-2.5-pro-latest") {
-        // special case: this is not a real google model name, we just map it to latest thing google has available
-        return "gemini-2.5-pro-preview-06-05";
-    } else if (modelName === "gemini-2.5-flash-preview-04-17") {
-        // alias deprecated preview model to stable version
-        return "gemini-2.5-flash";
-    }
-    return undefined;
-}
-
 // uses OpenAI provider to format the messages
 export class ProviderGoogle implements IProvider {
     async streamResponse({
@@ -66,10 +39,8 @@ export class ProviderGoogle implements IProvider {
         customBaseUrl,
     }: StreamResponseParams): Promise<ModelDisabled | void> {
         const modelName = modelConfig.modelId.split("::")[1];
-        const googleModelName = getGoogleModelName(modelName);
-        if (!googleModelName) {
-            throw new Error(`Unsupported model: ${modelName}`);
-        }
+        // Use the API model name from the database if set, otherwise use the model ID suffix
+        const googleModelName = modelConfig.apiModelName ?? modelName;
 
         const { canProceed, reason } = canProceedWithProvider(
             "google",

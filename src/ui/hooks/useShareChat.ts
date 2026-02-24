@@ -67,7 +67,7 @@ export function useShareChat(chatId: string) {
                  <header class="px-4 py-3 border-b border-zinc-200 font-geist">
                     <div class="flex w-full justify-between items-center">
                     <div class="flex items-center gap-2">
-                        <img src="/images/chorus-no-padding.png" class="h-8 shadow-sm w-auto rounded-md border border-zinc-200" alt="Chorus Logo" />
+                        <img src="/images/chorus-no-padding.png" class="h-8 shadow-xs w-auto rounded-md border border-zinc-200" alt="Chorus Logo" />
                         <span class="text font-medium text-zinc-900">Chorus</span>
                     </div>
                     <p class="text-sm text-zinc-600">

@@ -56,7 +56,7 @@ function ScrollToBottomButton({ onClick }: { onClick: () => void }) {
                 isQuickChatWindow
                     ? "fixed bottom-20 left-1/2 -translate-x-1/2"
                     : "relative"
-            } px-4 py-2 bg-background/95 backdrop-blur border rounded-full hover:bg-muted/80 z-50 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 pointer-events-auto`}
+            } px-4 py-2 bg-background/95 backdrop-blur-sm border rounded-full hover:bg-muted/80 z-50 transition-all duration-200 shadow-xs hover:shadow-md flex items-center gap-2 pointer-events-auto`}
         >
             <ChevronDownIcon className="w-3.5 h-3.5" />
             <span className="text-sm font-medium">Scroll to bottom</span>
@@ -79,8 +79,8 @@ export function ChatInput({
     chatId: string;
     isNewChat: boolean | undefined;
     currentMessageSet: MessageSetDetail | undefined;
-    inputRef: React.RefObject<HTMLTextAreaElement>;
-    eyeRef: React.RefObject<MouseTrackingEyeRef>;
+    inputRef: React.RefObject<HTMLTextAreaElement | null>;
+    eyeRef: React.RefObject<MouseTrackingEyeRef | null>;
     scrollToLatestMessageSet: () => void;
     sentAttachmentTypes: AttachmentType[]; // todo: should we bring this back for something?
     isReply?: boolean;
@@ -540,7 +540,7 @@ export function ChatInput({
                  @3xl:border-r @3xl:border-t @3xl:max-w-3xl pt-1 ${
                      isNewChat && !isAnimatingToBottom
                          ? "@3xl:rounded-lg border-t border-b @3xl:shadow-diffuse"
-                         : "@3xl:rounded-t-lg @3xl:shadow-lg @3xl:has-[:focus]:shadow-muted-foreground/10"
+                         : "@3xl:rounded-t-lg @3xl:shadow-lg @3xl:has-focus:shadow-muted-foreground/10"
                  }`
             }
         >
@@ -581,8 +581,8 @@ export function ChatInput({
                     }}
                     placeholder={placeholderText}
                     className="ring-0
-                placeholder:text-muted-foreground/50 font-[350] focus:outline-none pt-2 px-1.5 select-text
-                max-h-[60vh] overflow-y-auto my-2 rounded-none !p-0"
+                placeholder:text-muted-foreground/50 font-[350] focus:outline-hidden pt-2 px-1.5 select-text
+                max-h-[60vh] overflow-y-auto my-2 rounded-none p-0!"
                     autoFocus
                     onFocus={() =>
                         inputActions.setFocusedInputId(
@@ -603,7 +603,7 @@ export function ChatInput({
             </form>
             <div className="flex py-3 w-full">
                 <div className="flex justify-between w-full mx-auto">
-                    <div className="flex items-center gap-2 h-7 overflow-x-auto -mx-1 no-scrollbar overflow-y-hidden relative w-[30rem]">
+                    <div className="flex items-center gap-2 h-7 overflow-x-auto -mx-1 no-scrollbar overflow-y-hidden relative w-120">
                         <AttachmentAddPill onSelect={fileSelect.mutate} />
                         {!isReply && (
                             <ManageModelsButtonCompare
@@ -627,7 +627,7 @@ export function ChatInput({
                         {!isReply && <ToolsBox />}
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0 h-7">
+                    <div className="flex items-center gap-2 shrink-0 h-7">
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <button
@@ -780,9 +780,9 @@ export function ChatInput({
                     }
                 }}
                 placeholder={placeholderText}
-                className={`ring-0 w-full rounded-xl bg-foreground/5 focus:shadow-sm
-                                placeholder:text-foreground/50 px-3 !border-foreground/10 select-text
-                                max-h-[70vh] overflow-y-auto !p-2`}
+                className={`ring-0 w-full rounded-xl bg-foreground/5 focus:shadow-xs
+                                placeholder:text-foreground/50 px-3 border-foreground/10! select-text
+                                max-h-[70vh] overflow-y-auto p-2!`}
                 autoFocus
                 onFocus={() =>
                     inputActions.setFocusedInputId(
@@ -805,7 +805,7 @@ export function ChatInput({
         <div className="w-full">{defaultChatComposer}</div>
     ) : (
         <div
-            className={`absolute bottom-0 left-0 max-w-3xl mx-auto right-0 z-[15] transition-opacity duration-300 
+            className={`absolute bottom-0 left-0 max-w-3xl mx-auto right-0 z-15 transition-opacity duration-300 
                          ${isAnimatingToBottom ? "opacity-0" : "opacity-100"}`}
         >
             {/* Scroll to bottom button */}

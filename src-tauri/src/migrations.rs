@@ -2554,5 +2554,196 @@ You have full access to bash commands on the user''''s computer. If you write a 
                 UPDATE projects SET total_cost_usd = 0.0 WHERE total_cost_usd IS NULL;
             "#,
         },
+        Migration {
+            version: 139,
+            description: "enable WAL mode for better concurrent read/write performance",
+            kind: MigrationKind::Up,
+            sql: "PRAGMA journal_mode=WAL;",
+        },
+        Migration {
+            version: 140,
+            description: "add FTS5 full-text search for messages",
+            kind: MigrationKind::Up,
+            sql: r#"
+                CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+                    chat_id UNINDEXED,
+                    message_id UNINDEXED,
+                    model UNINDEXED,
+                    content,
+                    tokenize='porter unicode61'
+                );
+
+                INSERT INTO messages_fts (chat_id, message_id, model, content)
+                SELECT m.chat_id, m.id, m.model, COALESCE(m.text, '')
+                FROM messages m
+                WHERE m.model = 'user' AND m.text IS NOT NULL AND m.text != '';
+
+                INSERT INTO messages_fts (chat_id, message_id, model, content)
+                SELECT mp.chat_id, mp.message_id, m.model, mp.content
+                FROM message_parts mp
+                JOIN messages m ON m.id = mp.message_id AND m.chat_id = mp.chat_id
+                WHERE mp.content IS NOT NULL AND mp.content != '';
+
+                CREATE TRIGGER IF NOT EXISTS messages_fts_insert_user AFTER INSERT ON messages
+                WHEN NEW.model = 'user' AND NEW.text IS NOT NULL AND NEW.text != ''
+                BEGIN
+                    INSERT INTO messages_fts (chat_id, message_id, model, content)
+                    VALUES (NEW.chat_id, NEW.id, NEW.model, NEW.text);
+                END;
+
+                CREATE TRIGGER IF NOT EXISTS messages_fts_update_user AFTER UPDATE OF text ON messages
+                WHEN NEW.model = 'user' AND NEW.text IS NOT NULL AND NEW.text != ''
+                BEGIN
+                    DELETE FROM messages_fts WHERE message_id = NEW.id AND chat_id = NEW.chat_id;
+                    INSERT INTO messages_fts (chat_id, message_id, model, content)
+                    VALUES (NEW.chat_id, NEW.id, NEW.model, NEW.text);
+                END;
+
+                CREATE TRIGGER IF NOT EXISTS messages_fts_insert_parts AFTER INSERT ON message_parts
+                WHEN NEW.content IS NOT NULL AND NEW.content != ''
+                BEGIN
+                    INSERT INTO messages_fts (chat_id, message_id, model, content)
+                    SELECT NEW.chat_id, NEW.message_id, m.model, NEW.content
+                    FROM messages m WHERE m.id = NEW.message_id AND m.chat_id = NEW.chat_id;
+                END;
+
+                CREATE TRIGGER IF NOT EXISTS messages_fts_delete AFTER DELETE ON messages
+                BEGIN
+                    DELETE FROM messages_fts WHERE message_id = OLD.id AND chat_id = OLD.chat_id;
+                END;
+            "#,
+        },
+        Migration {
+            version: 141,
+            description: "drop legacy archive and temp tables",
+            kind: MigrationKind::Up,
+            sql: r#"
+                DROP TABLE IF EXISTS messages_archive_20250102;
+                DROP TABLE IF EXISTS models_archive_20250111;
+                DROP TABLE IF EXISTS temp_hierarchy;
+                DROP TABLE IF EXISTS temp_groupings;
+                DROP TABLE IF EXISTS temp_group_parent;
+                DROP TABLE IF EXISTS temp_message_sets;
+            "#,
+        },
+        Migration {
+            version: 142,
+            description: "add claude opus 4.6, sonnet 4.6, gpt-5.1, gpt-5.2, gemini 3.1 pro preview",
+            kind: MigrationKind::Up,
+            sql: r#"
+                -- Add Claude Opus 4.6
+                INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types, prompt_price_per_token, completion_price_per_token) VALUES
+                    ('anthropic::claude-opus-4-6', 'Claude Opus 4.6', 1, '["text", "image", "webpage", "pdf"]', 0.000005, 0.000025);
+                INSERT OR REPLACE INTO model_configs (author, id, model_id, display_name, system_prompt, is_default, new_until) VALUES
+                    ('system', 'anthropic::claude-opus-4-6', 'anthropic::claude-opus-4-6', 'Claude Opus 4.6', '', 0, '2026-04-01 00:00:00');
+
+                -- Add Claude Sonnet 4.6
+                INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types, prompt_price_per_token, completion_price_per_token) VALUES
+                    ('anthropic::claude-sonnet-4-6', 'Claude Sonnet 4.6', 1, '["text", "image", "webpage", "pdf"]', 0.000003, 0.000015);
+                INSERT OR REPLACE INTO model_configs (author, id, model_id, display_name, system_prompt, is_default, new_until) VALUES
+                    ('system', 'anthropic::claude-sonnet-4-6', 'anthropic::claude-sonnet-4-6', 'Claude Sonnet 4.6', '', 0, '2026-04-01 00:00:00');
+
+                -- Add GPT-5.1
+                INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types) VALUES
+                    ('openai::gpt-5.1', 'GPT-5.1', 1, '["text", "image", "webpage", "pdf"]');
+                INSERT OR REPLACE INTO model_configs (author, id, model_id, display_name, system_prompt, is_default, new_until) VALUES
+                    ('system', 'openai::gpt-5.1', 'openai::gpt-5.1', 'GPT-5.1', '', 0, '2026-04-01 00:00:00');
+
+                -- Add GPT-5.2
+                INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types) VALUES
+                    ('openai::gpt-5.2', 'GPT-5.2', 1, '["text", "image", "webpage", "pdf"]');
+                INSERT OR REPLACE INTO model_configs (author, id, model_id, display_name, system_prompt, is_default, new_until) VALUES
+                    ('system', 'openai::gpt-5.2', 'openai::gpt-5.2', 'GPT-5.2', '', 0, '2026-04-01 00:00:00');
+
+                -- Add Gemini 3.1 Pro Preview
+                INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types) VALUES
+                    ('google::gemini-3.1-pro-preview', 'Gemini 3.1 Pro (Preview)', 1, '["text", "image", "webpage", "pdf"]');
+                INSERT OR REPLACE INTO model_configs (author, id, model_id, display_name, system_prompt, is_default, new_until) VALUES
+                    ('system', 'google::gemini-3.1-pro-preview', 'google::gemini-3.1-pro-preview', 'Gemini 3.1 Pro (Preview)', '', 0, '2026-04-01 00:00:00');
+
+                -- Update Gemini 2.5 Pro latest mapping to stable
+                UPDATE models SET display_name = 'Gemini 2.5 Pro' WHERE id = 'google::gemini-2.5-pro-latest';
+            "#,
+        },
+        // ┌────────────────────────────────────────────────────────────────────────────┐
+        // │                    HOW TO ADD A NEW MODEL                                  │
+        // │                                                                            │
+        // │  1. Create a new migration that INSERTs into `models` and `model_configs`. │
+        // │     Copy the pattern from migration 142 as a template.                     │
+        // │                                                                            │
+        // │  Required columns in `models`:                                             │
+        // │    - id: "provider::model-name" (e.g. "anthropic::claude-sonnet-5")        │
+        // │    - display_name: Human-readable name                                     │
+        // │    - supported_attachment_types: JSON array, e.g. '["text","image",...]'   │
+        // │                                                                            │
+        // │  Optional columns in `models` (only set if non-default):                   │
+        // │    - api_model_name: If the API name differs from the id suffix            │
+        // │    - max_output_tokens: If the model has a specific output token limit      │
+        // │    - is_reasoning_model: Set to 1 for o-series / reasoning models          │
+        // │    - supports_tool_use: Set to 0 if the model cannot use tools             │
+        // │    - model_flags: JSON for rare provider-specific overrides                │
+        // │    - prompt_price_per_token / completion_price_per_token: pricing           │
+        // │                                                                            │
+        // │  Required columns in `model_configs`:                                      │
+        // │    - id: Same as model id for the default config                           │
+        // │    - model_id: Same as model id                                            │
+        // │    - display_name: Same as model display_name                              │
+        // │    - author: 'system'                                                      │
+        // │    - system_prompt: '' (empty string)                                      │
+        // │                                                                            │
+        // │  2. (Optional) Add the model to a tier in src/ui/lib/models.ts             │
+        // │  3. That's it! No provider TypeScript code changes needed.                 │
+        // └────────────────────────────────────────────────────────────────────────────┘
+        Migration {
+            version: 143,
+            description: "add model capability columns for database-driven provider config",
+            kind: MigrationKind::Up,
+            sql: r#"
+                -- Add new columns to models table
+                ALTER TABLE models ADD COLUMN api_model_name TEXT;
+                ALTER TABLE models ADD COLUMN max_output_tokens INTEGER;
+                ALTER TABLE models ADD COLUMN is_reasoning_model BOOLEAN NOT NULL DEFAULT 0;
+                ALTER TABLE models ADD COLUMN supports_tool_use BOOLEAN NOT NULL DEFAULT 1;
+                ALTER TABLE models ADD COLUMN model_flags TEXT;
+
+                -- Backfill Anthropic: api_model_name (only where it differs from id suffix)
+                UPDATE models SET api_model_name = 'claude-sonnet-4-0' WHERE id = 'anthropic::claude-sonnet-4-latest';
+                UPDATE models SET api_model_name = 'claude-opus-4-0' WHERE id = 'anthropic::claude-opus-4-latest';
+                UPDATE models SET api_model_name = 'claude-opus-4-1-20250805' WHERE id = 'anthropic::claude-opus-4.1-latest';
+
+                -- Backfill Anthropic: max_output_tokens
+                UPDATE models SET max_output_tokens = 8192 WHERE id = 'anthropic::claude-3-5-sonnet-latest';
+                UPDATE models SET max_output_tokens = 20000 WHERE id = 'anthropic::claude-3-7-sonnet-latest';
+                UPDATE models SET max_output_tokens = 10000 WHERE id = 'anthropic::claude-3-7-sonnet-latest-thinking';
+                UPDATE models SET max_output_tokens = 10000 WHERE id = 'anthropic::claude-sonnet-4-latest';
+                UPDATE models SET max_output_tokens = 10000 WHERE id = 'anthropic::claude-sonnet-4-5-20250929';
+                UPDATE models SET max_output_tokens = 10000 WHERE id = 'anthropic::claude-opus-4-latest';
+                UPDATE models SET max_output_tokens = 10000 WHERE id = 'anthropic::claude-opus-4.1-latest';
+                UPDATE models SET max_output_tokens = 20000 WHERE id = 'anthropic::claude-haiku-4-5-20251001';
+                UPDATE models SET max_output_tokens = 20000 WHERE id = 'anthropic::claude-opus-4-5-20251101';
+                UPDATE models SET max_output_tokens = 128000 WHERE id = 'anthropic::claude-opus-4-6';
+                UPDATE models SET max_output_tokens = 64000 WHERE id = 'anthropic::claude-sonnet-4-6';
+
+                -- Backfill Google: api_model_name (aliases)
+                UPDATE models SET api_model_name = 'gemini-2.5-pro' WHERE id = 'google::gemini-2.5-pro-latest';
+                UPDATE models SET api_model_name = 'gemini-2.5-flash' WHERE id = 'google::gemini-2.5-flash-preview-04-17';
+
+                -- Backfill OpenAI: is_reasoning_model
+                UPDATE models SET is_reasoning_model = 1 WHERE id IN (
+                    'openai::o1', 'openai::o1-pro', 'openai::o3-mini',
+                    'openai::o3', 'openai::o3-pro', 'openai::o4-mini',
+                    'openai::o3-deep-research'
+                );
+
+                -- Backfill OpenAI: o3-deep-research model_flags
+                UPDATE models SET model_flags = '{"openai_builtin_tools":["web_search_preview","code_interpreter"],"reasoning_mode":"summary_auto","exclude_toolsets":["web"],"extra_system_prompt_key":"o3_deep_research"}' WHERE id = 'openai::o3-deep-research';
+
+                -- Backfill Grok: supports_tool_use = 0
+                UPDATE models SET supports_tool_use = 0 WHERE id LIKE 'grok::%';
+
+                -- Backfill Perplexity: supports_tool_use = 0
+                UPDATE models SET supports_tool_use = 0 WHERE id LIKE 'perplexity::%';
+            "#,
+        },
     ];
 }

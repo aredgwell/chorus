@@ -57,7 +57,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
         return (
             <div
                 data-tauri-drag-region
-                className="fixed inset-0 z-50 flex flex-col items-center justify-center min-h-screen bg-background/95 backdrop-blur-sm px-4"
+                className="fixed inset-0 z-50 flex flex-col items-center justify-center min-h-screen bg-background/95 backdrop-blur-xs px-4"
             >
                 <div className="text-center space-y-6 max-w-3xl w-full">
                     <div className="space-y-2">
@@ -69,7 +69,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
                         </p>
                         <img
                             src="https://meltylabs.t3.storage.dev/screenshot_light.png"
-                            className="rounded-lg max-w-3xl mx-auto border border-border shadow-sm"
+                            className="rounded-lg max-w-3xl mx-auto border border-border shadow-xs"
                             alt="Chorus screenshot"
                         />
                     </div>
@@ -86,7 +86,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
     return (
         <div
             data-tauri-drag-region
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center min-h-screen bg-background/95 backdrop-blur-sm px-4"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center min-h-screen bg-background/95 backdrop-blur-xs px-4"
         >
             <div className="text-center space-y-6 max-w-md w-full">
                 <div className="space-y-2">

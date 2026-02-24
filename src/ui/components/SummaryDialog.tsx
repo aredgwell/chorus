@@ -72,14 +72,14 @@ export function SummaryDialog({
                         </span>
                         {date && (
                             <>
-                                <div className="h-[1px] flex-1 bg-gray-300" />
+                                <div className="h-px flex-1 bg-gray-300" />
                                 <span className="text-sm uppercase tracking-wider font-geist-mono text-gray-500">
                                     {date}
                                 </span>
                             </>
                         )}
                     </div>
-                    <div className="h-[1px] flex-1 bg-gray-300" />
+                    <div className="h-px flex-1 bg-gray-300" />
                     <div className="flex items-center gap-2">
                         {onRefresh && (
                             <Button

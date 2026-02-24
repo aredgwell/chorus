@@ -43,7 +43,7 @@ function AttachmentSmallView({ attachment }: { attachment: Attachment }) {
 
     return (
         <div className="flex items-center border border-border bg-popover gap-2 rounded px-2 py-1.5">
-            <div className="flex-shrink-0 size-8 border bg-background border-border rounded overflow-hidden flex items-center justify-center">
+            <div className="shrink-0 size-8 border bg-background border-border rounded overflow-hidden flex items-center justify-center">
                 {attachment.isLoading ? (
                     <Loader2 className="size-3 text-muted-foreground animate-spin" />
                 ) : isImage ? (
@@ -285,7 +285,7 @@ export function AttachmentAddButton({
                             onSelect();
                         }}
                     >
-                        <PaperclipIcon className="!w-4 !h-4" />
+                        <PaperclipIcon className="w-4! h-4!" />
                         {labelText && (
                             <span className="text-base text-muted-foreground font-[350]">
                                 Add
@@ -316,7 +316,7 @@ export function AttachmentAddPill({ onSelect }: { onSelect: () => void }) {
                 >
                     <PaperclipIcon
                         strokeWidth={1.5}
-                        className="!w-4 !h-4 text-muted-foreground"
+                        className="w-4! h-4! text-muted-foreground"
                     />
                 </Button>
             </TooltipTrigger>

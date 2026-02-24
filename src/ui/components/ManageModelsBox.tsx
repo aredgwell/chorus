@@ -125,10 +125,10 @@ function ModelPill({
     return (
         <Badge
             variant="secondary"
-            className={`${isDragging ? "opacity-75" : ""} flex-shrink-0 max-w-[200px] h-7 font-sans normal-case`}
+            className={`${isDragging ? "opacity-75" : ""} shrink-0 max-w-[200px] h-7 font-sans normal-case`}
         >
             <div className="flex items-center gap-2 overflow-hidden">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                     <ProviderLogo modelId={modelConfig.modelId} size="sm" />
                 </div>
                 <span className="truncate text-sm">
@@ -137,7 +137,7 @@ function ModelPill({
             </div>
             <button
                 onClick={() => handleRemoveModelConfig(modelConfig.id)}
-                className="ml-1 rounded-full text-badge-foreground/50 border-none text-sm p-1 hover:text-badge-foreground flex-shrink-0"
+                className="ml-1 rounded-full text-badge-foreground/50 border-none text-sm p-1 hover:text-badge-foreground shrink-0"
             >
                 <XIcon className="w-3 h-3" />
             </button>
@@ -278,7 +278,7 @@ function ModelGroup({
                                         {checkedModelConfigIds.includes(
                                             m.id,
                                         ) && (
-                                            <CircleCheckIcon className="!w-5 !h-5 ml-2 fill-primary text-primary-foreground" />
+                                            <CircleCheckIcon className="w-5! h-5! ml-2 fill-primary text-primary-foreground" />
                                         )}
                                     </>
                                 )}
@@ -553,7 +553,7 @@ export function ManageModelsBox({
                         selectedModelConfigsCompare.length > 0 && (
                             <div className="px-3 py-2 relative overflow-hidden border-b border-border">
                                 <div
-                                    className="overflow-x-auto no-scrollbar flex-grow"
+                                    className="overflow-x-auto no-scrollbar grow"
                                     ref={containerRef}
                                     onScroll={handleScroll}
                                 >
@@ -602,7 +602,7 @@ export function ManageModelsBox({
                                                             e.preventDefault();
                                                             mode.onClearModelConfigs();
                                                         }}
-                                                        className="text-sm text-muted-foreground hover:text-foreground flex-shrink-0"
+                                                        className="text-sm text-muted-foreground hover:text-foreground shrink-0"
                                                         title="Clear all models"
                                                     >
                                                         Clear{" "}
@@ -619,7 +619,7 @@ export function ManageModelsBox({
                                 </div>
                                 {/* Gradient overlay */}
                                 {showMoreIndicator && (
-                                    <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-r from-transparent to-background pointer-events-none"></div>
+                                    <div className="absolute right-0 top-0 bottom-0 w-12 bg-linear-to-r from-transparent to-background pointer-events-none"></div>
                                 )}
                             </div>
                         )}

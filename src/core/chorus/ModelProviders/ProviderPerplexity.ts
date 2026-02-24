@@ -17,17 +17,6 @@ export class ProviderPerplexity implements IProvider {
     }: StreamResponseParams) {
         const modelId = modelConfig.modelId.split("::")[1];
 
-        if (
-            modelId !== "llama-3.1-sonar-huge-128k-online" &&
-            modelId !== "sonar-pro" &&
-            modelId !== "sonar" &&
-            modelId !== "r1-1776" &&
-            modelId !== "sonar-deep-research" &&
-            modelId !== "sonar-reasoning-pro"
-        ) {
-            throw new Error(`Unsupported model: ${modelId}`);
-        }
-
         const { canProceed, reason } = canProceedWithProvider(
             "perplexity",
             apiKeys,

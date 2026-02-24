@@ -44,7 +44,7 @@ export function MoveToProjectDropdown({
                         >
                             <FolderInputIcon
                                 strokeWidth={1.5}
-                                className="!size-3.5"
+                                className="size-3.5!"
                             />
                         </Button>
                     </DropdownMenuTrigger>

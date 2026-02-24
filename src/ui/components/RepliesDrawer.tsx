@@ -51,7 +51,7 @@ export default function RepliesDrawer({
             <div className="@2xl:translate-y-[50px] @2xl:h-[calc(100vh-50px)] h-full bg-background flex flex-col transition-all duration-300 ease-in-out overflow-hidden w-full">
                 {/* Header */}
                 <div
-                    className={`flex items-center justify-between px-6 pb-3 flex-shrink-0 transition-opacity duration-300 ${isMobile ? "pt-8" : "pt-4"}`}
+                    className={`flex items-center justify-between px-6 pb-3 shrink-0 transition-opacity duration-300 ${isMobile ? "pt-8" : "pt-4"}`}
                 >
                     <p className="font-semibold whitespace-nowrap">Replies</p>
                     <button

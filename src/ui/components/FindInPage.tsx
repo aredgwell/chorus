@@ -441,7 +441,7 @@ export function FindInPage({ dependencies = [] }: { dependencies?: any[] }) {
                     }}
                     onKeyDown={handleInputKeyDown}
                     placeholder="Find in chat..."
-                    className="text-sm border-0 focus:ring-0 focus:outline-none h-7 flex-1"
+                    className="text-sm border-0 focus:ring-0 focus:outline-hidden h-7 flex-1"
                     spellCheck={false}
                     autoFocus
                 />
@@ -467,7 +467,7 @@ export function FindInPage({ dependencies = [] }: { dependencies?: any[] }) {
                     <TooltipContent side="bottom">
                         Previous{" "}
                         <kbd className="ml-1">
-                            <span className="!text-[14px] mb-1">⇧</span>
+                            <span className="text-[14px]! mb-1">⇧</span>
                             <span>↵</span>
                         </kbd>
                     </TooltipContent>

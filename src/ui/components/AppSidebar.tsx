@@ -144,7 +144,7 @@ function EmptyProjectState() {
                     : "border-muted-foreground/10"
             }`}
         >
-            <p className="mb-2 text-sm whitespace-normal break-words">
+            <p className="mb-2 text-sm whitespace-normal wrap-break-word">
                 Projects allow you to share context between chats.
             </p>
 
@@ -319,7 +319,7 @@ function Project({ projectId }: { projectId: string }) {
                     <span className="flex items-center gap-2 flex-1 min-w-0">
                         <CollapsibleTrigger asChild>
                             <div
-                                className="text-muted-foreground flex items-center justify-center -ml-1 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded flex-shrink-0"
+                                className="text-muted-foreground flex items-center justify-center -ml-1 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded shrink-0"
                                 onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
@@ -354,14 +354,14 @@ function Project({ projectId }: { projectId: string }) {
                         {showCost &&
                             project?.totalCostUsd !== undefined &&
                             project.totalCostUsd > 0 && (
-                                <span className="ml-auto pr-8 text-xs text-muted-foreground font-normal flex-shrink-0">
+                                <span className="ml-auto pr-8 text-xs text-muted-foreground font-normal shrink-0">
                                     {formatCost(project.totalCostUsd)}
                                 </span>
                             )}
                     </span>
 
                     {/* Gradient overlay that appears when hovering */}
-                    <div className="absolute right-0 w-20 h-full opacity-0 group-hover/project-toggle:opacity-100 transition-opacity bg-gradient-to-l from-sidebar-accent via-sidebar-accent to-transparent pointer-events-none" />
+                    <div className="absolute right-0 w-20 h-full opacity-0 group-hover/project-toggle:opacity-100 transition-opacity bg-linear-to-l from-sidebar-accent via-sidebar-accent to-transparent pointer-events-none" />
 
                     {/* Add new chat in project */}
                     <div
@@ -388,7 +388,7 @@ function Project({ projectId }: { projectId: string }) {
                     {chats.length > 0 && (
                         <div className="relative">
                             {/* Vertical line connecting folder to chats */}
-                            <div className="absolute left-[18px] top-0 bottom-1 w-[1px] bg-border" />
+                            <div className="absolute left-[18px] top-0 bottom-1 w-px bg-border" />
                             <div className="pl-[28px]">
                                 {chatToDisplay.map((chat) => (
                                     <ChatListItem
@@ -675,7 +675,7 @@ export function AppSidebarInner() {
                         </SidebarGroupContent>
                     </SidebarGroup>
                     {/* gradient overlay */}
-                    <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-sidebar via-sidebar to-transparent pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 w-full h-24 bg-linear-to-t from-sidebar via-sidebar to-transparent pointer-events-none" />
                 </div>
             </DndContext>
 
@@ -952,7 +952,7 @@ const ChatListItemView = React.memo(
                 className={[
                     deleteIsPending ? "opacity-50" : "",
                     // chat.projectContextSummaryIsStale
-                    //     ? "border !border-red-500"
+                    //     ? "border border-red-500!"
                     //     : "", // for debugging
                 ].join(" ")}
             >
@@ -972,7 +972,7 @@ const ChatListItemView = React.memo(
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <div
-                                            className="hover:text-foreground group/parent-chat-button mr-2 flex-shrink-0"
+                                            className="hover:text-foreground group/parent-chat-button mr-2 shrink-0"
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
@@ -981,7 +981,7 @@ const ChatListItemView = React.memo(
                                                 );
                                             }}
                                         >
-                                            <span className="flex-shrink-0">
+                                            <span className="shrink-0">
                                                 <SplitOptimized className="w-3 h-3 mr-2 text-muted-foreground group-hover/parent-chat-button:text-accent-500" />
                                             </span>
                                         </div>
@@ -998,7 +998,7 @@ const ChatListItemView = React.memo(
                                     await onSubmitEdit(newTitle);
                                 }}
                                 className="flex-1 truncate"
-                                editClassName={`h-auto text-base px-0 py-0 ${isActive ? "bg-sidebar-accent" : ""} group-hover/chat-button:bg-sidebar-accent border-0 focus:ring-0 focus:outline-none shadow-none`}
+                                editClassName={`h-auto text-base px-0 py-0 ${isActive ? "bg-sidebar-accent" : ""} group-hover/chat-button:bg-sidebar-accent border-0 focus:ring-0 focus:outline-hidden shadow-none`}
                                 placeholder="Untitled Chat"
                                 showEditIcon={false}
                                 clickToEdit={false}
@@ -1010,14 +1010,14 @@ const ChatListItemView = React.memo(
                             {showCost &&
                                 chatCost !== undefined &&
                                 chatCost > 0 && (
-                                    <span className="ml-auto pl-2 text-xs text-muted-foreground flex-shrink-0">
+                                    <span className="ml-auto pl-2 text-xs text-muted-foreground shrink-0">
                                         {formatCost(chatCost)}
                                     </span>
                                 )}
                         </div>
 
                         {/* Gradient overlay that appears when hovering */}
-                        <div className="absolute right-0 w-20 h-full opacity-0 group-hover/chat-button:opacity-100 transition-opacity bg-gradient-to-l from-sidebar-accent via-sidebar-accent to-transparent pointer-events-none" />
+                        <div className="absolute right-0 w-20 h-full opacity-0 group-hover/chat-button:opacity-100 transition-opacity bg-linear-to-l from-sidebar-accent via-sidebar-accent to-transparent pointer-events-none" />
 
                         {/* chat actions */}
                         <div className="flex items-center gap-2 absolute right-3 z-10">

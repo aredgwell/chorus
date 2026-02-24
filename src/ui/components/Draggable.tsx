@@ -24,7 +24,7 @@ export default function Draggable({ id, children }: DraggableProps) {
             {...attributes}
             className={
                 isDragging
-                    ? "bg-sidebar/95 backdrop-blur-sm rounded opacity-50"
+                    ? "bg-sidebar/95 backdrop-blur-xs rounded opacity-50"
                     : ""
             }
         >

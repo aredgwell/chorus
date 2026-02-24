@@ -20,6 +20,10 @@ import { ProviderGrok } from "./ModelProviders/ProviderGrok";
 import posthog from "posthog-js";
 import { UserTool, UserToolCall, UserToolResult } from "./Toolsets";
 import { Attachment } from "./api/AttachmentsAPI";
+import {
+    classifyError,
+    detectContextLimitError as _detectContextLimitError,
+} from "./errors";
 
 /// ------------------------------------------------------------------------------------------------
 /// Basic Types
@@ -159,6 +163,21 @@ export type ApiKeys = {
     grok?: string;
 };
 
+/**
+ * Known keys for model_flags JSON blob. Used for rare provider-specific overrides.
+ * Providers read these flags to enable special behavior without hardcoding model IDs.
+ */
+export type ModelFlags = {
+    /** Built-in tools to add to the request (e.g., ["web_search_preview", "code_interpreter"]) */
+    openai_builtin_tools?: string[];
+    /** Reasoning mode override (e.g., "summary_auto" instead of effort-based) */
+    reasoning_mode?: string;
+    /** Toolset names to exclude from the request (e.g., ["web"]) */
+    exclude_toolsets?: string[];
+    /** Key into EXTRA_SYSTEM_PROMPTS map in prompts.ts */
+    extra_system_prompt_key?: string;
+};
+
 export type Model = {
     id: string;
     displayName: string;
@@ -167,6 +186,13 @@ export type Model = {
     isEnabled: boolean;
     supportedAttachmentTypes: AttachmentType[];
     isInternal: boolean; // internal models are never shown to users
+
+    // provider configuration (from models table, set via migrations)
+    apiModelName?: string; // actual name sent to provider API; undefined = derive from id
+    maxOutputTokens?: number; // max output tokens; undefined = provider default
+    isReasoningModel: boolean; // controls reasoning-specific behavior (e.g., OpenAI o-series)
+    supportsToolUse: boolean; // whether model accepts tool/function definitions
+    modelFlags?: ModelFlags; // provider-specific overrides (JSON blob from DB)
 };
 
 /** Data for staff picks, used only for UI treatment */
@@ -204,6 +230,13 @@ export type ModelConfig = {
     // pricing (from models table)
     promptPricePerToken?: number;
     completionPricePerToken?: number;
+
+    // provider configuration (from models table, set via migrations)
+    apiModelName?: string; // actual name sent to provider API; undefined = derive from id
+    maxOutputTokens?: number; // max output tokens; undefined = provider default
+    isReasoningModel: boolean; // controls reasoning-specific behavior (e.g., OpenAI o-series)
+    supportsToolUse: boolean; // whether model accepts tool/function definitions
+    modelFlags?: ModelFlags; // provider-specific overrides (JSON blob from DB)
 };
 
 export type UsageData = {
@@ -307,13 +340,18 @@ export async function streamResponse(
     const providerName = getProviderName(params.modelConfig.modelId);
     const provider = getProvider(providerName);
     await provider.streamResponse(params).catch((error: unknown) => {
-        console.error(error);
-        const errorMessage = getErrorMessage(error);
-        void params.onError(errorMessage);
+        const classified = classifyError(error, providerName);
+        console.error(
+            `[${classified.type}] ${providerName} error:`,
+            classified.message,
+        );
+        void params.onError(classified.message);
         posthog.capture("response_errored", {
             modelProvider: providerName,
             modelId: params.modelConfig.modelId,
-            errorMessage,
+            errorMessage: classified.message,
+            errorType: classified.type,
+            retryable: classified.retryable,
         });
     });
 }
@@ -332,7 +370,10 @@ export async function saveModelAndDefaultConfig(
 ): Promise<void> {
     // insert or replace is important. this way I can have a refresh where Ollama / LM studio models are set to disabled if they're not running, and enabled if they are
     await db.execute(
-        "INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types, is_internal, prompt_price_per_token, completion_price_per_token) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        `INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types, is_internal,
+            prompt_price_per_token, completion_price_per_token,
+            api_model_name, max_output_tokens, is_reasoning_model, supports_tool_use, model_flags)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
             model.id,
             model.displayName,
@@ -341,6 +382,11 @@ export async function saveModelAndDefaultConfig(
             model.isInternal ? 1 : 0,
             pricing?.promptPricePerToken ?? null,
             pricing?.completionPricePerToken ?? null,
+            model.apiModelName ?? null,
+            model.maxOutputTokens ?? null,
+            model.isReasoningModel ? 1 : 0,
+            model.supportsToolUse ? 1 : 0,
+            model.modelFlags ? JSON.stringify(model.modelFlags) : null,
         ],
     );
     await db.execute(
@@ -417,6 +463,8 @@ export async function downloadOpenRouterModels(db: Database): Promise<number> {
                         : ["text", "webpage"],
                     isEnabled: true,
                     isInternal: false,
+                    isReasoningModel: false,
+                    supportsToolUse: true,
                 },
                 `${model.name}`,
                 hasPricing
@@ -459,6 +507,8 @@ export async function downloadOllamaModels(db: Database): Promise<void> {
                 supportedAttachmentTypes: ["text", "webpage"], // Ollama models currently only support text and webpage
                 isEnabled: true,
                 isInternal: false,
+                isReasoningModel: false,
+                supportsToolUse: false,
             },
             `${model.name} (Ollama)`,
         );
@@ -495,6 +545,8 @@ export async function downloadLMStudioModels(db: Database): Promise<void> {
                     supportedAttachmentTypes: ["text", "webpage"], // LM Studio models currently support text and webpage
                     isEnabled: true,
                     isInternal: false,
+                    isReasoningModel: false,
+                    supportsToolUse: false,
                 },
                 `${model.id} (LM Studio)`,
             );
@@ -591,52 +643,13 @@ export function attachmentMissingFlag(attachment: Attachment): string {
 </attachment>\n\n`;
 }
 
-function getErrorMessage(error: unknown): string {
-    if (typeof error === "object" && error !== null && "message" in error) {
-        return (error as { message: string }).message;
-    } else if (typeof error === "string") {
-        return error;
-    } else {
-        return "Unknown error";
-    }
-}
-
-// Provider-specific context limit error messages
-// this is pretty hacky, but works for now - we just take an easily identifiable substring from each provider's error message
-const CONTEXT_LIMIT_PATTERNS: Record<ProviderName, string> = {
-    anthropic: "prompt is too long",
-    openai: "context window",
-    google: "token count",
-    grok: "maximum prompt length",
-    openrouter: "context length",
-    meta: "context window", // best guess
-    lmstudio: "context window", // best guess
-    perplexity: "context window", // best guess
-    ollama: "context window", // best guess
-};
-
 /**
  * Detects if an error message indicates that the model ran out of context.
- * Each provider has different error messages for context limit errors.
+ * Delegates to the structured error classifier in errors.ts.
  */
 export function detectContextLimitError(
     errorMessage: string,
     modelId: string,
 ): boolean {
-    if (!errorMessage) {
-        return false;
-    }
-
-    const lowerMessage = errorMessage.toLowerCase();
-
-    const providerName = getProviderName(modelId);
-    const pattern = CONTEXT_LIMIT_PATTERNS[providerName];
-
-    if (pattern) {
-        if (lowerMessage.includes(pattern)) {
-            return true;
-        }
-    }
-
-    return false;
+    return _detectContextLimitError(errorMessage, getProviderName(modelId));
 }

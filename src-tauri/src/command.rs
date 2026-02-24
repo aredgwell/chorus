@@ -1,5 +1,3 @@
-#[cfg(target_os = "macos")]
-use crate::window::WebviewWindowExt;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 #[cfg(not(target_os = "macos"))]
 use screenshots::Screen;
@@ -8,6 +6,26 @@ use tauri::{AppHandle, Emitter, Manager};
 use tauri_nspanel::ManagerExt;
 
 use crate::SPOTLIGHT_LABEL;
+
+#[derive(Debug, thiserror::Error)]
+pub enum CommandError {
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("Image processing error: {0}")]
+    Image(String),
+    #[error("Window not found: {0}")]
+    WindowNotFound(String),
+    #[error("Permission denied: {0}")]
+    PermissionDenied(String),
+    #[error("{0}")]
+    Other(String),
+}
+
+impl From<CommandError> for String {
+    fn from(e: CommandError) -> String {
+        e.to_string()
+    }
+}
 
 // Target size in bytes (3.5MB) for image resizing
 // This is used as the maximum size for images in the application
@@ -38,7 +56,7 @@ pub fn hide(app_handle: AppHandle) {
     {
         let panel = app_handle.get_webview_panel(SPOTLIGHT_LABEL).unwrap();
         if panel.is_visible() {
-            panel.order_out(None);
+            panel.hide();
         }
     }
 
@@ -80,7 +98,7 @@ pub fn chat_deleted(app_handle: AppHandle, chat_id: String) {
 #[cfg(target_os = "macos")]
 pub fn update_panel_theme(app_handle: AppHandle, is_dark_mode: bool) {
     if let Some(window) = app_handle.get_webview_window(SPOTLIGHT_LABEL) {
-        window.update_theme(is_dark_mode);
+        crate::window::update_panel_theme(&window, is_dark_mode);
     }
 }
 
@@ -93,7 +111,7 @@ pub fn capture_window() -> Result<String, String> {
 
     // Start timing the operation
     let start_time = Instant::now();
-    println!("Starting window capture...");
+    log::debug!("Starting window capture...");
 
     // Create a temporary file path
     let raw_screenshot_path = std::env::temp_dir().join("screenshot_raw.png");
@@ -106,7 +124,7 @@ pub fn capture_window() -> Result<String, String> {
         .output()
         .map_err(|e| e.to_string())?;
 
-    println!("Raw capture completed in: {:?}", capture_time.elapsed());
+    log::debug!("Raw capture completed in: {:?}", capture_time.elapsed());
 
     // Check if the command failed
     if !output.status.success() {
@@ -133,7 +151,7 @@ pub fn capture_window() -> Result<String, String> {
         let _ = fs::remove_file(&resized_path);
     }
 
-    println!(
+    log::debug!(
         "Total window capture process took: {:?}",
         start_time.elapsed()
     );
@@ -157,7 +175,7 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
 
     // Start timing the operation
     let start_time = Instant::now();
-    println!("Starting screenshot capture...");
+    log::debug!("Starting screenshot capture...");
 
     // Create temporary file path for raw screenshot
     let raw_screenshot_path = std::env::temp_dir().join("screenshot_raw.png");
@@ -166,7 +184,7 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
     if let Some(window) = app_handle.get_webview_window(SPOTLIGHT_LABEL) {
         if let Ok(position) = window.outer_position() {
             // Log window position for debugging
-            println!("Window position: ({}, {})", position.x, position.y);
+            log::debug!("Window position: ({}, {})", position.x, position.y);
 
             // First, get the main display bounds to determine if we're on a secondary display
             // Use a temporary script to get this info
@@ -201,7 +219,7 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
                 2234
             };
 
-            println!("Main display resolution: {}x{}", main_width, main_height);
+            log::debug!("Main display resolution: {}x{}", main_width, main_height);
 
             // Simple heuristic: If window position is outside main display bounds,
             // it's likely on a secondary display
@@ -213,10 +231,10 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
                 1
             };
 
-            println!("Detected window on display ID: {}", target_display_id);
+            log::debug!("Detected window on display ID: {}", target_display_id);
 
             // Run screencapture command for the specific display
-            println!("Taking screenshot of display ID: {}", target_display_id);
+            log::debug!("Taking screenshot of display ID: {}", target_display_id);
 
             let capture_time = Instant::now();
             let output = Command::new("screencapture")
@@ -226,12 +244,12 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
                 .output()
                 .map_err(|e| e.to_string())?;
 
-            println!("Raw capture completed in: {:?}", capture_time.elapsed());
+            log::debug!("Raw capture completed in: {:?}", capture_time.elapsed());
 
             // Check if the command failed
             if !output.status.success() {
                 // If the specific display capture failed, try without a display ID
-                println!(
+                log::debug!(
                     "Failed to capture display {}. Falling back to main display.",
                     target_display_id
                 );
@@ -266,13 +284,13 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
                 let _ = fs::remove_file(&resized_path);
             }
 
-            println!("Total screenshot process took: {:?}", start_time.elapsed());
+            log::debug!("Total screenshot process took: {:?}", start_time.elapsed());
             return Ok(BASE64.encode(&image_data));
         }
     }
 
     // Fallback to the main display if window not found
-    println!("Window information not available, using main display");
+    log::debug!("Window information not available, using main display");
 
     let output = Command::new("screencapture")
         .arg("-m") // Capture the main display only
@@ -299,7 +317,7 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
         let _ = fs::remove_file(&resized_path);
     }
 
-    println!("Total screenshot process took: {:?}", start_time.elapsed());
+    log::debug!("Total screenshot process took: {:?}", start_time.elapsed());
     Ok(BASE64.encode(&image_data))
 }
 
@@ -311,7 +329,7 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
 
     // Start timing the operation
     let start_time = Instant::now();
-    println!("Starting screenshot capture...");
+    log::debug!("Starting screenshot capture...");
 
     // For non-macOS platforms, use the screenshots crate to capture the entire screen
     let screens = Screen::all().map_err(|e| e.to_string())?;
@@ -319,7 +337,7 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
     // Try to get the window position to determine which screen it's on
     if let Some(window) = app_handle.get_webview_window(SPOTLIGHT_LABEL) {
         if let Ok(position) = window.outer_position() {
-            println!("Window position: ({}, {})", position.x, position.y);
+            log::debug!("Window position: ({}, {})", position.x, position.y);
 
             // Try to find which screen contains the window
             for screen in &screens {
@@ -332,11 +350,11 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
                     && position.y < (display_info.y + display_info.height) as i32
                 {
                     // Log the display information
-                    println!(
+                    log::debug!(
                         "Taking screenshot of display at position ({}, {})",
                         display_info.x, display_info.y
                     );
-                    println!(
+                    log::debug!(
                         "Display dimensions: {}x{}",
                         display_info.width, display_info.height
                     );
@@ -344,7 +362,7 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
                     // Capture this specific screen
                     let capture_time = Instant::now();
                     let image = screen.capture().map_err(|e| e.to_string())?;
-                    println!("Raw capture completed in: {:?}", capture_time.elapsed());
+                    log::debug!("Raw capture completed in: {:?}", capture_time.elapsed());
 
                     // Get image dimensions and raw pixels
                     let width = image.width();
@@ -369,7 +387,7 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
                         .save(&raw_screenshot_path)
                         .map_err(|e| e.to_string())?;
 
-                    println!("Raw image saved in: {:?}", compress_time.elapsed());
+                    log::debug!("Raw image saved in: {:?}", compress_time.elapsed());
 
                     // Use our new resize_image function to handle the resizing
                     let resized_path = resize_image(
@@ -386,7 +404,7 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
                         let _ = std::fs::remove_file(&resized_path);
                     }
 
-                    println!("Total screenshot process took: {:?}", start_time.elapsed());
+                    log::debug!("Total screenshot process took: {:?}", start_time.elapsed());
                     return Ok(BASE64.encode(&image_data));
                 }
             }
@@ -394,16 +412,16 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
     }
 
     // Fallback to the main screen if we couldn't find the right screen
-    println!("Window not found on any display, using main display");
+    log::debug!("Window not found on any display, using main display");
     let screen = screens.first().ok_or("No screen found")?;
 
     // Log the display information
     let display_info = screen.display_info;
-    println!(
+    log::debug!(
         "Taking screenshot of main display at position ({}, {})",
         display_info.x, display_info.y
     );
-    println!(
+    log::debug!(
         "Display dimensions: {}x{}",
         display_info.width, display_info.height
     );
@@ -411,7 +429,7 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
     // Capture the screen
     let capture_time = Instant::now();
     let image = screen.capture().map_err(|e| e.to_string())?;
-    println!("Raw capture completed in: {:?}", capture_time.elapsed());
+    log::debug!("Raw capture completed in: {:?}", capture_time.elapsed());
 
     // Get image dimensions and raw pixels
     let width = image.width();
@@ -436,7 +454,7 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
         .save(&raw_screenshot_path)
         .map_err(|e| e.to_string())?;
 
-    println!("Raw image saved in: {:?}", compress_time.elapsed());
+    log::debug!("Raw image saved in: {:?}", compress_time.elapsed());
 
     // Use our new resize_image function to handle the resizing
     let resized_path = resize_image(
@@ -453,7 +471,7 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
         let _ = std::fs::remove_file(&resized_path);
     }
 
-    println!("Total screenshot process took: {:?}", start_time.elapsed());
+    log::debug!("Total screenshot process took: {:?}", start_time.elapsed());
     Ok(BASE64.encode(&image_data))
 }
 
@@ -466,7 +484,7 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
 
     // Start timing the operation
     let start_time = Instant::now();
-    println!("Starting image resize for: {}", file_path);
+    log::debug!("Starting image resize for: {}", file_path);
 
     // Create temporary file paths
     let input_path = Path::new(&file_path);
@@ -483,7 +501,7 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
 
     // Get file size
     let file_size = fs::metadata(&file_path).map_err(|e| e.to_string())?.len();
-    println!(
+    log::debug!(
         "Original file size: {} bytes ({:.2} MB)",
         file_size,
         file_size as f64 / 1_048_576.0
@@ -491,7 +509,7 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
 
     // If file is already small enough, just return the original path
     if file_size <= target_size_bytes {
-        println!("File already under target size, skipping compression");
+        log::debug!("File already under target size, skipping compression");
         return Ok(file_path);
     }
 
@@ -502,7 +520,7 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
 
         #[cfg(target_os = "macos")]
         {
-            println!("Using compression only with quality: {}", quality);
+            log::debug!("Using compression only with quality: {}", quality);
             let sips_output = Command::new("sips")
                 .arg("-s")
                 .arg("format")
@@ -517,7 +535,7 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
                 .map_err(|e| e.to_string())?;
 
             if !sips_output.status.success() {
-                println!("Compression failed, using original image");
+                log::debug!("Compression failed, using original image");
                 return Ok(file_path);
             }
         }
@@ -525,7 +543,7 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
         #[cfg(not(target_os = "macos"))]
         {
             use image::{io::Reader as ImageReader, ImageFormat};
-            println!("Using compression only with quality: {}", quality);
+            log::debug!("Using compression only with quality: {}", quality);
 
             // Parse quality percentage
             let quality_value = quality.trim_end_matches('%').parse::<u8>().unwrap_or(85);
@@ -542,18 +560,18 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
         }
 
         let compressed_size = fs::metadata(&output_path).map_err(|e| e.to_string())?.len();
-        println!(
+        log::debug!(
             "Compressed size: {} bytes ({:.2} MB)",
             compressed_size,
             compressed_size as f64 / 1_048_576.0
         );
 
         if compressed_size <= target_size_bytes {
-            println!("Compression successful, under target size");
+            log::debug!("Compression successful, under target size");
             return Ok(output_path.to_string_lossy().to_string());
         }
 
-        println!("Simple compression not sufficient, proceeding to resize");
+        log::debug!("Simple compression not sufficient, proceeding to resize");
     }
 
     // Simple resize strategy: calculate dimensions based on target size
@@ -595,7 +613,7 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
         let original_width = parse_dimension(width_line)?;
         let original_height = parse_dimension(height_line)?;
 
-        println!(
+        log::debug!(
             "Original dimensions: {}x{}",
             original_width, original_height
         );
@@ -613,7 +631,7 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
         // Calculate new dimensions
         let new_width = (original_width as f64 * scale_factor).round() as u32;
 
-        println!(
+        log::debug!(
             "Using scale factor {:.2}, new width: {}",
             scale_factor, new_width
         );
@@ -635,7 +653,7 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
             .map_err(|e| e.to_string())?;
 
         if !sips_output.status.success() {
-            println!("Resizing failed, using original image");
+            log::debug!("Resizing failed, using original image");
             return Ok(file_path);
         }
     }
@@ -654,7 +672,7 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
         let original_width = img.width();
         let original_height = img.height();
 
-        println!(
+        log::debug!(
             "Original dimensions: {}x{}",
             original_width, original_height
         );
@@ -673,7 +691,7 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
         let new_width = (original_width as f64 * scale_factor).round() as u32;
         let new_height = (original_height as f64 * scale_factor).round() as u32;
 
-        println!(
+        log::debug!(
             "Using scale factor {:.2}, new dimensions: {}x{}",
             scale_factor, new_width, new_height
         );
@@ -689,13 +707,13 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
 
     // Check final size
     let final_size = fs::metadata(&output_path).map_err(|e| e.to_string())?.len();
-    println!(
+    log::debug!(
         "Final size: {} bytes ({:.2} MB)",
         final_size,
         final_size as f64 / 1_048_576.0
     );
 
-    println!("Total image processing took: {:?}", start_time.elapsed());
+    log::debug!("Total image processing took: {:?}", start_time.elapsed());
     Ok(output_path.to_string_lossy().to_string())
 }
 

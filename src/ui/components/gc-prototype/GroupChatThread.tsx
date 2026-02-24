@@ -256,7 +256,7 @@ export default function GroupChatThread({
                             );
                             return (
                                 <div
-                                    className={`flex-shrink-0 w-8 h-8 rounded-full ${avatar.bgColor} flex items-center justify-center`}
+                                    className={`shrink-0 w-8 h-8 rounded-full ${avatar.bgColor} flex items-center justify-center`}
                                 >
                                     <span
                                         className={`text-xs font-medium ${avatar.textColor}`}
@@ -299,7 +299,7 @@ export default function GroupChatThread({
                             className="flex items-start gap-3 mb-4 group"
                         >
                             <div
-                                className={`flex-shrink-0 w-8 h-8 rounded-full ${avatar.bgColor} flex items-center justify-center`}
+                                className={`shrink-0 w-8 h-8 rounded-full ${avatar.bgColor} flex items-center justify-center`}
                             >
                                 <span
                                     className={`text-xs font-medium ${avatar.textColor}`}
@@ -342,7 +342,7 @@ export default function GroupChatThread({
                 {/* Typing indicator */}
                 {thinkingModelInstances.length > 0 && (
                     <div className="flex gap-3">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                        <div className="shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
                             <Loader2 className="h-4 w-4 animate-spin" />
                         </div>
                         <div className="flex-1">
@@ -386,7 +386,7 @@ export default function GroupChatThread({
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder="Reply in thread..."
-                        className="flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        className="flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         rows={1}
                     />
                 </div>

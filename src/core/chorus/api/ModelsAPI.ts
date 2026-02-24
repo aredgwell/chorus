@@ -51,6 +51,11 @@ type ModelDBRow = {
     is_enabled: boolean;
     supported_attachment_types: string;
     is_internal: boolean;
+    api_model_name: string | null;
+    max_output_tokens: number | null;
+    is_reasoning_model: boolean;
+    supports_tool_use: boolean;
+    model_flags: string | null;
 };
 
 type ModelConfigDBRow = {
@@ -69,6 +74,11 @@ type ModelConfigDBRow = {
     new_until?: string;
     prompt_price_per_token: number | null;
     completion_price_per_token: number | null;
+    api_model_name: string | null;
+    max_output_tokens: number | null;
+    is_reasoning_model: boolean | null;
+    supports_tool_use: boolean | null;
+    model_flags: string | null;
 };
 
 // Track whether we've attempted to refresh OpenRouter models within
@@ -84,6 +94,13 @@ function readModel(row: ModelDBRow): Models.Model {
             row.supported_attachment_types,
         ) as Models.AttachmentType[],
         isInternal: row.is_internal,
+        apiModelName: row.api_model_name ?? undefined,
+        maxOutputTokens: row.max_output_tokens ?? undefined,
+        isReasoningModel: Boolean(row.is_reasoning_model),
+        supportsToolUse: row.supports_tool_use !== false,
+        modelFlags: row.model_flags
+            ? (JSON.parse(row.model_flags) as Models.ModelFlags)
+            : undefined,
     };
 }
 
@@ -106,6 +123,13 @@ function readModelConfig(row: ModelConfigDBRow): ModelConfig {
         newUntil: row.new_until ?? undefined,
         promptPricePerToken: row.prompt_price_per_token ?? undefined,
         completionPricePerToken: row.completion_price_per_token ?? undefined,
+        apiModelName: row.api_model_name ?? undefined,
+        maxOutputTokens: row.max_output_tokens ?? undefined,
+        isReasoningModel: Boolean(row.is_reasoning_model),
+        supportsToolUse: row.supports_tool_use !== false,
+        modelFlags: row.model_flags
+            ? (JSON.parse(row.model_flags) as Models.ModelFlags)
+            : undefined,
     };
 }
 
@@ -131,7 +155,9 @@ export async function fetchModelConfigs() {
                         model_configs.model_id, model_configs.system_prompt, models.is_enabled,
                         models.is_internal, models.supported_attachment_types, model_configs.is_default,
                         models.is_deprecated, model_configs.budget_tokens, model_configs.reasoning_effort, model_configs.new_until,
-                        models.prompt_price_per_token, models.completion_price_per_token
+                        models.prompt_price_per_token, models.completion_price_per_token,
+                        models.api_model_name, models.max_output_tokens, models.is_reasoning_model,
+                        models.supports_tool_use, models.model_flags
                  FROM model_configs
                  JOIN models ON model_configs.model_id = models.id
                  ORDER BY models.is_enabled DESC`,
@@ -174,7 +200,12 @@ SELECT
   mc.reasoning_effort,
   em.original_order,
   m.prompt_price_per_token,
-  m.completion_price_per_token
+  m.completion_price_per_token,
+  m.api_model_name,
+  m.max_output_tokens,
+  m.is_reasoning_model,
+  m.supports_tool_use,
+  m.model_flags
 FROM
   extracted_models em
 JOIN
@@ -213,7 +244,12 @@ SELECT
   mc.budget_tokens,
   mc.reasoning_effort,
   m.prompt_price_per_token,
-  m.completion_price_per_token
+  m.completion_price_per_token,
+  m.api_model_name,
+  m.max_output_tokens,
+  m.is_reasoning_model,
+  m.supports_tool_use,
+  m.model_flags
 FROM
   selected_config sc
 JOIN
@@ -251,7 +287,12 @@ SELECT
   mc.budget_tokens,
   mc.reasoning_effort,
   m.prompt_price_per_token,
-  m.completion_price_per_token
+  m.completion_price_per_token,
+  m.api_model_name,
+  m.max_output_tokens,
+  m.is_reasoning_model,
+  m.supports_tool_use,
+  m.model_flags
 FROM
   selected_config sc
 JOIN
@@ -271,7 +312,9 @@ export async function fetchModelConfigById(
                     model_configs.model_id, model_configs.system_prompt, models.is_enabled,
                     models.is_internal, models.supported_attachment_types, model_configs.is_default,
                     models.is_deprecated, model_configs.budget_tokens, model_configs.reasoning_effort, model_configs.new_until,
-                    models.prompt_price_per_token, models.completion_price_per_token
+                    models.prompt_price_per_token, models.completion_price_per_token,
+                    models.api_model_name, models.max_output_tokens, models.is_reasoning_model,
+                    models.supports_tool_use, models.model_flags
              FROM model_configs
              JOIN models ON model_configs.model_id = models.id
              WHERE model_configs.id = ?`,

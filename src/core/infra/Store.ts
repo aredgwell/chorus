@@ -5,5 +5,5 @@ import { Store, load } from "@tauri-apps/plugin-store";
  * ~/Library/Application\ Support/sh.melty.app
  */
 export async function getStore(storeName: string): Promise<Store> {
-    return await load(storeName, { autoSave: true });
+    return await load(storeName, { autoSave: true, defaults: {} });
 }

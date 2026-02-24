@@ -238,7 +238,7 @@ export default function GroupChat() {
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={handleKeyPress}
                         placeholder="Type a message..."
-                        className="w-full min-h-[60px] px-4 py-3 rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full min-h-[60px] px-4 py-3 rounded-lg border bg-background resize-none focus:outline-hidden focus:ring-2 focus:ring-primary"
                         rows={2}
                     />
                 </div>
@@ -471,7 +471,7 @@ export default function GroupChat() {
                         return (
                             <div key={message.id} className="flex gap-3 group">
                                 <div
-                                    className={`flex-shrink-0 w-8 h-8 rounded-full ${avatar.bgColor} flex items-center justify-center`}
+                                    className={`shrink-0 w-8 h-8 rounded-full ${avatar.bgColor} flex items-center justify-center`}
                                 >
                                     <span
                                         className={`text-xs font-medium ${avatar.textColor}`}
@@ -614,7 +614,7 @@ export default function GroupChat() {
                     {/* Unified typing indicator */}
                     {thinkingModelInstances.length > 0 && (
                         <div className="flex gap-3">
-                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                            <div className="shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
                                 <Loader2 className="h-4 w-4 animate-spin" />
                             </div>
                             <div className="flex-1">
@@ -658,7 +658,7 @@ export default function GroupChat() {
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={handleKeyPress}
                         placeholder="Type a message..."
-                        className="w-full min-h-[60px] px-4 py-3 rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full min-h-[60px] px-4 py-3 rounded-lg border bg-background resize-none focus:outline-hidden focus:ring-2 focus:ring-primary"
                         rows={2}
                     />
                 </div>
@@ -666,7 +666,7 @@ export default function GroupChat() {
 
             {/* Thread Sidebar */}
             {threadRootMessageId && chatId && (
-                <div className="w-96 border-l flex-shrink-0">
+                <div className="w-96 border-l shrink-0">
                     <GroupChatThread
                         chatId={chatId}
                         threadRootMessageId={threadRootMessageId}

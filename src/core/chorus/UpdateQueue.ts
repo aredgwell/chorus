@@ -11,30 +11,31 @@ interface QueuedUpdate<T = unknown> {
     update: () => Promise<T>;
 }
 
+const IDLE_SLEEP_MS = 50;
+
+/**
+ * Manages streaming update queues with per-stream parallelism.
+ *
+ * Each stream gets its own independent processing loop, so multiple
+ * models streaming simultaneously don't block each other. Within a
+ * single stream, updates are processed serially with priority-based
+ * deduplication (only the highest-priority pending update runs).
+ */
 export class UpdateQueue {
     private static instance: UpdateQueue;
     private streams: Map<string, StreamData> = new Map();
-    private isProcessing = false;
-    private shouldContinue = false;
 
-    private constructor() {
-        // No interval needed
-    }
+    private constructor() {}
 
-    /**
-     * Get the singleton instance
-     */
     public static getInstance(): UpdateQueue {
         if (!UpdateQueue.instance) {
             UpdateQueue.instance = new UpdateQueue();
-            // Start processing immediately
-            UpdateQueue.instance.startProcessing();
         }
         return UpdateQueue.instance;
     }
 
     /**
-     * Start a new update stream
+     * Start a new update stream with its own independent processing loop.
      * @returns A unique key for the stream
      */
     public startUpdateStream(): string {
@@ -44,13 +45,14 @@ export class UpdateQueue {
             watermark: 0,
             pendingUpdate: null,
         });
+        void this.processStream(key);
         return key;
     }
 
     /**
      * Add an update to the queue, replacing any existing update for this key
-     * with lower priority
-     * @param key Identifier for the update
+     * with lower priority.
+     * @param key Identifier for the stream
      * @param priority Higher number = higher priority
      * @param update Function to execute
      */
@@ -60,82 +62,60 @@ export class UpdateQueue {
         update: () => Promise<T>,
     ): void {
         const stream = this.streams.get(key);
-
-        // Skip if stream doesn't exist or is closed
         if (!stream || !stream.active) return;
 
-        // Update watermark if this is higher priority
         stream.watermark = Math.max(stream.watermark, priority);
 
-        // Only add if no existing update or new priority is higher
         if (!stream.pendingUpdate || priority > stream.pendingUpdate.priority) {
             stream.pendingUpdate = { priority, update };
         }
     }
 
     /**
-     * Close an update stream
+     * Close an update stream. Its processing loop will exit on the next iteration.
      * @param key The stream key to close
      */
     public closeUpdateStream(key: string): void {
         const stream = this.streams.get(key);
         if (!stream) return;
-
         stream.active = false;
     }
 
-    private startProcessing(): void {
-        if (this.isProcessing) return;
+    /**
+     * Independent processing loop for a single stream.
+     * Runs until the stream is marked inactive and has no pending work.
+     */
+    private async processStream(key: string): Promise<void> {
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+            const stream = this.streams.get(key);
+            if (!stream) return;
 
-        this.isProcessing = true;
-        this.shouldContinue = true;
-        void this.processingLoop(); // Start the loop
-    }
-
-    public stopProcessing(): void {
-        this.shouldContinue = false;
-    }
-
-    private async processingLoop(): Promise<void> {
-        while (this.shouldContinue) {
-            let processedAnything = false;
-            const keysToRemove: string[] = [];
-
-            // Process one update from each stream in a round-robin fashion
-            for (const [key, stream] of this.streams.entries()) {
-                // Clean up inactive streams
-                if (!stream.active) {
-                    stream.pendingUpdate = null;
-                    processedAnything = true;
-                    keysToRemove.push(key);
-                }
-                // Check if there's a pending update
-                else if (
-                    stream.pendingUpdate &&
-                    stream.pendingUpdate.priority >= stream.watermark
-                ) {
-                    // Process this update
-                    try {
-                        await stream.pendingUpdate.update();
-                    } catch (e) {
-                        console.error("Error processing update", e);
-                    }
-                    stream.pendingUpdate = null;
-                    processedAnything = true;
-                }
-            }
-
-            // Clean up completed streams
-            for (const key of keysToRemove) {
+            // If stream is closed and no pending work, clean up and exit
+            if (!stream.active) {
+                stream.pendingUpdate = null;
                 this.streams.delete(key);
+                return;
             }
 
-            // Pause briefly if nothing was processed to avoid tight loop
-            if (!processedAnything) {
-                await new Promise((resolve) => setTimeout(resolve, 50));
+            // Process pending update if it meets the watermark
+            if (
+                stream.pendingUpdate &&
+                stream.pendingUpdate.priority >= stream.watermark
+            ) {
+                const update = stream.pendingUpdate;
+                stream.pendingUpdate = null;
+                try {
+                    await update.update();
+                } catch (e) {
+                    console.error("Error processing update", e);
+                }
+            } else {
+                // Nothing to process — yield to avoid tight loop
+                await new Promise((resolve) =>
+                    setTimeout(resolve, IDLE_SLEEP_MS),
+                );
             }
         }
-
-        this.isProcessing = false;
     }
 }

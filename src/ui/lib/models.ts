@@ -1,4 +1,15 @@
-// Mapping of model IDs and config IDs for easier maintenance
+/**
+ * UI tier configuration for the model picker and quick chat.
+ *
+ * When adding a new model:
+ * 1. Add it to the database via a migration in src-tauri/src/migrations.rs
+ *    (this is the primary step — see the "HOW TO ADD A NEW MODEL" comment there)
+ * 2. Add it to the appropriate tier below (basic/frontier/plus) for UI display ordering
+ * 3. If it should appear in quick chat, it's automatically included via the tier list
+ *
+ * If a model ID listed here doesn't exist in the database, it will simply not appear.
+ * No provider TypeScript code changes are needed — model capabilities are stored in the DB.
+ */
 
 import { ProviderName } from "@core/chorus/Models";
 
@@ -11,15 +22,18 @@ export const MODEL_IDS = {
         GROK_3_MINI: "grok::grok-3-mini-beta",
     },
     frontier: {
+        CLAUDE_OPUS_4_6: "anthropic::claude-opus-4-6",
         O3_PRO: "openai::o3-pro",
         O3_DEEP_RESEARCH: "openai::o3-deep-research",
-        CLAUDE_4_1_OPUS: "anthropic::claude-opus-4.1-latest",
+        GPT_5_2: "openai::gpt-5.2",
         GROK_3_FAST: "grok::grok-3-fast-beta",
         SONAR_DEEP_RESEARCH: "5dfdba07-3bad-456d-8267-4aa448d7ae1c",
     },
     plus: {
+        CLAUDE_SONNET_4_6: "anthropic::claude-sonnet-4-6",
+        GPT_5_1: "openai::gpt-5.1",
         GPT_5: "openai::gpt-5",
-        CLAUDE_4_SONNET: "anthropic::claude-sonnet-4-5-20250929",
+        GEMINI_3_1_PRO: "google::gemini-3.1-pro-preview",
         GEMINI_2_5_PRO: "google::gemini-2.5-pro-latest",
         O3: "openai::o3",
         O4_MINI: "openai::o4-mini",

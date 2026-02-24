@@ -9,7 +9,7 @@ import * as MessageAPI from "@core/chorus/api/MessageAPI";
 
 interface ChatSuggestionsProps {
     chatId: string;
-    inputRef: React.RefObject<HTMLTextAreaElement>;
+    inputRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 export function ChatSuggestions({ chatId, inputRef }: ChatSuggestionsProps) {
@@ -174,7 +174,7 @@ function ChatSuggestionsDisplay({
                             >
                                 <Button
                                     variant="outline"
-                                    className="rounded-full text-foreground !border-input-border border-dashed hover:bg-foreground/5 whitespace-nowrap"
+                                    className="rounded-full text-foreground border-input-border! border-dashed hover:bg-foreground/5 whitespace-nowrap"
                                     size="sm"
                                     onClick={() =>
                                         onSuggestionClick(suggestion)
@@ -187,8 +187,8 @@ function ChatSuggestionsDisplay({
                     </div>
                 )}
             </div>
-            <div className="absolute left-0 top-1 bottom-1 w-8 bg-gradient-to-r from-background to-transparent pointer-events-none z-10" />
-            <div className="absolute right-0 top-1 bottom-1 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none z-10" />
+            <div className="absolute left-0 top-1 bottom-1 w-8 bg-linear-to-r from-background to-transparent pointer-events-none z-10" />
+            <div className="absolute right-0 top-1 bottom-1 w-8 bg-linear-to-l from-background to-transparent pointer-events-none z-10" />
         </div>
     );
 }

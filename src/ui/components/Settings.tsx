@@ -474,7 +474,7 @@ function CustomToolsetRow({
             : displayCommandText;
 
     return (
-        <div className="flex flex-col justify-between items-start p-4 border rounded-lg shadow-sm bg-card">
+        <div className="flex flex-col justify-between items-start p-4 border rounded-lg shadow-xs bg-card">
             <div className="w-full flex justify-between items-center">
                 <div className="font-semibold  text-card-foreground flex items-center gap-2">
                     {recommendedMatch?.logo} {/* Display logo if available */}
@@ -994,7 +994,7 @@ function ToolsTab() {
                         ) : (
                             <button
                                 type="button"
-                                className="relative block w-full hover:bg-muted rounded-lg border-2 border-dashed border-border p-12 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                className="relative block w-full hover:bg-muted rounded-lg border-2 border-dashed border-border p-12 text-center focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                                 onClick={handleCreateToolset}
                             >
                                 <span className="mt-2 block">
@@ -1011,9 +1011,9 @@ function ToolsTab() {
                             {CORE_BUILTIN_TOOLSETS_DATA.map((toolset) => (
                                 <div
                                     key={toolset.name}
-                                    className="flex items-start gap-4 p-4 border rounded-lg shadow-sm bg-card"
+                                    className="flex items-start gap-4 p-4 border rounded-lg shadow-xs bg-card"
                                 >
-                                    <div className="text-primary flex-shrink-0 mt-1">
+                                    <div className="text-primary shrink-0 mt-1">
                                         {toolset.icon()}
                                     </div>
                                     <div className="flex-1">
@@ -1401,7 +1401,7 @@ export default function Settings({ tab = "general" }: SettingsProps) {
                                     className={cn(
                                         "w-full flex items-center gap-3 px-3 py-2 text-sm text-left rounded-md transition-all",
                                         "hover:bg-sidebar-accent",
-                                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                                        "focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                                         activeTab === id && id !== "docs"
                                             ? "bg-sidebar-accent font-medium"
                                             : "text-muted-foreground",

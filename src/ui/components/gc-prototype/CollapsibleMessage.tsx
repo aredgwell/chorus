@@ -27,7 +27,7 @@ export function CollapsibleMessage({ text }: { text: string }) {
                 {text}
                 {/* Gradient overlay when collapsed and needs expansion */}
                 {!isExpanded && needsExpansion && (
-                    <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 right-0 h-12 bg-linear-to-t from-background to-transparent pointer-events-none" />
                 )}
             </div>
             {/* Show expand/collapse button if content overflows */}
