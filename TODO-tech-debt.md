@@ -64,15 +64,9 @@ The `ReplyBubble` component fetches full message sets just to count replies. A d
 
 ---
 
-## Shared Header Bar Component
+## ~~Shared Header Bar Component~~
 
-**Location**: `ProjectView.tsx:163`
-
-```typescript
-{/* header bar — todo: componentize because it's also used in multichat */}
-```
-
-The fixed header bar with drag region, navigation buttons, and title is duplicated between `ProjectView.tsx` and `MultiChat.tsx`. Extract into a shared `HeaderBar` component.
+Done — extracted shared `HeaderBar` component (`src/ui/components/HeaderBar.tsx`) with props for `children`, `actions`, `canGoForward`, and `positioning`. Updated `ProjectView.tsx` and `MultiChat.tsx` to use it, removing duplicated header bar code.
 
 ---
 

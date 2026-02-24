@@ -7,8 +7,6 @@ import {
     PROJECT_TEMPLATE_DECISION_ADVISOR,
 } from "@core/chorus/prompts/prompts";
 import {
-    ArrowLeftIcon,
-    ArrowRightIcon,
     AtSignIcon,
     FolderOpenIcon,
     SquarePlusIcon,
@@ -40,14 +38,13 @@ import {
     projectDisplayName,
 } from "@ui/lib/utils";
 import { EditableTitle } from "./EditableTitle";
+import { HeaderBar } from "./HeaderBar";
 import { useQuery } from "@tanstack/react-query";
-import { useSidebar } from "@ui/hooks/useSidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Switch } from "./ui/switch";
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import { useSettings } from "./hooks/useSettings";
 import { Link } from "react-router-dom";
-import { SidebarTrigger } from "./ui/sidebar";
 import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
 
@@ -82,21 +79,10 @@ export default function ProjectView() {
             ?.filter((chat) => chat.projectId === projectId)
             .filter((chat) => !chat.isNewChat) ?? [];
 
-    const { open } = useSidebar();
-
     // File attachment hook
     const fileSelect = useFileSelect({
         association: { type: "project", projectId: projectId || "" },
     });
-
-    // Callbacks - must be defined before any conditional returns
-    const handleForwardNavigation = useCallback(() => {
-        navigate(1);
-    }, [navigate]);
-
-    const handleBackNavigation = useCallback(() => {
-        navigate(-1);
-    }, [navigate]);
 
     // effects
     useEffect(() => {
@@ -160,130 +146,76 @@ export default function ProjectView() {
 
     return (
         <div className="container py-28 px-16 mx-auto max-w-5xl relative">
-            {/* header bar — todo: componentize because it's also used in multichat */}
-            <div
-                data-tauri-drag-region
-                className={`fixed top-0 left-0 ${open ? "left-64" : "pl-20"} right-0 h-[52px] z-10
-                     items-center justify-between px-3 -mt-px flex bg-background
-                hover:bg-background
-                active:bg-background
-                border-b
-                active:border-b
-                active:border-border!`}
-            >
-                <div className="flex items-center gap-1">
-                    {!open && <SidebarTrigger className="size-4! ml-2" />}
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="link"
-                                size="iconSm"
-                                onClick={handleBackNavigation}
-                            >
-                                <ArrowLeftIcon
-                                    strokeWidth={1.5}
-                                    className="size-3.5! ml-2"
-                                />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                            Back{" "}
-                            <kbd>
-                                <span>⌘</span>[
-                            </kbd>
-                        </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="link"
-                                size="iconSm"
-                                onClick={handleForwardNavigation}
-                                disabled={true}
-                                className="text-helper"
-                            >
-                                <ArrowRightIcon
-                                    strokeWidth={1.5}
-                                    className="size-3.5!"
-                                />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                            Forward{" "}
-                            <kbd>
-                                <span>⌘</span>]
-                            </kbd>
-                        </TooltipContent>
-                    </Tooltip>
+            <HeaderBar
+                positioning="fixed"
+                actions={
+                    <div className="flex items-center gap-2 mr-2">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="iconSm"
+                                    onClick={() => {
+                                        if (projectId) {
+                                            void getOrCreateNewChat.mutateAsync({
+                                                projectId,
+                                            });
+                                        }
+                                    }}
+                                >
+                                    <SquarePlusIcon
+                                        strokeWidth={1.5}
+                                        className="w-4! h-4!"
+                                    />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                                New chat in project{" "}
+                                <kbd>
+                                    <span>⌘</span>N
+                                </kbd>
+                            </TooltipContent>
+                        </Tooltip>
 
-                    {/* Project name */}
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground ml-4">
-                        <FolderOpenIcon className="w-4 h-4" />
-                        <EditableTitle
-                            title={project?.name || ""}
-                            onUpdate={async (newName) => {
-                                await renameProject.mutateAsync({
-                                    projectId,
-                                    newName,
-                                });
-                            }}
-                            className="font-normal"
-                            editClassName="h-6 text-sm px-1 py-0 border-none"
-                            placeholder="New Project"
-                            showEditIcon={false}
-                            disabled={false}
-                        />
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="iconSm"
+                                    onClick={handleOpenDeleteDialog}
+                                >
+                                    <TrashIcon
+                                        strokeWidth={1.5}
+                                        className="w-4! h-4!"
+                                    />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                                Delete project
+                            </TooltipContent>
+                        </Tooltip>
                     </div>
+                }
+            >
+                {/* Project name */}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground ml-4">
+                    <FolderOpenIcon className="w-4 h-4" />
+                    <EditableTitle
+                        title={project?.name || ""}
+                        onUpdate={async (newName) => {
+                            await renameProject.mutateAsync({
+                                projectId,
+                                newName,
+                            });
+                        }}
+                        className="font-normal"
+                        editClassName="h-6 text-sm px-1 py-0 border-none"
+                        placeholder="New Project"
+                        showEditIcon={false}
+                        disabled={false}
+                    />
                 </div>
-
-                {/* Project actions */}
-                <div className="flex items-center gap-2 mr-2">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="iconSm"
-                                onClick={() => {
-                                    if (projectId) {
-                                        void getOrCreateNewChat.mutateAsync({
-                                            projectId,
-                                        });
-                                    }
-                                }}
-                            >
-                                <SquarePlusIcon
-                                    strokeWidth={1.5}
-                                    className="w-4! h-4!"
-                                />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                            New chat in project{" "}
-                            <kbd>
-                                <span>⌘</span>N
-                            </kbd>
-                        </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="iconSm"
-                                onClick={handleOpenDeleteDialog}
-                            >
-                                <TrashIcon
-                                    strokeWidth={1.5}
-                                    className="w-4! h-4!"
-                                />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                            Delete project
-                        </TooltipContent>
-                    </Tooltip>
-                </div>
-            </div>
+            </HeaderBar>
 
             {/*  header */}
             <div className="mb-8">
