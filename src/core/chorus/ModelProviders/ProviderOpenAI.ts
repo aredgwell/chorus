@@ -16,6 +16,67 @@ import { canProceedWithProvider } from "@core/utilities/ProxyUtils";
 import { UserToolCall, getUserToolNamespacedName } from "@core/chorus/Toolsets";
 import { O3_DEEP_RESEARCH_SYSTEM_PROMPT } from "@core/chorus/prompts/prompts";
 
+/**
+ * Checks whether a JSON Schema is compatible with OpenAI's strict mode.
+ * Strict mode requires every object level to have:
+ *   (A) all properties listed in `required`, and
+ *   (B) `additionalProperties` set to false.
+ */
+function isStrictModeCompatible(
+    schema: Record<string, unknown> | undefined,
+): boolean {
+    if (schema === undefined) return false;
+
+    if (schema.type === "object") {
+        const properties = schema.properties as
+            | Record<string, Record<string, unknown>>
+            | undefined;
+        const required = schema.required as string[] | undefined;
+
+        if (schema.additionalProperties !== false) return false;
+
+        if (properties) {
+            const propertyNames = Object.keys(properties);
+            if (
+                !required ||
+                propertyNames.length !== required.length ||
+                !propertyNames.every((name) => required.includes(name))
+            ) {
+                return false;
+            }
+
+            for (const prop of Object.values(properties)) {
+                if (!isStrictModeCompatible(prop)) return false;
+            }
+        }
+    }
+
+    // Check array item schemas
+    if (schema.type === "array" && schema.items) {
+        if (
+            !isStrictModeCompatible(
+                schema.items as Record<string, unknown>,
+            )
+        ) {
+            return false;
+        }
+    }
+
+    // Check anyOf/oneOf/allOf variants
+    for (const key of ["anyOf", "oneOf", "allOf"] as const) {
+        const variants = schema[key] as
+            | Record<string, unknown>[]
+            | undefined;
+        if (variants) {
+            for (const variant of variants) {
+                if (!isStrictModeCompatible(variant)) return false;
+            }
+        }
+    }
+
+    return true;
+}
+
 /** Map of extra system prompt keys (stored in model_flags) to their prompt text */
 const EXTRA_SYSTEM_PROMPTS: Record<string, string> = {
     o3_deep_research: O3_DEEP_RESEARCH_SYSTEM_PROMPT,
@@ -107,11 +168,7 @@ export class ProviderOpenAI implements IProvider {
                 name: getUserToolNamespacedName(tool), // name goes at this level for OpenAI
                 description: tool.description,
                 parameters: tool.inputSchema,
-                // TODOJDC: we should use strict mode (so that we can get structured outputs) where possible
-                // we can turn on strict mode if
-                // (A) all fields are required, and
-                // (B) additionalProperties is false at all levels (need to do a recursive check)
-                strict: false,
+                strict: isStrictModeCompatible(tool.inputSchema),
             }));
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

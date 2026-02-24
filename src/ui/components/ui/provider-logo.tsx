@@ -1,7 +1,6 @@
 import { getProviderName, ProviderName } from "@core/chorus/Models";
 import { OPENROUTER_CUSTOM_PROVIDER_LOGOS } from "@ui/lib/models";
 import { cn } from "@ui/lib/utils";
-import { BoxIcon } from "lucide-react";
 import {
     RiAnthropicFill,
     RiOpenaiFill,
@@ -52,8 +51,13 @@ export function ProviderLogo({
             case "ollama":
                 return <SiOllama className="w-4 h-4" />;
             case "lmstudio":
-                // TODO: Add LMStudio logo
-                return <BoxIcon className="w-4 h-4" />;
+                return (
+                    <img
+                        src="/lmstudio.svg"
+                        alt="LM Studio"
+                        className="w-4 h-4 dark:invert"
+                    />
+                );
             case "meta":
                 return <RiMetaFill className="w-4 h-4" />;
             case "grok":

@@ -319,11 +319,6 @@ export function useRegenerateProjectContextSummaries() {
             const chat = await queryClient.ensureQueryData(
                 chatQueries.detail(chatId),
             );
-            await queryClient.refetchQueries(
-                // force refresh project
-                // TODOJDC can we get rid of this now?
-                projectQueries.detail(chat.projectId),
-            );
             const project = await queryClient.ensureQueryData(
                 projectQueries.detail(chat.projectId),
             );
@@ -402,7 +397,7 @@ function useRegenerateProjectContextSummary() {
             }
 
             const conversationText = llmConversation(messageSets)
-                .filter((m) => m.role === "user" || m.role === "assistant") // TODO include tools?
+                .filter((m) => m.role === "user" || m.role === "assistant") // Intentionally excludes tool messages — they add noise without improving summary quality
                 .map((m) => `${m.role}: ${m.content}`)
                 .join("\n\n");
 
@@ -632,8 +627,49 @@ export function useFinalizeAttachmentForProject() {
                 );
             }
         },
-        onSuccess: async (_data, variables) => {
-            // TODOJDC do an optimistic update instead
+        onMutate: async (variables) => {
+            const queryOptions = projectContextQueries.attachments(
+                variables.projectId,
+            );
+            await queryClient.cancelQueries(queryOptions);
+
+            const previousAttachments = queryClient.getQueryData(
+                queryOptions.queryKey,
+            );
+
+            queryClient.setQueryData(
+                queryOptions.queryKey,
+                produce(
+                    previousAttachments,
+                    (draft: Attachment[] | undefined) => {
+                        if (draft === undefined) return;
+                        const attachment = draft.find(
+                            (a) => a.id === variables.attachmentId,
+                        );
+                        if (attachment) {
+                            attachment.isLoading = false;
+                            attachment.path = variables.storedPath;
+                            if (variables.type) {
+                                attachment.type =
+                                    variables.type as Attachment["type"];
+                            }
+                        }
+                    },
+                ),
+            );
+
+            return { previousAttachments };
+        },
+        onError: (_error, variables, context) => {
+            if (context?.previousAttachments) {
+                queryClient.setQueryData(
+                    projectContextQueries.attachments(variables.projectId)
+                        .queryKey,
+                    context.previousAttachments,
+                );
+            }
+        },
+        onSettled: async (_data, _error, variables) => {
             await queryClient.invalidateQueries(
                 projectContextQueries.attachments(variables.projectId),
             );
