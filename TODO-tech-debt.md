@@ -22,29 +22,15 @@ Determine the scope of the "GC migration". If it's a refactor of how message set
 
 ---
 
-## Model `isEnabled` Flag
+## ~~Model `isEnabled` Flag~~
 
-**Location**: `Models.ts:185` and `Models.ts:216`
-
-The `Model` and `ModelConfig` types both have an `isEnabled: boolean` field with `// TODO: implement handling for this`. The field exists in the database but the UI doesn't filter or disable models based on it.
-
-### What's needed
-- When a model's `isEnabled` is `false`, hide it from the model picker UI
-- Use case: archive old models (e.g., deprecated GPT versions) or models that disappear from OpenRouter without deleting their data
-- Check if any migration currently sets `isEnabled = false` for any model — if not, this is purely forward-looking
+Done — `isEnabled` was already partially handled: `ManageModelsBox.tsx` disables picker items, `QuickChatModelSelector.tsx` filters them out. Added `isEnabled` filtering to `NewPrompt.tsx` base model picker. Removed TODO comments from `Models.ts`.
 
 ---
 
-## Legacy `ToolConfig` Interface
+## ~~Legacy `ToolConfig` Interface~~
 
-**Location**: `Models.ts:100`
-
-```typescript
-/** LEGACY -- TODO get rid of this one when we deprecate old-style tools */
-export interface ToolConfig { ... }
-```
-
-This interface predates the current `Toolset` / `UserTool` system. Check if any code still references `ToolConfig` and remove it if unused.
+Done — removed the unused `ToolConfig` interface from `Models.ts`. No code referenced it.
 
 ---
 
