@@ -193,7 +193,7 @@ function ToolsBoxContent() {
                                     e.preventDefault();
                                     // Emit an event to open settings with connections tab
                                     void emit("open_settings", {
-                                        tab: "connections",
+                                        tab: "api-keys",
                                     });
                                 }}
                             >
@@ -217,7 +217,7 @@ function ToolsBoxContent() {
                         onSelect={() => {
                             // Emit an event to open settings with connections tab
                             void emit("open_settings", {
-                                tab: "connections",
+                                tab: "api-keys",
                             });
                         }}
                     >

@@ -18,7 +18,6 @@ import {
     ShieldCheckIcon,
     User2,
     Key,
-    PlugIcon,
     FileText,
     Import,
     BookOpen,
@@ -37,7 +36,7 @@ import { useReactQueryAutoSync } from "use-react-query-auto-sync";
 import { SiOpenai } from "react-icons/si";
 import { RiClaudeFill } from "react-icons/ri";
 import ImportChatDialog from "./ImportChatDialog";
-import { dialogActions } from "@core/infra/DialogStore";
+import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
 import { PermissionsTab } from "./PermissionsTab";
 import { CostDashboard } from "./CostDashboard";
@@ -60,9 +59,8 @@ const TABS: Record<SettingsTabId, TabConfig> = {
     general: { label: "General", icon: User2 },
     import: { label: "Import", icon: Import },
     "system-prompt": { label: "System Prompt", icon: FileText },
-    "api-keys": { label: "API Keys", icon: Key },
+    "api-keys": { label: "API Keys & Connections", icon: Key },
     "quick-chat": { label: "Ambient Chat", icon: Fullscreen },
-    connections: { label: "Connections", icon: PlugIcon },
     permissions: { label: "Tool Permissions", icon: ShieldCheckIcon },
     "base-url": { label: "Base URL", icon: Globe },
     usage: { label: "Usage", icon: BarChart3 },
@@ -302,11 +300,23 @@ export default function Settings({ tab = "general" }: SettingsProps) {
         dialogActions.openDialog(`import-${platform}`);
     };
 
-    const [activeTab, setActiveTab] = useState<SettingsTabId>(defaultTab);
+    const pendingSettingsTab = useDialogStore(
+        (state) => state.pendingSettingsTab,
+    );
+    const [activeTab, setActiveTab] = useState<SettingsTabId>(
+        (pendingSettingsTab as SettingsTabId) || defaultTab,
+    );
 
     useEffect(() => {
         setActiveTab(defaultTab);
     }, [defaultTab]);
+
+    // Allow any component to open settings to a specific tab via dialogActions.openSettings()
+    useEffect(() => {
+        if (pendingSettingsTab) {
+            setActiveTab(pendingSettingsTab as SettingsTabId);
+        }
+    }, [pendingSettingsTab]);
 
     const content = (
         <div className="flex flex-col h-full">
@@ -475,16 +485,19 @@ export default function Settings({ tab = "general" }: SettingsProps) {
                     )}
 
                     {activeTab === "api-keys" && (
-                        <ApiKeysTab
-                            apiKeys={apiKeys}
-                            lmStudioBaseUrl={lmStudioBaseUrl}
-                            onApiKeyChange={(provider, value) =>
-                                void handleApiKeyChange(provider, value)
-                            }
-                            onLmStudioBaseUrlChange={(e) =>
-                                void onLmStudioBaseUrlChange(e)
-                            }
-                        />
+                        <div className="space-y-8 max-w-2xl">
+                            <ApiKeysTab
+                                apiKeys={apiKeys}
+                                lmStudioBaseUrl={lmStudioBaseUrl}
+                                onApiKeyChange={(provider, value) =>
+                                    void handleApiKeyChange(provider, value)
+                                }
+                                onLmStudioBaseUrlChange={(e) =>
+                                    void onLmStudioBaseUrlChange(e)
+                                }
+                            />
+                            <ConnectionsTab />
+                        </div>
                     )}
 
                     {activeTab === "quick-chat" && (
@@ -501,12 +514,6 @@ export default function Settings({ tab = "general" }: SettingsProps) {
                                 void onDefaultQcShortcutClick()
                             }
                         />
-                    )}
-
-                    {activeTab === "connections" && (
-                        <div className="space-y-6 max-w-2xl">
-                            <ConnectionsTab />
-                        </div>
                     )}
 
                     {activeTab === "permissions" && (

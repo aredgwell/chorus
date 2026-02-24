@@ -26,6 +26,7 @@ import {
     TooltipTrigger,
 } from "@ui/components/ui/tooltip";
 import Composer from "@ui/components/Composer";
+import { dialogActions } from "@core/infra/DialogStore";
 import {
     useGCMainMessages,
     useSendGCMessage,
@@ -96,6 +97,32 @@ function formatThinkingModels(instances: ModelInstance[]): string {
         const lastGroup = formattedGroups.pop();
         return formattedGroups.join(", ") + ", and " + lastGroup;
     }
+}
+
+// ---------------------------------------------------------------------------
+// Error message rendering with clickable Settings link
+// ---------------------------------------------------------------------------
+
+const API_KEY_ERROR_PATTERN =
+    /^Sorry, I encountered an error: Please add your (\w+) API key in Settings to use this model\.$/;
+
+function ErrorMessageWithSettingsLink({ text }: { text: string }) {
+    const match = text.match(API_KEY_ERROR_PATTERN);
+    if (!match) return null;
+
+    const providerName = match[1];
+    return (
+        <p className="text-destructive">
+            Please add your {providerName} API key in{" "}
+            <button
+                className="underline hover:text-destructive/80 transition-colors"
+                onClick={() => dialogActions.openSettings("api-keys")}
+            >
+                Settings
+            </button>{" "}
+            to use this model.
+        </p>
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -314,6 +341,8 @@ function AIMessageView({
                         <div className="text-sm text-muted-foreground italic">
                             Message deleted
                         </div>
+                    ) : API_KEY_ERROR_PATTERN.test(message.text) ? (
+                        <ErrorMessageWithSettingsLink text={message.text} />
                     ) : (
                         <MessageMarkdown text={message.text} />
                     )}

@@ -6,7 +6,6 @@ export type SettingsTabId =
     | "system-prompt"
     | "api-keys"
     | "quick-chat"
-    | "connections"
     | "permissions"
     | "base-url"
     | "usage"
