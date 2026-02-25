@@ -45,35 +45,13 @@ Done — `src/core/chorus/toolsets/linear.ts` with 5 tools: `search_issues`, `ge
 
 ---
 
-## Semantic Search (sqlite-vec)
-
-### Overview
-Add vector similarity search to find related conversations, even when keyword search wouldn't match. Uses `sqlite-vec`, a SQLite extension that adds KNN vector search directly to the existing database — no separate process or data store.
-
-### Implementation
-1. **Load extension**: Add `sqlite-vec` as a native SQLite extension, loaded on the Rust side via `rusqlite` (or via Tauri SQL plugin's extension loading if supported)
-2. **Schema**: Create a virtual table for embeddings:
-   ```sql
-   CREATE VIRTUAL TABLE chat_embeddings USING vec0(
-       chat_id TEXT PRIMARY KEY,
-       embedding FLOAT[1536]
-   );
-   ```
-3. **Generate embeddings**: Use OpenAI's `text-embedding-3-small` API (or a local model via Ollama) to embed chat summaries. Trigger on chat summary generation (already exists in `ProjectAPI.ts`)
-4. **Query**: KNN search via SQL:
-   ```sql
-   SELECT chat_id, distance FROM chat_embeddings
-   WHERE embedding MATCH ?
-   ORDER BY distance LIMIT 10;
-   ```
-5. **UI**: Add "Find similar conversations" to chat context menu and command menu
-
-### Considerations
-- Embedding generation costs: ~$0.02 per 1M tokens with `text-embedding-3-small` — negligible for chat summaries
-- sqlite-vec is pure C, no dependencies — builds easily with `rusqlite`'s bundled SQLite or as a loadable extension
-- Start with chat summaries only (small, already generated); expand to full message content later if needed
-- If Ollama is configured, offer local embedding generation as a zero-cost alternative
-- Synergy with FTS5: use FTS5 for keyword search and sqlite-vec for semantic search, combine results
+## ~~Semantic Search (sqlite-vec)~~
+Done — full pipeline from embedding generation to UI:
+- **Rust**: `sqlite-vec` 0.1.6 loaded as auto-extension; `ensure_vec_table`, `upsert_chat_embedding`, `find_similar_chats` commands in `command.rs`
+- **Embeddings**: `EmbeddingService.ts` generates via OpenAI `text-embedding-3-small`. `EmbeddingQueue` deduplicates and limits concurrency. Embeddings generated automatically on title creation (first user message) and on summary generation.
+- **UI — Related Chats**: Sparkle icon in chat header opens a popover with up to 3 similar conversations (via `useRelatedChats` hook)
+- **UI — Similar Chats Dialog**: `SimilarChatsDialog.tsx` for full KNN search from sidebar
+- **UI — Command Menu**: "Similar" group shows semantic results alongside FTS5 keyword matches (via `useSemanticSearch` hook), deduplicated by chatId
 
 ---
 

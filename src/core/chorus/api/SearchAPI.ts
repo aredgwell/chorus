@@ -184,3 +184,45 @@ const fullSearchQuery = (query: string) => ({
 export function useFullSearchMessages(query: string) {
     return useQuery(fullSearchQuery(query));
 }
+
+// ---------------------------------------------------------------------------
+// Semantic search hooks (sqlite-vec)
+// ---------------------------------------------------------------------------
+
+import { findSimilarChats, SimilarChat } from "@core/chorus/EmbeddingService";
+export type { SimilarChat } from "@core/chorus/EmbeddingService";
+
+/**
+ * Find chats semantically related to the current chat (by its summary).
+ * Returns up to 3 results. Only fires when the chat has a summary.
+ */
+export function useRelatedChats(
+    chatId: string | undefined,
+    summary: string | undefined,
+) {
+    return useQuery({
+        queryKey: ["relatedChats", chatId] as const,
+        queryFn: (): Promise<SimilarChat[]> => {
+            if (!summary) return Promise.resolve([]);
+            return findSimilarChats(summary, 3, chatId);
+        },
+        staleTime: 5 * 60 * 1000,
+        enabled: !!chatId && !!summary,
+    });
+}
+
+/**
+ * Run a semantic (embedding-based) search against all chat embeddings.
+ * Used in CommandMenu alongside keyword FTS5 results.
+ */
+export function useSemanticSearch(query: string) {
+    return useQuery({
+        queryKey: ["semanticSearch", query] as const,
+        queryFn: (): Promise<SimilarChat[]> => {
+            if (!query.trim()) return Promise.resolve([]);
+            return findSimilarChats(query, 5);
+        },
+        enabled: query.trim().length > 2,
+        staleTime: 60_000,
+    });
+}

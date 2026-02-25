@@ -64,7 +64,7 @@ export function SimilarChatsDialog() {
             }
 
             try {
-                const similar = await findSimilarChats(chatId, chat.summary);
+                const similar = await findSimilarChats(chat.summary, 10, chatId);
                 if (!cancelled) {
                     setResults(similar);
                 }

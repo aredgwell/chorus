@@ -26,6 +26,40 @@ async function getEmbedding(
 }
 
 /**
+ * Queues embedding generation requests, deduplicating by chatId and
+ * limiting concurrency. If the same chatId is enqueued multiple times
+ * before processing, only the latest text is used.
+ */
+class EmbeddingQueue {
+    private readonly pending = new Map<string, string>();
+    private running = 0;
+    private readonly MAX_CONCURRENT = 3;
+
+    enqueue(chatId: string, text: string): void {
+        this.pending.set(chatId, text);
+        void this.drain();
+    }
+
+    private async drain(): Promise<void> {
+        while (this.running < this.MAX_CONCURRENT && this.pending.size > 0) {
+            const entry = this.pending.entries().next().value;
+            if (!entry) break;
+            const [chatId, text] = entry;
+            this.pending.delete(chatId);
+            this.running++;
+            generateAndStoreEmbedding(chatId, text)
+                .catch(console.error)
+                .finally(() => {
+                    this.running--;
+                    void this.drain();
+                });
+        }
+    }
+}
+
+export const embeddingQueue = new EmbeddingQueue();
+
+/**
  * Generate an embedding from text and store it for a chat.
  * Silently skips if no OpenAI key is configured.
  */
@@ -45,9 +79,9 @@ export async function generateAndStoreEmbedding(
  * Returns empty array if no OpenAI key is configured.
  */
 export async function findSimilarChats(
-    chatId: string,
     text: string,
     limit = 10,
+    excludeChatId?: string,
 ): Promise<SimilarChat[]> {
     const apiKeys = await getApiKeys();
     if (!apiKeys.openai) return [];
@@ -56,7 +90,7 @@ export async function findSimilarChats(
     const results = await invoke<SimilarChat[]>("find_similar_chats", {
         embedding,
         limit,
-        excludeChatId: chatId,
+        excludeChatId,
     });
     return results;
 }

@@ -50,7 +50,10 @@ import {
     useMarkProjectContextSummaryAsStale,
 } from "./ProjectAPI";
 import { useGetToolsets } from "./ToolsetsAPI";
-import { generateAndStoreEmbedding } from "@core/chorus/EmbeddingService";
+import {
+    generateAndStoreEmbedding,
+    embeddingQueue,
+} from "@core/chorus/EmbeddingService";
 import { fetchAppMetadata } from "./AppMetadataAPI";
 import {
     modelConfigQueries,
@@ -2897,6 +2900,10 @@ ${userMessageText}
                     cleanTitle,
                     chatId,
                 ]);
+
+                // Queue an embedding from the first user message so chats
+                // become semantically searchable without manual summarization
+                embeddingQueue.enqueue(chatId, userMessageText);
             }
         },
         onSuccess: async (data, variables) => {
