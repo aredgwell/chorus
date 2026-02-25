@@ -8,6 +8,9 @@ import {
     RefreshCcwIcon,
     Maximize2Icon,
     RemoveFormattingIcon,
+    ChevronDownIcon,
+    WrenchIcon,
+    MessageSquareIcon,
 } from "lucide-react";
 import { HeaderBar } from "@ui/components/HeaderBar";
 import { MessageMarkdown } from "@ui/components/renderers/MessageMarkdown";
@@ -25,10 +28,19 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@ui/components/ui/tooltip";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@ui/components/ui/collapsible";
 import Composer from "@ui/components/Composer";
+import GroupChatThread from "@ui/components/GroupChatThread";
 import { dialogActions } from "@core/infra/DialogStore";
 import {
     useGCMainMessages,
+    useGCThreadCounts,
+    useGCConductor,
+    useClearConductor,
     useSendGCMessage,
     useGenerateAIResponses,
     useDeleteGCMessage,
@@ -38,6 +50,7 @@ import {
     type GCMessage,
 } from "@core/chorus/api/GroupChatAPI";
 import { useChat } from "@core/chorus/api/ChatAPI";
+import { type UserToolCall } from "@core/chorus/Toolsets";
 import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
 import { getModelDisplayName } from "@core/chorus/gc-prototype/UtilsGC";
 
@@ -242,16 +255,69 @@ function FullScreenMessageDialog({
     );
 }
 
+// ---------------------------------------------------------------------------
+// GCToolCallView — compact collapsible tool call display
+// ---------------------------------------------------------------------------
+
+function GCToolCallView({ toolCall }: { toolCall: UserToolCall }) {
+    const label = toolCall.namespacedToolName ?? "tool";
+
+    const formattedArgs = useMemo(() => {
+        const args = toolCall.args as Record<string, unknown> | undefined;
+        if (!args) return [];
+        return Object.entries(args).map(([key, value]) => ({
+            key,
+            value:
+                typeof value === "string"
+                    ? value
+                    : JSON.stringify(value, null, 2),
+        }));
+    }, [toolCall.args]);
+
+    return (
+        <Collapsible className="my-2 rounded-md text-muted-foreground text-sm py-1.5 px-1.5 border w-fit max-w-full">
+            <CollapsibleTrigger className="group font-mono text-xs text-left flex items-center justify-left hover:text-foreground">
+                <WrenchIcon className="w-3 h-3 mr-2 flex-shrink-0" />
+                {label}
+                <ChevronDownIcon className="w-3 h-3 ml-2 transition-transform group-data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+                {formattedArgs.length > 0 && (
+                    <ul className="mt-2 space-y-1 text-xs font-mono">
+                        {formattedArgs.map((arg) => (
+                            <li key={arg.key}>
+                                <span className="text-muted-foreground">
+                                    {arg.key}
+                                </span>
+                                ={" "}
+                                <span className="break-all">
+                                    {arg.value}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </CollapsibleContent>
+        </Collapsible>
+    );
+}
+
 function AIMessageView({
     message,
+    isStreaming,
+    threadReplyCount,
     onDelete,
     onRestore,
     onRegenerate,
+    onOpenThread,
 }: {
     message: GCMessage;
+    isStreaming?: boolean;
+    threadReplyCount?: number;
     onDelete: (messageId: string) => void;
     onRestore: (messageId: string) => void;
     onRegenerate: (messageId: string, modelConfigId: string) => void;
+    onOpenThread?: (messageId: string) => void;
 }) {
     const displayName = getModelDisplayName(message.modelConfigId);
 
@@ -275,9 +341,9 @@ function AIMessageView({
                         </div>
                     </div>
 
-                    {/* Hover action buttons */}
+                    {/* Hover action buttons (hidden while streaming) */}
                     <div className="mr-3 flex items-center h-6 gap-2">
-                        <div className="gap-2 text-muted-foreground px-2 hidden group-hover/message-set-view:flex bg-background">
+                        <div className={`gap-2 text-muted-foreground px-2 bg-background ${isStreaming ? "hidden" : "hidden group-hover/message-set-view:flex"}`}>
                             {message.isDeleted ? (
                                 <button
                                     className="hover:text-foreground transition-colors"
@@ -322,6 +388,20 @@ function AIMessageView({
                                             />
                                         </button>
                                     </FullScreenMessageDialog>
+                                    {onOpenThread && (
+                                        <button
+                                            className="hover:text-foreground transition-colors"
+                                            onClick={() =>
+                                                onOpenThread(message.id)
+                                            }
+                                            title="Open thread"
+                                        >
+                                            <MessageSquareIcon
+                                                strokeWidth={1.5}
+                                                className="w-3.5 h-3.5"
+                                            />
+                                        </button>
+                                    )}
                                     <button
                                         className="hover:text-foreground transition-colors"
                                         onClick={() => onDelete(message.id)}
@@ -341,12 +421,36 @@ function AIMessageView({
                         <div className="text-sm text-muted-foreground italic">
                             Message deleted
                         </div>
+                    ) : !message.text && isStreaming ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                     ) : API_KEY_ERROR_PATTERN.test(message.text) ? (
                         <ErrorMessageWithSettingsLink text={message.text} />
                     ) : (
                         <MessageMarkdown text={message.text} />
                     )}
+                    {/* Tool calls */}
+                    {message.toolCalls && message.toolCalls.length > 0 && (
+                        <div className="mt-2">
+                            {message.toolCalls.map((tc) => (
+                                <GCToolCallView
+                                    key={tc.id}
+                                    toolCall={tc}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
+                {/* Thread reply count */}
+                {threadReplyCount !== undefined && threadReplyCount > 0 && onOpenThread && (
+                    <button
+                        className="mt-1 px-4 pb-2 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                        onClick={() => onOpenThread(message.id)}
+                    >
+                        <MessageSquareIcon className="h-3 w-3" />
+                        {threadReplyCount}{" "}
+                        {threadReplyCount === 1 ? "reply" : "replies"}
+                    </button>
+                )}
             </div>
         </div>
     );
@@ -354,15 +458,26 @@ function AIMessageView({
 
 function GCMessageView({
     message,
+    isStreaming,
+    threadReplyCount,
     onDelete,
     onRestore,
     onRegenerate,
+    onOpenThread,
 }: {
     message: GCMessage;
+    isStreaming?: boolean;
+    threadReplyCount?: number;
     onDelete: (messageId: string) => void;
     onRestore: (messageId: string) => void;
     onRegenerate: (messageId: string, modelConfigId: string) => void;
+    onOpenThread?: (messageId: string) => void;
 }) {
+    // tool_result messages are internal — not displayed directly
+    if (message.modelConfigId === "tool_result") {
+        return null;
+    }
+
     if (message.modelConfigId === "user") {
         return (
             <UserMessageView
@@ -376,9 +491,12 @@ function GCMessageView({
     return (
         <AIMessageView
             message={message}
+            isStreaming={isStreaming}
+            threadReplyCount={threadReplyCount}
             onDelete={onDelete}
             onRestore={onRestore}
             onRegenerate={onRegenerate}
+            onOpenThread={onOpenThread}
         />
     );
 }
@@ -391,23 +509,28 @@ export default function GroupChat() {
     const { chatId } = useParams<{ chatId: string }>();
     const { data: chat } = useChat(chatId ?? "");
     const { data: messages } = useGCMainMessages(chatId ?? "");
+    const { data: threadCounts } = useGCThreadCounts(chatId ?? "");
     const sendMessage = useSendGCMessage();
     const generateAIResponses = useGenerateAIResponses();
     const deleteMessage = useDeleteGCMessage();
     const restoreMessage = useRestoreGCMessage();
     const regenerateMessage = useRegenerateGCMessage();
     const generateTitle = useGenerateGCChatTitle();
+    const { data: conductor } = useGCConductor(chatId ?? "");
+    const clearConductorMutation = useClearConductor();
 
     const [generatingModels, setGeneratingModels] = useState<
         Map<string, number>
     >(new Map());
+    const [openThreadId, setOpenThreadId] = useState<string | undefined>();
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll when messages change
+    // Auto-scroll only when new messages appear (not on every streaming chunk)
+    const messageCount = messages?.length ?? 0;
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+    }, [messageCount]);
 
     // Subscribe to thinking state changes
     useEffect(() => {
@@ -453,6 +576,33 @@ export default function GroupChat() {
 
     const isGenerating = thinkingModelInstances.length > 0;
 
+    // Set of model IDs currently streaming (for inline streaming indicators)
+    const streamingModelIds = useMemo(() => {
+        const ids = new Set<string>();
+        generatingModels.forEach((count, modelId) => {
+            if (count > 0) ids.add(modelId);
+        });
+        return ids;
+    }, [generatingModels]);
+
+    // Set of message IDs that are actively streaming (last message per streaming model)
+    const streamingMessageIds = useMemo(() => {
+        const ids = new Set<string>();
+        if (!messages || streamingModelIds.size === 0) return ids;
+        const seenModels = new Set<string>();
+        for (let i = messages.length - 1; i >= 0; i--) {
+            const msg = messages[i];
+            if (
+                streamingModelIds.has(msg.modelConfigId) &&
+                !seenModels.has(msg.modelConfigId)
+            ) {
+                ids.add(msg.id);
+                seenModels.add(msg.modelConfigId);
+            }
+        }
+        return ids;
+    }, [messages, streamingModelIds]);
+
     const handleSend = useCallback(
         async (text: string) => {
             if (!chatId) return;
@@ -496,6 +646,15 @@ export default function GroupChat() {
         [chatId, regenerateMessage],
     );
 
+    const handleOpenThread = useCallback((messageId: string) => {
+        setOpenThreadId(messageId);
+    }, []);
+
+    // Close thread when chatId changes
+    useEffect(() => {
+        setOpenThreadId(undefined);
+    }, [chatId]);
+
     // Empty state
     if (!messages || messages.length === 0) {
         return (
@@ -528,56 +687,113 @@ export default function GroupChat() {
     }
 
     return (
-        <div className="flex flex-col h-screen w-full">
-            <HeaderBar positioning="absolute">
-                <span className="text-sm font-medium ml-2">
-                    {chat?.title ?? "New Chat"}
-                </span>
-            </HeaderBar>
+        <div className="flex h-screen w-full">
+            {/* Main chat column */}
+            <div className="flex-1 flex flex-col min-w-0">
+                <HeaderBar positioning="absolute">
+                    <span className="text-sm font-medium ml-2">
+                        {chat?.title ?? "New Chat"}
+                    </span>
+                </HeaderBar>
 
-            {/* Message list */}
-            <div className="flex-1 overflow-y-auto pt-[52px] pb-4">
-                <div className="max-w-3xl mx-auto">
-                    {messages.map((message) => (
-                        <GCMessageView
-                            key={message.id}
-                            message={message}
-                            onDelete={handleDelete}
-                            onRestore={handleRestore}
-                            onRegenerate={handleRegenerate}
-                        />
-                    ))}
-
-                    {/* Thinking indicator */}
-                    {thinkingModelInstances.length > 0 && (
-                        <div className="px-4 mb-6">
-                            <div className="rounded-md border-[0.090rem] bg-background p-4">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
+                {/* Conductor banner */}
+                {conductor && (
+                    <div className="pt-[52px] px-4 pb-0">
+                        <div className="max-w-3xl mx-auto">
+                            <div className="flex items-center justify-between rounded-md bg-secondary px-4 py-2 text-sm">
+                                <div className="flex items-center gap-2">
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    <ProviderLogo
+                                        size="xs"
+                                        modelId={conductor.conductorModelId}
+                                    />
                                     <span>
-                                        {formatThinkingModels(
-                                            thinkingModelInstances,
-                                        )}
-                                        {thinkingModelInstances.length === 1
-                                            ? " is"
-                                            : " are"}{" "}
-                                        thinking...
+                                        {getModelDisplayName(
+                                            conductor.conductorModelId,
+                                        )}{" "}
+                                        is conducting (turn{" "}
+                                        {conductor.turnCount}/10)
                                     </span>
                                 </div>
+                                <button
+                                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                    onClick={() => {
+                                        if (chatId) {
+                                            clearConductorMutation.mutate({
+                                                chatId,
+                                            });
+                                        }
+                                    }}
+                                >
+                                    Stop
+                                </button>
                             </div>
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {/* Auto-scroll anchor */}
-                    <div ref={messagesEndRef} />
+                {/* Message list */}
+                <div className={`flex-1 overflow-y-auto ${conductor ? "" : "pt-[52px]"} pb-4`}>
+                    <div className="max-w-3xl mx-auto">
+                        {messages.map((message) => (
+                            <GCMessageView
+                                key={message.id}
+                                message={message}
+                                isStreaming={streamingMessageIds.has(
+                                    message.id,
+                                )}
+                                threadReplyCount={threadCounts?.get(
+                                    message.id,
+                                )}
+                                onDelete={handleDelete}
+                                onRestore={handleRestore}
+                                onRegenerate={handleRegenerate}
+                                onOpenThread={handleOpenThread}
+                            />
+                        ))}
+
+                        {/* Thinking indicator */}
+                        {thinkingModelInstances.length > 0 && (
+                            <div className="px-4 mb-6">
+                                <div className="rounded-md border-[0.090rem] bg-background p-4">
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span>
+                                            {formatThinkingModels(
+                                                thinkingModelInstances,
+                                            )}
+                                            {thinkingModelInstances.length === 1
+                                                ? " is"
+                                                : " are"}{" "}
+                                            thinking...
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Auto-scroll anchor */}
+                        <div ref={messagesEndRef} />
+                    </div>
                 </div>
+
+                <Composer
+                    onSend={handleSend}
+                    chatId={chatId ?? ""}
+                    disabled={isGenerating}
+                />
             </div>
 
-            <Composer
-                onSend={handleSend}
-                chatId={chatId ?? ""}
-                disabled={isGenerating}
-            />
+            {/* Thread panel */}
+            {openThreadId && chatId && (
+                <div className="w-96 border-l flex-shrink-0">
+                    <GroupChatThread
+                        chatId={chatId}
+                        threadRootMessageId={openThreadId}
+                        onClose={() => setOpenThreadId(undefined)}
+                    />
+                </div>
+            )}
         </div>
     );
 }

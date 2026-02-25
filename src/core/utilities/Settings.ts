@@ -27,6 +27,7 @@ export interface Settings {
         shortcut?: string;
     };
     lmStudioBaseUrl?: string;
+    customOpenAIBaseUrl?: string;
     cautiousEnter?: boolean;
 }
 
@@ -38,6 +39,7 @@ const API_KEY_PROVIDERS = [
     "openrouter",
     "firecrawl",
     "grok",
+    "custom-openai",
 ] as const;
 
 export class SettingsManager {

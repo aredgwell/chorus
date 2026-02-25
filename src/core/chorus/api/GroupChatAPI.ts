@@ -1,4 +1,5 @@
 import {
+    QueryClient,
     useMutation,
     useQuery,
     useQueryClient,
@@ -9,13 +10,28 @@ import { db } from "@core/chorus/DB";
 import { chatQueries } from "@core/chorus/api/ChatAPI";
 import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
 import { getApiKeys } from "@core/chorus/api/AppMetadataAPI";
-import { LLMMessage, ModelConfig, streamResponse } from "@core/chorus/Models";
+import {
+    LLMMessage,
+    ModelConfig,
+    UsageData,
+    streamResponse,
+} from "@core/chorus/Models";
+import {
+    UserTool,
+    UserToolCall,
+    UserToolResult,
+} from "@core/chorus/Toolsets";
+import { ToolsetsManager } from "@core/chorus/ToolsetsManager";
+import { useGetToolsets } from "@core/chorus/api/ToolsetsAPI";
 import { simpleLLM } from "@core/chorus/simpleLLM";
 import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
 import {
     getChatFormatPrompt,
     getNonConductorPrompt,
+    getConductorPrompt,
+    getConductorReminder,
 } from "@core/chorus/gc-prototype/PromptsGC";
+import { UpdateQueue } from "@core/chorus/UpdateQueue";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -31,21 +47,32 @@ type GCMessageDBRow = {
     is_deleted: number;
     thread_root_message_id: string | null;
     promoted_from_message_id: string | null;
+    tool_calls: string | null;
 };
 
 export type GCMessage = {
     chatId: string;
     id: string;
     text: string;
-    modelConfigId: string; // "user" for human messages, model ID for AI
+    modelConfigId: string; // "user" for human messages, model ID for AI, "tool_result" for tool results
     createdAt: string;
     updatedAt: string;
     isDeleted: boolean;
     threadRootMessageId?: string;
     promotedFromMessageId?: string;
+    toolCalls?: UserToolCall[];
 };
 
 function readGCMessage(row: GCMessageDBRow): GCMessage {
+    let toolCalls: UserToolCall[] | undefined;
+    if (row.tool_calls) {
+        try {
+            toolCalls = JSON.parse(row.tool_calls) as UserToolCall[];
+        } catch {
+            console.warn("Failed to parse tool_calls for message", row.id);
+        }
+    }
+
     return {
         chatId: row.chat_id,
         id: row.id,
@@ -56,6 +83,7 @@ function readGCMessage(row: GCMessageDBRow): GCMessage {
         isDeleted: row.is_deleted === 1,
         threadRootMessageId: row.thread_root_message_id ?? undefined,
         promotedFromMessageId: row.promoted_from_message_id ?? undefined,
+        toolCalls,
     };
 }
 
@@ -78,11 +106,25 @@ async function insertGCMessage(
     id: string,
     text: string,
     modelConfigId: string,
+    options?: {
+        toolCalls?: UserToolCall[];
+        threadRootMessageId?: string;
+    },
 ): Promise<void> {
+    const toolCallsJson = options?.toolCalls
+        ? JSON.stringify(options.toolCalls)
+        : undefined;
     await db.execute(
-        `INSERT INTO gc_messages (chat_id, id, text, model_config_id)
-         VALUES (?, ?, ?, ?)`,
-        [chatId, id, text, modelConfigId],
+        `INSERT INTO gc_messages (chat_id, id, text, model_config_id, tool_calls, thread_root_message_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+            chatId,
+            id,
+            text,
+            modelConfigId,
+            toolCallsJson ?? null,
+            options?.threadRootMessageId ?? null,
+        ],
     );
 }
 
@@ -100,6 +142,157 @@ async function restoreGCMessage(messageId: string): Promise<void> {
     );
 }
 
+async function fetchGCThreadMessages(
+    chatId: string,
+    threadRootMessageId: string,
+): Promise<GCMessage[]> {
+    const rows = await db.select<GCMessageDBRow[]>(
+        `SELECT * FROM gc_messages
+         WHERE chat_id = ? AND thread_root_message_id = ?
+         ORDER BY created_at ASC`,
+        [chatId, threadRootMessageId],
+    );
+    return rows.map(readGCMessage);
+}
+
+async function fetchGCThreadCounts(
+    chatId: string,
+): Promise<Map<string, number>> {
+    const rows = await db.select<
+        { thread_root_message_id: string; count: number }[]
+    >(
+        `SELECT thread_root_message_id, COUNT(*) as count
+         FROM gc_messages
+         WHERE chat_id = ? AND thread_root_message_id IS NOT NULL AND is_deleted = 0
+         GROUP BY thread_root_message_id`,
+        [chatId],
+    );
+    const map = new Map<string, number>();
+    for (const row of rows) {
+        map.set(row.thread_root_message_id, row.count);
+    }
+    return map;
+}
+
+async function promoteGCMessageToMain(
+    originalMessageId: string,
+    newMessageId: string,
+): Promise<void> {
+    const rows = await db.select<GCMessageDBRow[]>(
+        `SELECT * FROM gc_messages WHERE id = ?`,
+        [originalMessageId],
+    );
+
+    if (rows.length === 0) {
+        throw new Error(`Message not found: ${originalMessageId}`);
+    }
+
+    const original = rows[0];
+    const prefixedText = `[Promoted from thread] ${original.text}`;
+    await db.execute(
+        `INSERT INTO gc_messages (chat_id, id, text, model_config_id, promoted_from_message_id)
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+            original.chat_id,
+            newMessageId,
+            prefixedText,
+            original.model_config_id,
+            originalMessageId,
+        ],
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Conductor DB helpers
+// ---------------------------------------------------------------------------
+
+export type GCConductor = {
+    chatId: string;
+    scopeId?: string;
+    conductorModelId: string;
+    turnCount: number;
+    isActive: boolean;
+    createdAt: string;
+};
+
+type GCConductorDBRow = {
+    chat_id: string;
+    scope_id: string | null;
+    conductor_model_id: string;
+    turn_count: number;
+    is_active: number;
+    created_at: string;
+};
+
+function readGCConductor(row: GCConductorDBRow): GCConductor {
+    return {
+        chatId: row.chat_id,
+        scopeId: row.scope_id ?? undefined,
+        conductorModelId: row.conductor_model_id,
+        turnCount: row.turn_count,
+        isActive: row.is_active === 1,
+        createdAt: row.created_at,
+    };
+}
+
+async function fetchActiveConductor(
+    chatId: string,
+    scopeId?: string,
+): Promise<GCConductor | undefined> {
+    const rows = await db.select<GCConductorDBRow[]>(
+        `SELECT chat_id, scope_id, conductor_model_id, turn_count, is_active, created_at
+         FROM gc_conductors
+         WHERE chat_id = ? AND scope_id IS ? AND is_active = 1
+         LIMIT 1`,
+        [chatId, scopeId ?? null],
+    );
+    if (rows.length === 0) return undefined;
+    return readGCConductor(rows[0]);
+}
+
+async function setConductor(
+    chatId: string,
+    scopeId: string | undefined,
+    modelId: string,
+): Promise<void> {
+    await db.execute(
+        `INSERT OR REPLACE INTO gc_conductors (chat_id, scope_id, conductor_model_id, turn_count, is_active)
+         VALUES (?, ?, ?, 0, 1)`,
+        [chatId, scopeId ?? null, modelId],
+    );
+}
+
+async function incrementConductorTurn(
+    chatId: string,
+    scopeId?: string,
+): Promise<number> {
+    await db.execute(
+        `UPDATE gc_conductors
+         SET turn_count = turn_count + 1
+         WHERE chat_id = ? AND scope_id IS ? AND is_active = 1`,
+        [chatId, scopeId ?? null],
+    );
+    const result = await db.select<{ turn_count: number }[]>(
+        `SELECT turn_count
+         FROM gc_conductors
+         WHERE chat_id = ? AND scope_id IS ? AND is_active = 1`,
+        [chatId, scopeId ?? null],
+    );
+    return result[0]?.turn_count ?? 0;
+}
+
+async function clearConductor(
+    chatId: string,
+    scopeId?: string,
+): Promise<void> {
+    await db.execute(
+        `UPDATE gc_conductors
+         SET is_active = 0
+         WHERE chat_id = ? AND scope_id IS ?`,
+        [chatId, scopeId ?? null],
+    );
+}
+
 // ---------------------------------------------------------------------------
 // Query keys & factories
 // ---------------------------------------------------------------------------
@@ -107,12 +300,25 @@ async function restoreGCMessage(messageId: string): Promise<void> {
 const gcMessageKeys = {
     all: (chatId: string) => ["gcMessages", chatId] as const,
     main: (chatId: string) => ["gcMainMessages", chatId] as const,
+    thread: (chatId: string, threadRootId: string) =>
+        ["gcThreadMessages", chatId, threadRootId] as const,
+    threadCounts: (chatId: string) => ["gcThreadCounts", chatId] as const,
+    conductor: (chatId: string, scopeId?: string) =>
+        ["gcConductor", chatId, scopeId ?? null] as const,
 };
 
 export const gcMessageQueries = {
     mainMessages: (chatId: string) => ({
         queryKey: gcMessageKeys.main(chatId),
         queryFn: () => fetchGCMainMessages(chatId),
+    }),
+    threadMessages: (chatId: string, threadRootId: string) => ({
+        queryKey: gcMessageKeys.thread(chatId, threadRootId),
+        queryFn: () => fetchGCThreadMessages(chatId, threadRootId),
+    }),
+    threadCounts: (chatId: string) => ({
+        queryKey: gcMessageKeys.threadCounts(chatId),
+        queryFn: () => fetchGCThreadCounts(chatId),
     }),
 };
 
@@ -161,6 +367,11 @@ const DEFAULT_MODEL_ID = "anthropic::claude-sonnet-4-latest";
 export async function encodeConversation(
     messages: GCMessage[],
     povModelConfigId: string,
+    options?: {
+        threadRootMessageId?: string;
+        threadMessages?: GCMessage[];
+        isConductor?: boolean;
+    },
 ): Promise<LLMMessage[]> {
     const result: LLMMessage[] = [];
 
@@ -176,23 +387,64 @@ export async function encodeConversation(
         content: getChatFormatPrompt(modelName),
         attachments: [],
     });
-    result.push({
-        role: "user",
-        content: getNonConductorPrompt(modelName),
-        attachments: [],
-    });
+    if (options?.isConductor) {
+        result.push({
+            role: "user",
+            content: getConductorPrompt(modelName),
+            attachments: [],
+        });
+    } else {
+        result.push({
+            role: "user",
+            content: getNonConductorPrompt(modelName),
+            attachments: [],
+        });
+    }
 
-    const activeMessages = messages.filter(
-        (m) => !m.isDeleted && !m.threadRootMessageId,
-    );
+    let activeMessages: GCMessage[];
+    if (options?.threadRootMessageId && options.threadMessages) {
+        // Thread mode: main messages up to and including the root, then thread replies
+        const mainMessages = messages.filter(
+            (m) => !m.isDeleted && !m.threadRootMessageId,
+        );
+        const rootIndex = mainMessages.findIndex(
+            (m) => m.id === options.threadRootMessageId,
+        );
+        const mainUpToRoot =
+            rootIndex >= 0 ? mainMessages.slice(0, rootIndex + 1) : mainMessages;
+        const threadReplies = options.threadMessages.filter(
+            (m) => !m.isDeleted,
+        );
+        activeMessages = [...mainUpToRoot, ...threadReplies];
+    } else {
+        activeMessages = messages.filter(
+            (m) => !m.isDeleted && !m.threadRootMessageId,
+        );
+    }
 
     for (const message of activeMessages) {
-        if (message.modelConfigId === povModelConfigId) {
+        if (message.modelConfigId === "tool_result") {
+            // Tool results: parse the JSON text back into UserToolResult[]
+            try {
+                const toolResults = JSON.parse(
+                    message.text,
+                ) as UserToolResult[];
+                result.push({
+                    role: "tool_results",
+                    toolResults,
+                });
+            } catch {
+                console.warn(
+                    "Failed to parse tool_result message",
+                    message.id,
+                );
+            }
+        } else if (message.modelConfigId === povModelConfigId) {
             result.push({
                 role: "assistant",
                 content: message.text,
                 model: povModelConfigId,
-                toolCalls: [],
+                toolCalls: message.toolCalls ?? [],
             });
         } else if (message.modelConfigId === "user") {
             result.push({
@@ -282,42 +534,105 @@ async function getRespondingModels(text: string): Promise<{
 }
 
 // ---------------------------------------------------------------------------
-// generateResponseWithStreamAPI — collect full response (no partial streaming)
+// streamGCResponse — stream response with live cache + DB updates
 // ---------------------------------------------------------------------------
 
-async function generateResponseWithStreamAPI(
-    modelConfig: ModelConfig,
-    conversation: LLMMessage[],
-    chatId: string,
-): Promise<string> {
+async function streamGCResponse(params: {
+    chatId: string;
+    messageId: string;
+    modelConfig: ModelConfig;
+    conversation: LLMMessage[];
+    queryClient: QueryClient;
+    scopeId?: string;
+    tools?: UserTool[];
+    cacheKey?: readonly string[];
+}): Promise<{ toolCalls?: UserToolCall[] }> {
+    const { chatId, messageId, modelConfig, conversation, queryClient, scopeId, tools } =
+        params;
+    const effectiveCacheKey = params.cacheKey ?? gcMessageKeys.main(chatId);
     const apiKeys = await getApiKeys();
-    let fullResponse = "";
-    let error: string | undefined;
+    const scope = scopeId ?? "main";
 
-    modelThinkingTracker.startThinking(modelConfig.modelId, chatId, "main");
+    let partialResponse = "";
+    let priority = 0;
+    let error: string | undefined;
+    let resultToolCalls: UserToolCall[] | undefined;
+
+    const streamKey = UpdateQueue.getInstance().startUpdateStream();
+
+    modelThinkingTracker.startThinking(modelConfig.modelId, chatId, scope);
+
+    const updateMessageTextInCache = (text: string) => {
+        queryClient.setQueryData(
+            effectiveCacheKey,
+            produce(
+                queryClient.getQueryData(effectiveCacheKey),
+                (draft: GCMessage[] | undefined) => {
+                    if (!draft) return;
+                    const msg = draft.find((m) => m.id === messageId);
+                    if (msg) msg.text = text;
+                },
+            ),
+        );
+    };
 
     try {
         await streamResponse({
             modelConfig,
             llmConversation: conversation,
+            tools: tools && tools.length > 0 ? tools : undefined,
             apiKeys,
             onChunk: (chunk: string) => {
-                fullResponse += chunk;
+                partialResponse += chunk;
+                priority += 1;
+
+                // Optimistic UI update
+                updateMessageTextInCache(partialResponse);
+
+                // Queue batched DB write
+                const textSnapshot = partialResponse;
+                UpdateQueue.getInstance().addUpdate(
+                    streamKey,
+                    priority,
+                    async () => {
+                        await db.execute(
+                            `UPDATE gc_messages SET text = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+                            [textSnapshot, messageId],
+                        );
+                    },
+                );
             },
-            onComplete: async () => {
+            onComplete: async (
+                finalText?: string,
+                toolCalls?: UserToolCall[],
+                _usageData?: UsageData,
+            ) => {
+                const text = finalText ?? partialResponse;
+                resultToolCalls = toolCalls;
+
+                // Final cache update
+                updateMessageTextInCache(text);
+
+                // Final DB write (bypasses queue for guaranteed write)
+                await db.execute(
+                    `UPDATE gc_messages SET text = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+                    [text, messageId],
+                );
+
+                UpdateQueue.getInstance().closeUpdateStream(streamKey);
                 modelThinkingTracker.stopThinking(
                     modelConfig.modelId,
                     chatId,
-                    "main",
+                    scope,
                 );
-                await Promise.resolve();
             },
             onError: (errorMessage: string) => {
                 error = errorMessage;
+                UpdateQueue.getInstance().closeUpdateStream(streamKey);
                 modelThinkingTracker.stopThinking(
                     modelConfig.modelId,
                     chatId,
-                    "main",
+                    scope,
                 );
             },
             additionalHeaders: {
@@ -326,16 +641,374 @@ async function generateResponseWithStreamAPI(
         });
 
         if (error) {
+            // Save error text to the message so the user sees it
+            const errorText = `Sorry, I encountered an error: ${error}`;
+            updateMessageTextInCache(errorText);
+            await db.execute(
+                `UPDATE gc_messages SET text = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+                [errorText, messageId],
+            );
             throw new Error(error);
         }
-        return fullResponse;
+
+        return { toolCalls: resultToolCalls };
     } catch (err) {
+        UpdateQueue.getInstance().closeUpdateStream(streamKey);
         modelThinkingTracker.stopThinking(
             modelConfig.modelId,
             chatId,
-            "main",
+            scope,
         );
         throw err;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// streamGCResponseWithTools — tool call loop for a single model
+// ---------------------------------------------------------------------------
+
+const MAX_TOOL_TURNS = 40;
+
+async function streamGCResponseWithTools(params: {
+    chatId: string;
+    modelConfig: ModelConfig;
+    queryClient: QueryClient;
+    getTools: () => UserTool[];
+    scopeId?: string;
+    prefixMessages?: LLMMessage[];
+    threadRootMessageId?: string;
+}): Promise<void> {
+    const {
+        chatId,
+        modelConfig,
+        queryClient,
+        getTools,
+        scopeId,
+        prefixMessages,
+        threadRootMessageId,
+    } = params;
+
+    const cacheKey = threadRootMessageId
+        ? gcMessageKeys.thread(chatId, threadRootMessageId)
+        : gcMessageKeys.main(chatId);
+
+    for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
+        // Fetch latest messages and encode conversation
+        const currentMessages = await fetchGCMainMessages(chatId);
+        const threadMessages = threadRootMessageId
+            ? await fetchGCThreadMessages(chatId, threadRootMessageId)
+            : undefined;
+        const conversation = await encodeConversation(
+            currentMessages,
+            modelConfig.modelId,
+            threadRootMessageId
+                ? { threadRootMessageId, threadMessages }
+                : undefined,
+        );
+
+        // Add any prefix messages (e.g. variety prompts for multiplied instances)
+        if (prefixMessages && turn === 0) {
+            conversation.unshift(...prefixMessages);
+        }
+
+        // Gather tools if model supports them
+        const tools = modelConfig.supportsToolUse ? getTools() : [];
+
+        // Pre-insert empty AI message
+        const messageId = uuidv4().toLowerCase();
+        await insertGCMessage(chatId, messageId, "", modelConfig.modelId, {
+            threadRootMessageId,
+        });
+
+        // Optimistically add to cache
+        queryClient.setQueryData(
+            cacheKey,
+            produce(
+                queryClient.getQueryData(cacheKey),
+                (draft: GCMessage[] | undefined) => {
+                    if (!draft) return;
+                    draft.push({
+                        chatId,
+                        id: messageId,
+                        text: "",
+                        modelConfigId: modelConfig.modelId,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        isDeleted: false,
+                        threadRootMessageId,
+                    });
+                },
+            ),
+        );
+
+        // Stream response
+        const { toolCalls } = await streamGCResponse({
+            chatId,
+            messageId,
+            modelConfig,
+            conversation,
+            queryClient,
+            scopeId: scopeId ?? threadRootMessageId,
+            tools,
+            cacheKey,
+        });
+
+        // If no tool calls, we're done
+        if (!toolCalls || toolCalls.length === 0) {
+            break;
+        }
+
+        // Save tool calls on the AI message
+        await db.execute(
+            `UPDATE gc_messages SET tool_calls = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+            [JSON.stringify(toolCalls), messageId],
+        );
+
+        // Update cache with tool calls
+        queryClient.setQueryData(
+            cacheKey,
+            produce(
+                queryClient.getQueryData(cacheKey),
+                (draft: GCMessage[] | undefined) => {
+                    if (!draft) return;
+                    const msg = draft.find((m) => m.id === messageId);
+                    if (msg) msg.toolCalls = toolCalls;
+                },
+            ),
+        );
+
+        // Execute each tool call
+        const toolResults: UserToolResult[] = await Promise.all(
+            toolCalls.map((toolCall) =>
+                ToolsetsManager.instance.executeToolCall(
+                    toolCall,
+                    modelConfig.displayName,
+                ),
+            ),
+        );
+
+        // Insert tool_result message
+        const toolResultId = uuidv4().toLowerCase();
+        await insertGCMessage(
+            chatId,
+            toolResultId,
+            JSON.stringify(toolResults),
+            "tool_result",
+            { threadRootMessageId },
+        );
+
+        // Optimistically add tool result to cache
+        queryClient.setQueryData(
+            cacheKey,
+            produce(
+                queryClient.getQueryData(cacheKey),
+                (draft: GCMessage[] | undefined) => {
+                    if (!draft) return;
+                    draft.push({
+                        chatId,
+                        id: toolResultId,
+                        text: JSON.stringify(toolResults),
+                        modelConfigId: "tool_result",
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        isDeleted: false,
+                        threadRootMessageId,
+                    });
+                },
+            ),
+        );
+
+        // Continue to next turn — model will see the tool results
+    }
+}
+
+// ---------------------------------------------------------------------------
+// orchestrateConductorSession — recursive conductor loop
+// ---------------------------------------------------------------------------
+
+const MAX_CONDUCTOR_TURNS = 10;
+
+async function orchestrateConductorSession(params: {
+    chatId: string;
+    conductorModelId: string;
+    queryClient: QueryClient;
+    getTools: () => UserTool[];
+    scopeId?: string;
+    threadRootMessageId?: string;
+}): Promise<void> {
+    const {
+        chatId,
+        conductorModelId,
+        queryClient,
+        getTools,
+        scopeId,
+        threadRootMessageId,
+    } = params;
+
+    try {
+        // Initialize conductor on first call
+        const existing = await fetchActiveConductor(chatId, scopeId);
+        if (!existing) {
+            await setConductor(chatId, scopeId, conductorModelId);
+        }
+
+        // Increment turn, then invalidate so UI sees the updated count
+        const turnCount = await incrementConductorTurn(chatId, scopeId);
+
+        await queryClient.invalidateQueries({
+            queryKey: gcMessageKeys.conductor(chatId, scopeId),
+        });
+
+        // Generate conductor's response
+        const allConfigs = await ModelsAPI.fetchModelConfigs();
+        const conductorConfig = allConfigs.find(
+            (c) => c.modelId === conductorModelId,
+        );
+        if (!conductorConfig) {
+            throw new Error(
+                `Conductor model config not found: ${conductorModelId}`,
+            );
+        }
+
+        // Encode conversation with isConductor=true
+        const currentMessages = await fetchGCMainMessages(chatId);
+        const threadMessages = threadRootMessageId
+            ? await fetchGCThreadMessages(chatId, threadRootMessageId)
+            : undefined;
+
+        const conversation = await encodeConversation(
+            currentMessages,
+            conductorModelId,
+            {
+                isConductor: true,
+                threadRootMessageId,
+                threadMessages,
+            },
+        );
+
+        // Add conductor reminder if not first turn
+        if (turnCount > 1) {
+            conversation.push({
+                role: "user",
+                content: getConductorReminder(),
+                attachments: [],
+            });
+        }
+
+        const cacheKey = threadRootMessageId
+            ? gcMessageKeys.thread(chatId, threadRootMessageId)
+            : gcMessageKeys.main(chatId);
+
+        // Pre-insert empty conductor message
+        const messageId = uuidv4().toLowerCase();
+        await insertGCMessage(
+            chatId,
+            messageId,
+            "",
+            conductorModelId,
+            { threadRootMessageId },
+        );
+
+        // Optimistically add to cache
+        queryClient.setQueryData(
+            cacheKey,
+            produce(
+                queryClient.getQueryData(cacheKey),
+                (draft: GCMessage[] | undefined) => {
+                    if (!draft) return;
+                    draft.push({
+                        chatId,
+                        id: messageId,
+                        text: "",
+                        modelConfigId: conductorModelId,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        isDeleted: false,
+                        threadRootMessageId,
+                    });
+                },
+            ),
+        );
+
+        // Gather tools
+        const tools = conductorConfig.supportsToolUse ? getTools() : [];
+
+        // Stream conductor's response
+        await streamGCResponse({
+            chatId,
+            messageId,
+            modelConfig: conductorConfig,
+            conversation,
+            queryClient,
+            scopeId: scopeId ?? threadRootMessageId,
+            tools,
+            cacheKey,
+        });
+
+        // Read the conductor's response text
+        const updatedMessages = threadRootMessageId
+            ? await fetchGCThreadMessages(chatId, threadRootMessageId)
+            : await fetchGCMainMessages(chatId);
+        const conductorMsg = updatedMessages.find((m) => m.id === messageId);
+        const responseText = conductorMsg?.text ?? "";
+
+        // Check for /yield
+        if (responseText.includes("/yield")) {
+            await clearConductor(chatId, scopeId);
+            await queryClient.invalidateQueries({
+                queryKey: gcMessageKeys.conductor(chatId, scopeId),
+            });
+            return;
+        }
+
+        // Parse @mentions from conductor's response
+        const { models: mentionedModels } =
+            await getRespondingModels(responseText);
+
+        // Filter out the conductor itself
+        const respondingModels = mentionedModels.filter(
+            (m) => m.id !== conductorModelId,
+        );
+
+        // Generate parallel responses from mentioned models
+        if (respondingModels.length > 0) {
+            await Promise.all(
+                respondingModels.map(async (model) => {
+                    const modelConfig = allConfigs.find(
+                        (c) => c.modelId === model.id,
+                    );
+                    if (!modelConfig) return;
+
+                    await streamGCResponseWithTools({
+                        chatId,
+                        modelConfig,
+                        queryClient,
+                        getTools,
+                        scopeId,
+                        threadRootMessageId,
+                    });
+                }),
+            );
+        }
+
+        // Check turn limit
+        if (turnCount >= MAX_CONDUCTOR_TURNS) {
+            await clearConductor(chatId, scopeId);
+            await queryClient.invalidateQueries({
+                queryKey: gcMessageKeys.conductor(chatId, scopeId),
+            });
+            return;
+        }
+
+        // Recurse for next conductor turn
+        await orchestrateConductorSession(params);
+    } catch (error) {
+        // Clear conductor on error
+        await clearConductor(chatId, scopeId);
+        await queryClient.invalidateQueries({
+            queryKey: gcMessageKeys.conductor(chatId, scopeId),
+        });
+        throw error;
     }
 }
 
@@ -350,6 +1023,77 @@ export function useGCMainMessages(chatId: string) {
     });
 }
 
+export function useGCThreadMessages(
+    chatId: string,
+    threadRootId: string | undefined,
+) {
+    return useQuery({
+        ...gcMessageQueries.threadMessages(chatId, threadRootId ?? ""),
+        enabled: !!chatId && !!threadRootId,
+    });
+}
+
+export function useGCThreadCounts(chatId: string) {
+    return useQuery({
+        ...gcMessageQueries.threadCounts(chatId),
+        enabled: !!chatId,
+    });
+}
+
+export function useGCConductor(chatId: string, scopeId?: string) {
+    return useQuery({
+        queryKey: gcMessageKeys.conductor(chatId, scopeId),
+        queryFn: () => fetchActiveConductor(chatId, scopeId),
+        enabled: !!chatId,
+    });
+}
+
+export function useClearConductor() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationKey: ["clearGCConductor"] as const,
+        mutationFn: async ({
+            chatId,
+            scopeId,
+        }: {
+            chatId: string;
+            scopeId?: string;
+        }) => {
+            await clearConductor(chatId, scopeId);
+        },
+        onSuccess: async (_, variables) => {
+            await queryClient.invalidateQueries({
+                queryKey: gcMessageKeys.conductor(
+                    variables.chatId,
+                    variables.scopeId,
+                ),
+            });
+        },
+    });
+}
+
+export function usePromoteGCMessage() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationKey: ["promoteGCMessage"] as const,
+        mutationFn: async (variables: {
+            chatId: string;
+            messageId: string;
+        }) => {
+            const newId = uuidv4().toLowerCase();
+            await promoteGCMessageToMain(variables.messageId, newId);
+            return newId;
+        },
+        onSuccess: async (_, variables) => {
+            await queryClient.invalidateQueries({
+                queryKey: gcMessageKeys.main(variables.chatId),
+            });
+        },
+    });
+}
+
 export function useSendGCMessage() {
     const queryClient = useQueryClient();
 
@@ -358,12 +1102,16 @@ export function useSendGCMessage() {
         mutationFn: async ({
             chatId,
             text,
+            threadRootMessageId,
         }: {
             chatId: string;
             text: string;
+            threadRootMessageId?: string;
         }) => {
             const messageId = uuidv4().toLowerCase();
-            await insertGCMessage(chatId, messageId, text, "user");
+            await insertGCMessage(chatId, messageId, text, "user", {
+                threadRootMessageId,
+            });
 
             // Mark chat as no longer "new"
             await db.execute(
@@ -374,9 +1122,21 @@ export function useSendGCMessage() {
             return messageId;
         },
         onSuccess: async (_, variables) => {
-            await queryClient.invalidateQueries(
-                gcMessageQueries.mainMessages(variables.chatId),
-            );
+            if (variables.threadRootMessageId) {
+                await queryClient.invalidateQueries({
+                    queryKey: gcMessageKeys.thread(
+                        variables.chatId,
+                        variables.threadRootMessageId,
+                    ),
+                });
+                await queryClient.invalidateQueries({
+                    queryKey: gcMessageKeys.threadCounts(variables.chatId),
+                });
+            } else {
+                await queryClient.invalidateQueries(
+                    gcMessageQueries.mainMessages(variables.chatId),
+                );
+            }
             await queryClient.invalidateQueries(chatQueries.list());
         },
     });
@@ -484,6 +1244,7 @@ export function useRestoreGCMessage() {
 
 export function useRegenerateGCMessage() {
     const queryClient = useQueryClient();
+    const getToolsets = useGetToolsets();
 
     return useMutation({
         mutationKey: ["regenerateGCMessage"] as const,
@@ -502,13 +1263,6 @@ export function useRegenerateGCMessage() {
                 queryKey: gcMessageKeys.main(chatId),
             });
 
-            // Fetch messages for context (excluding the deleted one)
-            const currentMessages = await fetchGCMainMessages(chatId);
-            const encodedConversation = await encodeConversation(
-                currentMessages,
-                modelConfigId,
-            );
-
             const allConfigs = await ModelsAPI.fetchModelConfigs();
             const modelConfig = allConfigs.find(
                 (c) => c.modelId === modelConfigId,
@@ -519,16 +1273,17 @@ export function useRegenerateGCMessage() {
                 );
             }
 
-            const responseText = await generateResponseWithStreamAPI(
-                modelConfig,
-                encodedConversation,
+            // Resolve tools
+            const toolsets = await getToolsets();
+            const tools = toolsets.flatMap((toolset) => toolset.listTools());
+
+            // Use the tool-aware streaming loop (handles message insertion internally)
+            await streamGCResponseWithTools({
                 chatId,
-            );
-
-            const newMessageId = uuidv4().toLowerCase();
-            await insertGCMessage(chatId, newMessageId, responseText, modelConfigId);
-
-            return newMessageId;
+                modelConfig,
+                queryClient,
+                getTools: () => tools,
+            });
         },
         onSuccess: async (_, variables) => {
             await queryClient.invalidateQueries({
@@ -540,16 +1295,83 @@ export function useRegenerateGCMessage() {
 
 export function useGenerateAIResponses() {
     const queryClient = useQueryClient();
+    const getToolsets = useGetToolsets();
 
     return useMutation({
         mutationKey: ["generateGCAIResponses"] as const,
         mutationFn: async ({
             chatId,
             userMessage,
+            threadRootMessageId,
         }: {
             chatId: string;
             userMessage: string;
+            threadRootMessageId?: string;
         }) => {
+            // Check for /conduct command
+            if (userMessage.toLowerCase().startsWith("/conduct")) {
+                const { models } = await getRespondingModels(userMessage);
+                const conductorModelId =
+                    models[0]?.id ?? DEFAULT_MODEL_ID;
+                const toolsets = await getToolsets();
+                const tools = toolsets.flatMap((t) => t.listTools());
+
+                const scopeId = threadRootMessageId;
+                await orchestrateConductorSession({
+                    chatId,
+                    conductorModelId,
+                    queryClient,
+                    getTools: () => tools,
+                    scopeId,
+                    threadRootMessageId,
+                });
+
+                return [
+                    {
+                        model: conductorModelId,
+                        success: true,
+                    },
+                ];
+            }
+
+            // Check for /yield command
+            if (userMessage.toLowerCase().startsWith("/yield")) {
+                const scopeId = threadRootMessageId;
+                await clearConductor(chatId, scopeId);
+                await queryClient.invalidateQueries({
+                    queryKey: gcMessageKeys.conductor(chatId, scopeId),
+                });
+                return [];
+            }
+
+            // Check if there's an active conductor
+            const scopeId = threadRootMessageId;
+            const activeConductor = await fetchActiveConductor(
+                chatId,
+                scopeId,
+            );
+            if (activeConductor) {
+                const toolsets = await getToolsets();
+                const tools = toolsets.flatMap((t) => t.listTools());
+
+                // Continue conductor session
+                await orchestrateConductorSession({
+                    chatId,
+                    conductorModelId: activeConductor.conductorModelId,
+                    queryClient,
+                    getTools: () => tools,
+                    scopeId,
+                    threadRootMessageId,
+                });
+
+                return [
+                    {
+                        model: activeConductor.conductorModelId,
+                        success: true,
+                    },
+                ];
+            }
+
             const { models: aiModels, multiplier } =
                 await getRespondingModels(userMessage);
 
@@ -572,6 +1394,10 @@ export function useGenerateAIResponses() {
                 error?: unknown;
             }> = [];
 
+            // Resolve tools once for all models
+            const toolsets = await getToolsets();
+            const tools = toolsets.flatMap((toolset) => toolset.listTools());
+
             const varietyPrompts = [
                 "Provide a unique perspective or approach to this question.",
                 "Offer a different angle or solution than what might be typical.",
@@ -582,28 +1408,6 @@ export function useGenerateAIResponses() {
             await Promise.all(
                 modelInstances.map(async (modelInstance) => {
                     try {
-                        // Fetch latest messages for this model's POV
-                        const currentMessages =
-                            await fetchGCMainMessages(chatId);
-
-                        const encodedConversation =
-                            await encodeConversation(
-                                currentMessages,
-                                modelInstance.id,
-                            );
-
-                        // Add variety prompt for multiplied instances
-                        if (multiplier > 1) {
-                            const promptIndex =
-                                (modelInstance.instance - 1) %
-                                varietyPrompts.length;
-                            encodedConversation.unshift({
-                                role: "user",
-                                content: varietyPrompts[promptIndex],
-                                attachments: [],
-                            });
-                        }
-
                         const modelConfig = allConfigs.find(
                             (c) => c.modelId === modelInstance.id,
                         );
@@ -613,24 +1417,30 @@ export function useGenerateAIResponses() {
                             );
                         }
 
-                        const responseText =
-                            await generateResponseWithStreamAPI(
-                                modelConfig,
-                                encodedConversation,
-                                chatId,
-                            );
+                        // Build variety prompt for multiplied instances
+                        const prefixMessages: LLMMessage[] = [];
+                        if (multiplier > 1) {
+                            const promptIndex =
+                                (modelInstance.instance - 1) %
+                                varietyPrompts.length;
+                            prefixMessages.push({
+                                role: "user",
+                                content: varietyPrompts[promptIndex],
+                                attachments: [],
+                            });
+                        }
 
-                        const messageId = uuidv4().toLowerCase();
-                        await insertGCMessage(
+                        // Use the tool-aware streaming loop
+                        await streamGCResponseWithTools({
                             chatId,
-                            messageId,
-                            responseText,
-                            modelInstance.id,
-                        );
-
-                        // Invalidate immediately so the message appears in the UI
-                        await queryClient.invalidateQueries({
-                            queryKey: gcMessageKeys.main(chatId),
+                            modelConfig,
+                            queryClient,
+                            getTools: () => tools,
+                            prefixMessages:
+                                prefixMessages.length > 0
+                                    ? prefixMessages
+                                    : undefined,
+                            threadRootMessageId,
                         });
 
                         results.push({
@@ -642,20 +1452,6 @@ export function useGenerateAIResponses() {
                             `Failed to generate response from ${modelInstance.name}:`,
                             error,
                         );
-
-                        // Save error message so the user sees something
-                        const messageId = uuidv4().toLowerCase();
-                        const errorText = `Sorry, I encountered an error: ${error instanceof Error ? error.message : "Unknown error"}`;
-                        await insertGCMessage(
-                            chatId,
-                            messageId,
-                            errorText,
-                            modelInstance.id,
-                        );
-                        await queryClient.invalidateQueries({
-                            queryKey: gcMessageKeys.main(chatId),
-                        });
-
                         results.push({
                             model: modelInstance.id,
                             success: false,
@@ -674,9 +1470,21 @@ export function useGenerateAIResponses() {
             return results;
         },
         onSuccess: async (_, variables) => {
-            await queryClient.invalidateQueries({
-                queryKey: gcMessageKeys.main(variables.chatId),
-            });
+            if (variables.threadRootMessageId) {
+                await queryClient.invalidateQueries({
+                    queryKey: gcMessageKeys.thread(
+                        variables.chatId,
+                        variables.threadRootMessageId,
+                    ),
+                });
+                await queryClient.invalidateQueries({
+                    queryKey: gcMessageKeys.threadCounts(variables.chatId),
+                });
+            } else {
+                await queryClient.invalidateQueries({
+                    queryKey: gcMessageKeys.main(variables.chatId),
+                });
+            }
             await queryClient.invalidateQueries(chatQueries.list());
         },
     });

@@ -176,8 +176,12 @@ function ModelGroup({
         (model: ModelConfig) => {
             const provider = getProviderName(model.modelId);
 
-            // Local models (ollama, lmstudio) don't require API keys
-            if (provider === "ollama" || provider === "lmstudio") {
+            // Local models (ollama, lmstudio, custom-openai) don't require API keys
+            if (
+                provider === "ollama" ||
+                provider === "lmstudio" ||
+                provider === "custom-openai"
+            ) {
                 return false;
             }
 
@@ -358,6 +362,7 @@ export function ManageModelsBox({
     >({
         ollama: false,
         lmstudio: false,
+        "custom-openai": false,
         openrouter: false,
     });
     const listRef = useRef<HTMLDivElement>(null);
@@ -444,10 +449,11 @@ export function ManageModelsBox({
 
     const refreshLMStudio = ModelsAPI.useRefreshLMStudioModels();
     const refreshOllama = ModelsAPI.useRefreshOllamaModels();
+    const refreshCustomOpenAI = ModelsAPI.useRefreshCustomOpenAIModels();
     const refreshOpenRouter = ModelsAPI.useRefreshOpenRouterModels();
 
     const handleRefreshProviders = async (
-        provider: "ollama" | "lmstudio" | "openrouter",
+        provider: "ollama" | "lmstudio" | "custom-openai" | "openrouter",
     ) => {
         setSpinningProviders((prev) => ({ ...prev, [provider]: true }));
         try {
@@ -455,6 +461,8 @@ export function ManageModelsBox({
                 await refreshOllama.mutateAsync();
             } else if (provider === "lmstudio") {
                 await refreshLMStudio.mutateAsync();
+            } else if (provider === "custom-openai") {
+                await refreshCustomOpenAI.mutateAsync();
             } else if (provider === "openrouter") {
                 await refreshOpenRouter.mutateAsync();
             }
@@ -491,7 +499,11 @@ export function ManageModelsBox({
 
         const localModels = systemModels.filter((m) => {
             const provider = getProviderName(m.modelId);
-            return provider === "ollama" || provider === "lmstudio";
+            return (
+                provider === "ollama" ||
+                provider === "lmstudio" ||
+                provider === "custom-openai"
+            );
         });
 
         const openrouterModels = systemModels.filter(
@@ -850,6 +862,7 @@ export function ManageModelsBox({
                                     e.preventDefault();
                                     void handleRefreshProviders("ollama");
                                     void handleRefreshProviders("lmstudio");
+                                    void handleRefreshProviders("custom-openai");
                                 }}
                                 className="p-1.5 hover:bg-accent text-muted-foreground/50 rounded-md flex items-center gap-2"
                                 title="Refresh local models"
@@ -857,7 +870,8 @@ export function ManageModelsBox({
                                 <RefreshCcwIcon
                                     className={`w-3 h-3 ${
                                         spinningProviders["ollama"] ||
-                                        spinningProviders["lmstudio"]
+                                        spinningProviders["lmstudio"] ||
+                                        spinningProviders["custom-openai"]
                                             ? "animate-spin"
                                             : ""
                                     }`}
@@ -870,8 +884,9 @@ export function ManageModelsBox({
                                 <div className="flex flex-col gap-2 px-2">
                                     <div className="text-sm text-muted-foreground">
                                         No local models found. To run local
-                                        models, you must have Ollama or LM
-                                        Studio installed.
+                                        models, use Ollama, LM Studio, or
+                                        configure a custom OpenAI-compatible
+                                        endpoint in Settings.
                                     </div>
                                     <Button
                                         variant="outline"
@@ -885,6 +900,9 @@ export function ManageModelsBox({
                                             );
                                             void handleRefreshProviders(
                                                 "lmstudio",
+                                            );
+                                            void handleRefreshProviders(
+                                                "custom-openai",
                                             );
                                         }}
                                         title="Refresh local models"

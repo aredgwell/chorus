@@ -83,6 +83,7 @@ interface Settings {
     showCost: boolean;
     quickChat: QuickChatSettings;
     lmStudioBaseUrl?: string;
+    customOpenAIBaseUrl?: string;
     autoScrapeUrls: boolean;
     cautiousEnter?: boolean;
 }
@@ -104,6 +105,7 @@ export default function Settings({ tab = "general" }: SettingsProps) {
     const [lmStudioBaseUrl, setLmStudioBaseUrl] = useState(
         "http://localhost:1234/v1",
     );
+    const [customOpenAIBaseUrl, setCustomOpenAIBaseUrl] = useState("");
     const queryClient = useQueryClient();
 
     // Use React Query hooks for custom base URL
@@ -173,6 +175,7 @@ export default function Settings({ tab = "general" }: SettingsProps) {
             setLmStudioBaseUrl(
                 settings.lmStudioBaseUrl ?? "http://localhost:1234/v1",
             );
+            setCustomOpenAIBaseUrl(settings.customOpenAIBaseUrl ?? "");
 
             // Load API keys from keychain
             const keychainKeys = await settingsManager.getApiKeys();
@@ -275,6 +278,27 @@ export default function Settings({ tab = "general" }: SettingsProps) {
             ...currentSettings,
             lmStudioBaseUrl: newUrl,
         });
+    };
+
+    const onCustomOpenAIBaseUrlChange = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const newUrl = e.target.value;
+        setCustomOpenAIBaseUrl(newUrl);
+        const currentSettings = await settingsManager.get();
+        void settingsManager.set({
+            ...currentSettings,
+            customOpenAIBaseUrl: newUrl,
+        });
+    };
+
+    const onCustomOpenAIApiKeyChange = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const newKey = e.target.value;
+        await settingsManager.setApiKey("custom-openai", newKey);
+        const keychainKeys = await settingsManager.getApiKeys();
+        setApiKeys(keychainKeys);
     };
 
     const onCustomBaseUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -490,11 +514,21 @@ export default function Settings({ tab = "general" }: SettingsProps) {
                         <ApiKeysTab
                             apiKeys={apiKeys}
                             lmStudioBaseUrl={lmStudioBaseUrl}
+                            customOpenAIBaseUrl={customOpenAIBaseUrl}
+                            customOpenAIApiKey={
+                                apiKeys["custom-openai"] ?? ""
+                            }
                             onApiKeyChange={(provider, value) =>
                                 void handleApiKeyChange(provider, value)
                             }
                             onLmStudioBaseUrlChange={(e) =>
                                 void onLmStudioBaseUrlChange(e)
+                            }
+                            onCustomOpenAIBaseUrlChange={(e) =>
+                                void onCustomOpenAIBaseUrlChange(e)
+                            }
+                            onCustomOpenAIApiKeyChange={(e) =>
+                                void onCustomOpenAIApiKeyChange(e)
                             }
                         />
                     )}
