@@ -810,22 +810,68 @@ export default function ConnectionsTab() {
                 </p>
             </div>
 
-            {/* Recommended integrations — flat list */}
-            <div className="space-y-5">
-                {RECOMMENDED_TOOLSETS.map((rec) => (
-                    <RecommendedIntegrationRow
-                        key={rec.name}
-                        rec={rec}
-                        installed={customToolsetConfigs.find(
+            {/* Enabled recommended integrations */}
+            {RECOMMENDED_TOOLSETS.some((rec) =>
+                customToolsetConfigs.some((t) => t.name === rec.name),
+            ) && (
+                <div className="space-y-5">
+                    {RECOMMENDED_TOOLSETS.filter((rec) =>
+                        customToolsetConfigs.some((t) => t.name === rec.name),
+                    ).map((rec) => (
+                        <RecommendedIntegrationRow
+                            key={rec.name}
+                            rec={rec}
+                            installed={customToolsetConfigs.find(
+                                (t) => t.name === rec.name,
+                            )}
+                            onAdd={(toolset) =>
+                                void handleAddRecommended(toolset)
+                            }
+                            onRemove={(name) =>
+                                void handleRemoveIntegration(name)
+                            }
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* Divider between enabled and available — only if both groups exist */}
+            {RECOMMENDED_TOOLSETS.some((rec) =>
+                customToolsetConfigs.some((t) => t.name === rec.name),
+            ) &&
+                RECOMMENDED_TOOLSETS.some(
+                    (rec) =>
+                        !customToolsetConfigs.some(
                             (t) => t.name === rec.name,
-                        )}
-                        onAdd={(toolset) => void handleAddRecommended(toolset)}
-                        onRemove={(name) =>
-                            void handleRemoveIntegration(name)
-                        }
-                    />
-                ))}
-            </div>
+                        ),
+                ) && <Separator />}
+
+            {/* Available (not yet enabled) recommended integrations */}
+            {RECOMMENDED_TOOLSETS.some(
+                (rec) =>
+                    !customToolsetConfigs.some((t) => t.name === rec.name),
+            ) && (
+                <div className="space-y-5">
+                    {RECOMMENDED_TOOLSETS.filter(
+                        (rec) =>
+                            !customToolsetConfigs.some(
+                                (t) => t.name === rec.name,
+                            ),
+                    ).map((rec) => (
+                        <RecommendedIntegrationRow
+                            key={rec.name}
+                            rec={rec}
+                            installed={undefined}
+                            onAdd={(toolset) =>
+                                void handleAddRecommended(toolset)
+                            }
+                            onRemove={(name) =>
+                                void handleRemoveIntegration(name)
+                            }
+                        />
+                    ))}
+                </div>
+            )}
 
             {/* Custom (non-recommended) integrations */}
             {pureCustomToolsets.length > 0 && (
@@ -897,6 +943,48 @@ export default function ConnectionsTab() {
                 </>
             )}
 
+            {/* Built-in integrations (informational) */}
+            <Separator />
+            <div className="space-y-3">
+                <h3 className="text-sm font-semibold">Built-in</h3>
+                <div className="space-y-2">
+                    {CORE_BUILTIN_TOOLSETS_DATA.map((toolset) => (
+                        <div
+                            key={toolset.name}
+                            className="flex items-center gap-2.5"
+                        >
+                            <div className="text-muted-foreground shrink-0">
+                                {toolset.icon()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <span className="text-sm font-medium">
+                                    {toolset.displayName}
+                                </span>
+                                {toolset.description && (
+                                    <span className="text-xs text-muted-foreground ml-2">
+                                        — {toolset.description}
+                                    </span>
+                                )}
+                            </div>
+                            {toolset.name === "github" && (
+                                <Button
+                                    onClick={() => {
+                                        void openUrl(
+                                            "https://github.com/settings/connections/applications/Ov23liViInr7fzLZk61V",
+                                        );
+                                    }}
+                                    variant="ghost"
+                                    size="iconSm"
+                                    title="Manage GitHub integration"
+                                >
+                                    <LinkIcon className="size-3.5" />
+                                </Button>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
             {/* Add custom / Import section */}
             <Separator />
             <div className="space-y-3">
@@ -955,48 +1043,6 @@ export default function ConnectionsTab() {
                             to refresh.
                         </TooltipContent>
                     </Tooltip>
-                </div>
-            </div>
-
-            {/* Built-in integrations (informational) */}
-            <Separator />
-            <div className="space-y-3">
-                <h3 className="text-sm font-semibold">Built-in</h3>
-                <div className="space-y-2">
-                    {CORE_BUILTIN_TOOLSETS_DATA.map((toolset) => (
-                        <div
-                            key={toolset.name}
-                            className="flex items-center gap-2.5"
-                        >
-                            <div className="text-muted-foreground shrink-0">
-                                {toolset.icon()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <span className="text-sm font-medium">
-                                    {toolset.displayName}
-                                </span>
-                                {toolset.description && (
-                                    <span className="text-xs text-muted-foreground ml-2">
-                                        — {toolset.description}
-                                    </span>
-                                )}
-                            </div>
-                            {toolset.name === "github" && (
-                                <Button
-                                    onClick={() => {
-                                        void openUrl(
-                                            "https://github.com/settings/connections/applications/Ov23liViInr7fzLZk61V",
-                                        );
-                                    }}
-                                    variant="ghost"
-                                    size="iconSm"
-                                    title="Manage GitHub integration"
-                                >
-                                    <LinkIcon className="size-3.5" />
-                                </Button>
-                            )}
-                        </div>
-                    ))}
                 </div>
             </div>
         </div>
