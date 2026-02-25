@@ -925,7 +925,7 @@ function MainScrollableContentView({
                 {messageSets.length > 0 && (
                     <>
                         {otherMessageSets.map((ms) => (
-                            <VirtualizedMessageSet key={ms.id}>
+                            <VirtualizedMessageSet key={ms.id} messageSetId={ms.id}>
                                 {renderMessageSet(ms)}
                             </VirtualizedMessageSet>
                         ))}

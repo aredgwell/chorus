@@ -4,7 +4,7 @@
 
 ### UI rendering
 
-- **Message virtualization**: Long conversations render all messages in the DOM. Use `react-window` or `@tanstack/react-virtual` to only render visible messages. Biggest single UI perf win for long chats.
+- ~~**Message virtualization**~~: Done — improved existing IntersectionObserver approach in `VirtualizedMessageSet.tsx`. Added `content-visibility: auto` CSS for browser-level layout/paint skipping, persistent height cache across remounts (eliminates layout jumps), and reduced rootMargin from 200px to 100px.
 - ~~**Memoize MessageMarkdown**~~: Done — React Compiler handles this automatically now.
 - ~~**Chunk batching**~~: Done — implemented 50ms debounce in MessageAPI.ts streaming.
 - ~~**Vite code splitting**~~: Done — manual chunks for markdown, PDF, math, and UI vendor libs.
@@ -13,14 +13,14 @@
 ### Database
 
 - ~~**Missing indexes**~~: Done — added indexes on `messages(chat_id, state)` and `message_parts(message_id)` in migration 144.
-- ~~**Batch IPC for multi-step operations**~~: Done — added `create_message_set_pair` and `edit_message` Rust commands that wrap multi-step DB operations in single SQLite transactions. Fixes documented race condition in `useCreateMessageSetPair`.
+- ~~**Batch IPC for multi-step operations**~~: Done — 7 Rust commands wrap multi-step DB operations in single SQLite transactions: `create_message_set_pair`, `edit_message`, `convert_draft_attachments`, `restart_message`, `delete_attachment_from_project`, `increment_conductor_turn`, `delete_custom_toolset`. Extracted `db_path()` helper to reduce boilerplate.
 - ~~**Chat list re-sorting**~~: Done — added `sortChanged` option to `useCacheUpdateChat`. Call sites that don't update `updatedAt` (rename, project context summary) skip the sort.
 
 ### Rust offloading candidates
 
 - **Streaming assembly**: Move HTTP streaming into Rust; push batched token updates to frontend via Tauri events. Eliminates per-chunk IPC and lets Rust handle backpressure. Large effort but architecturally better.
 - **Markdown pre-processing**: For very long messages, parse markdown in Rust (via `pulldown-cmark`) and send structured AST to frontend. Avoids re-parsing on every React render.
-- **Batch DB operations**: Wrap multi-step DB mutations (duplicate chat, duplicate message set) in Rust commands that execute as a single SQLite transaction.
+- ~~**Batch DB operations**~~: Done — all multi-step mutations now wrapped in Rust commands (see Database section above). Remaining candidates for Rust offloading: `duplicate_chat`, `duplicate_message_set` (currently JS-only, but rarely called).
 
 ---
 

@@ -7,6 +7,7 @@ import {
 import { produce } from "immer";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "@core/chorus/DB";
+import { invoke } from "@tauri-apps/api/core";
 import { chatQueries } from "@core/chorus/api/ChatAPI";
 import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
 import { getApiKeys } from "@core/chorus/api/AppMetadataAPI";
@@ -266,19 +267,10 @@ async function incrementConductorTurn(
     chatId: string,
     scopeId?: string,
 ): Promise<number> {
-    await db.execute(
-        `UPDATE gc_conductors
-         SET turn_count = turn_count + 1
-         WHERE chat_id = ? AND scope_id IS ? AND is_active = 1`,
-        [chatId, scopeId ?? null],
-    );
-    const result = await db.select<{ turn_count: number }[]>(
-        `SELECT turn_count
-         FROM gc_conductors
-         WHERE chat_id = ? AND scope_id IS ? AND is_active = 1`,
-        [chatId, scopeId ?? null],
-    );
-    return result[0]?.turn_count ?? 0;
+    return invoke<number>("increment_conductor_turn", {
+        chatId,
+        scopeId: scopeId ?? null,
+    });
 }
 
 async function clearConductor(

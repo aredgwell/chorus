@@ -416,17 +416,10 @@ export function useConvertDraftAttachmentsToMessageAttachments() {
             chatId: string;
             messageId: string;
         }) => {
-            await db.execute(
-                `INSERT INTO message_attachments (message_id, attachment_id)
-                        SELECT $1, draft_attachments.attachment_id
-                        FROM draft_attachments
-                        WHERE draft_attachments.chat_id = $2`,
-                [messageId, chatId],
-            );
-            await db.execute(
-                "DELETE FROM draft_attachments WHERE chat_id = $1",
-                [chatId],
-            );
+            await invoke("convert_draft_attachments", {
+                chatId,
+                messageId,
+            });
         },
         onSuccess: async (_data, variables) => {
             await queryClient.invalidateQueries({
@@ -539,30 +532,13 @@ export function useRestartMessage(
             modelConfig: Models.ModelConfig;
         }) => {
             const streamingToken = uuidv4();
-            const lockResult = await db.execute(
-                `UPDATE messages
-                SET text = '', error_message = NULL, streaming_token = $1, state = 'streaming'
-                WHERE id = $2 AND state = 'idle' AND streaming_token IS NULL`,
-                [streamingToken, messageId],
+            const result = await invoke<{ locked: boolean }>(
+                "restart_message",
+                { messageId, streamingToken },
             );
-            if (lockResult.rowsAffected === 0) {
+            if (!result.locked) {
                 console.log(
                     "Not restarting because lock could not be acquired",
-                );
-                return undefined;
-            }
-            const deleteResult = await db.execute(
-                `DELETE FROM message_parts
-                WHERE message_id IN (
-                    SELECT id
-                    FROM messages
-                    WHERE id = $1 AND state = 'streaming' AND streaming_token = $2
-                )`,
-                [messageId, streamingToken],
-            );
-            if (deleteResult.rowsAffected === 0) {
-                console.log(
-                    "Restart interrupted because streaming lock was lost",
                 );
                 return undefined;
             }

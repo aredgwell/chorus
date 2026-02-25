@@ -11,6 +11,7 @@ import { SimpleCompletionMode } from "../ModelProviders/simple/ISimpleCompletion
 import _ from "lodash";
 import { useNavigate } from "react-router-dom";
 import { db } from "../DB";
+import { invoke } from "@tauri-apps/api/core";
 import { Attachment, AttachmentDBRow, readAttachment } from "./AttachmentsAPI";
 
 export const projectKeys = {
@@ -531,13 +532,9 @@ export function useDeleteAttachmentFromProject() {
             attachmentId: string;
             projectId: string;
         }) => {
-            await db.execute(
-                "DELETE FROM project_attachments WHERE attachment_id = ?",
-                [attachmentId],
-            );
-            await db.execute("DELETE FROM attachments WHERE id = ?", [
+            await invoke("delete_attachment_from_project", {
                 attachmentId,
-            ]);
+            });
         },
         onSuccess: async (_data, variables) => {
             await queryClient.invalidateQueries(

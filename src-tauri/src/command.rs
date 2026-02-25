@@ -31,6 +31,15 @@ impl From<CommandError> for String {
     }
 }
 
+/// Resolve the path to the app's SQLite database.
+fn db_path(app_handle: &AppHandle) -> Result<std::path::PathBuf, String> {
+    Ok(app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("chats.db"))
+}
+
 // Target size in bytes (3.5MB) for image resizing
 // This is used as the maximum size for images in the application
 // and should match TARGET_IMAGE_SIZE_BYTES in src/ui/hooks/useAttachments.ts
@@ -836,11 +845,7 @@ pub async fn branch_chat(
     message_id: String,
     reply_to_id: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    let db_path = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("chats.db");
+    let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || {
         let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -1054,11 +1059,7 @@ pub async fn branch_chat(
 /// Create the vec0 virtual table for storing chat embeddings if it doesn't exist.
 #[tauri::command]
 pub async fn ensure_vec_table(app_handle: AppHandle) -> Result<(), String> {
-    let db_path = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("chats.db");
+    let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || {
         let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -1083,11 +1084,7 @@ pub async fn upsert_chat_embedding(
     chat_id: String,
     embedding: Vec<f32>,
 ) -> Result<(), String> {
-    let db_path = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("chats.db");
+    let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || {
         let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -1120,11 +1117,7 @@ pub async fn find_similar_chats(
     limit: i32,
     exclude_chat_id: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    let db_path = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("chats.db");
+    let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || {
         let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -1186,11 +1179,7 @@ pub async fn create_message_set_pair(
     user_level: i64,
     selected_block_type: String,
 ) -> Result<(), String> {
-    let db_path = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("chats.db");
+    let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || {
         let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -1238,11 +1227,7 @@ pub async fn edit_message(
     message_set_id: String,
     new_text: String,
 ) -> Result<serde_json::Value, String> {
-    let db_path = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("chats.db");
+    let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || {
         let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -1306,6 +1291,194 @@ pub async fn edit_message(
         Ok(serde_json::json!({
             "nextMessageSetId": next_message_set_id,
         }))
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+}
+
+/// Move draft attachments to message attachments in a single transaction.
+/// Prevents orphaned drafts if the delete fails after insert.
+#[tauri::command]
+pub async fn convert_draft_attachments(
+    app_handle: AppHandle,
+    chat_id: String,
+    message_id: String,
+) -> Result<(), String> {
+    let db_path = db_path(&app_handle)?;
+
+    tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
+        let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        conn.pragma_update(None, "journal_mode", "WAL")
+            .map_err(|e| e.to_string())?;
+
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "INSERT INTO message_attachments (message_id, attachment_id)
+             SELECT ?1, draft_attachments.attachment_id
+             FROM draft_attachments
+             WHERE draft_attachments.chat_id = ?2",
+            rusqlite::params![message_id, chat_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "DELETE FROM draft_attachments WHERE chat_id = ?1",
+            rusqlite::params![chat_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+}
+
+/// Atomically acquire a streaming lock on a message and delete its parts.
+/// Returns { "locked": true } if the lock was acquired and parts deleted,
+/// or { "locked": false } if the message was already streaming.
+#[tauri::command]
+pub async fn restart_message(
+    app_handle: AppHandle,
+    message_id: String,
+    streaming_token: String,
+) -> Result<serde_json::Value, String> {
+    let db_path = db_path(&app_handle)?;
+
+    tauri::async_runtime::spawn_blocking(move || -> Result<serde_json::Value, String> {
+        let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        conn.pragma_update(None, "journal_mode", "WAL")
+            .map_err(|e| e.to_string())?;
+
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+        // Acquire lock: set streaming state only if currently idle
+        let lock_rows = tx
+            .execute(
+                "UPDATE messages
+                 SET text = '', error_message = NULL, streaming_token = ?1, state = 'streaming'
+                 WHERE id = ?2 AND state = 'idle' AND streaming_token IS NULL",
+                rusqlite::params![streaming_token, message_id],
+            )
+            .map_err(|e| e.to_string())?;
+
+        if lock_rows == 0 {
+            tx.commit().map_err(|e| e.to_string())?;
+            return Ok(serde_json::json!({ "locked": false }));
+        }
+
+        // Delete message parts — safe to delete 0 rows if message has no parts
+        tx.execute(
+            "DELETE FROM message_parts WHERE message_id = ?1",
+            rusqlite::params![message_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(serde_json::json!({ "locked": true }))
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+}
+
+/// Delete an attachment and its project link in a single transaction.
+/// Prevents orphaned rows if one delete succeeds but the other fails.
+#[tauri::command]
+pub async fn delete_attachment_from_project(
+    app_handle: AppHandle,
+    attachment_id: String,
+) -> Result<(), String> {
+    let db_path = db_path(&app_handle)?;
+
+    tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
+        let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        conn.pragma_update(None, "journal_mode", "WAL")
+            .map_err(|e| e.to_string())?;
+
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "DELETE FROM project_attachments WHERE attachment_id = ?1",
+            rusqlite::params![attachment_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "DELETE FROM attachments WHERE id = ?1",
+            rusqlite::params![attachment_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+}
+
+/// Atomically increment a conductor's turn count and return the new value.
+/// Uses UPDATE ... RETURNING to eliminate the race between UPDATE and SELECT.
+#[tauri::command]
+pub async fn increment_conductor_turn(
+    app_handle: AppHandle,
+    chat_id: String,
+    scope_id: Option<String>,
+) -> Result<i64, String> {
+    let db_path = db_path(&app_handle)?;
+
+    tauri::async_runtime::spawn_blocking(move || -> Result<i64, String> {
+        let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        conn.pragma_update(None, "journal_mode", "WAL")
+            .map_err(|e| e.to_string())?;
+
+        let turn_count: i64 = conn
+            .query_row(
+                "UPDATE gc_conductors
+                 SET turn_count = turn_count + 1
+                 WHERE chat_id = ?1 AND scope_id IS ?2 AND is_active = 1
+                 RETURNING turn_count",
+                rusqlite::params![chat_id, scope_id],
+                |row| row.get(0),
+            )
+            .unwrap_or(0);
+
+        Ok(turn_count)
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+}
+
+/// Delete a custom toolset's DB rows in a single transaction.
+/// Keychain deletion stays in JS (not a DB operation).
+#[tauri::command]
+pub async fn delete_custom_toolset(
+    app_handle: AppHandle,
+    name: String,
+) -> Result<(), String> {
+    let db_path = db_path(&app_handle)?;
+
+    tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
+        let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        conn.pragma_update(None, "journal_mode", "WAL")
+            .map_err(|e| e.to_string())?;
+
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "DELETE FROM custom_toolsets WHERE name = ?1",
+            rusqlite::params![name],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "DELETE FROM toolsets_config WHERE toolset_name = ?1",
+            rusqlite::params![name],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(())
     })
     .await
     .map_err(|e| format!("Task join error: {}", e))?
