@@ -7,49 +7,17 @@ import {
     useSearchParams,
 } from "react-router-dom";
 import { toast } from "sonner";
-import { Button } from "./ui/button";
-import {
-    FileTextIcon,
-    ExternalLinkIcon,
-    PictureInPicture2Icon,
-    ShareIcon,
-    CircleAlertIcon,
-    SplitIcon,
-    SquarePen,
-    Loader2,
-    SearchIcon,
-    DownloadIcon,
-    Trash2Icon,
-} from "lucide-react";
+import { SplitIcon } from "lucide-react";
 import { useAppContext } from "@ui/hooks/useAppContext";
-import { CopyIcon, CheckIcon, XIcon } from "lucide-react";
-import { TooltipContent } from "./ui/tooltip";
-import { Tooltip } from "./ui/tooltip";
-import { TooltipTrigger } from "./ui/tooltip";
 import { VirtualizedMessageSet } from "./VirtualizedMessageSet";
 import { invoke } from "@tauri-apps/api/core";
-import { QuickChatModelSelector } from "./QuickChatModelSelector";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "./ui/dialog";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import { catchAsyncErrors } from "@core/chorus/utilities";
 import {
     exportChatAsMarkdown,
     exportChatAsJSON,
 } from "@core/chorus/ExportService";
+import { catchAsyncErrors } from "@core/chorus/utilities";
 import GroupChat from "./GroupChat";
-import { MouseTrackingEye, MouseTrackingEyeRef } from "./MouseTrackingEye";
+import { MouseTrackingEyeRef } from "./MouseTrackingEye";
 import { MessageSetDetail } from "@core/chorus/ChatState";
 import { useShareChat } from "@ui/hooks/useShareChat";
 import { Skeleton } from "./ui/skeleton";
@@ -63,7 +31,6 @@ import { useQuery } from "@tanstack/react-query";
 import RepliesDrawer from "./RepliesDrawer";
 import { checkScreenRecordingPermission } from "tauri-plugin-macos-permissions-api";
 import { dialogActions } from "@core/infra/DialogStore";
-import { MoveToProjectDropdown } from "./MoveToProjectDropdown";
 import {
     ResizablePanelGroup,
     ResizablePanel,
@@ -74,46 +41,23 @@ import { save } from "@tauri-apps/plugin-dialog";
 import * as MessageAPI from "@core/chorus/api/MessageAPI";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
-import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
 import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
 import { ProjectSwitcher, MessageSetView } from "./ChatMessageViews";
+import {
+    ShareChatDialog,
+    SHARE_CHAT_DIALOG_ID,
+} from "./ShareChatDialog";
+import { QuickChatHeaderBar } from "./QuickChatHeaderBar";
+import { ChatHeaderActions } from "./ChatHeaderActions";
 
 // Re-export sub-components that other files (e.g. ReplyChat.tsx) import from MultiChat
 export { UserMessageView, ToolsMessageView } from "./ChatMessageViews";
-
-// ----------------------------------
-// Main Component
-// ----------------------------------
-
-function ModelSelectorWrapper() {
-    const modelConfigsQuery = ModelsAPI.useModelConfigs();
-    const updateSelectedModelConfigQuickChat =
-        MessageAPI.useUpdateSelectedModelConfigQuickChat();
-
-    const handleModelSelect = useCallback(
-        (modelId: string) => {
-            console.log("ModelSelector: selecting model", modelId);
-            const modelConfig = modelConfigsQuery.data?.find(
-                (m) => m.id === modelId,
-            );
-            if (modelConfig) {
-                updateSelectedModelConfigQuickChat.mutate({
-                    modelConfig,
-                });
-            }
-        },
-        [modelConfigsQuery, updateSelectedModelConfigQuickChat],
-    );
-
-    return <QuickChatModelSelector onModelSelect={handleModelSelect} />;
-}
+export { SHARE_CHAT_DIALOG_ID } from "./ShareChatDialog";
 
 // Module-level scroll position cache: saves scroll position per chat
 // so it can be restored when switching back to a previously viewed chat.
 const scrollPositionCache = new Map<string, number>();
 let previousChatId: string | undefined;
-
-export const SHARE_CHAT_DIALOG_ID = "share-chat-dialog";
 
 export default function MultiChat() {
     const { chatId } = useParams();
@@ -579,287 +523,43 @@ export default function MultiChat() {
         >
             {/* header bar */}
             {isQuickChatWindow ? (
-                <div
-                    className={`h-10 flex items-center justify-between px-2 rounded-t-xl`}
-                    data-tauri-drag-region
-                >
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <button
-                                className={`p-1 rounded-full`}
-                                onClick={closeQuickChat}
-                                tabIndex={-1}
-                            >
-                                <XIcon className="w-3 h-3" />
-                            </button>
-                        </TooltipTrigger>
-                        <TooltipContent>Close (ESC)</TooltipContent>
-                    </Tooltip>
-                    {isQuickChatWindow && (
-                        <div className="text-sm inline-flex ml-2 items-center gap-1">
-                            <ModelSelectorWrapper />
-                        </div>
-                    )}
-
-                    <div className="flex items-center gap-2 ml-auto text-sm font-[350]">
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    className={`bg-transparent text-foreground px-3 rounded-full ${
-                                        appMetadata["vision_mode_enabled"] ===
-                                        "true"
-                                            ? "bg-accent-600 text-primary-foreground"
-                                            : "hover:bg-muted-foreground/10"
-                                    }
-                                        transition-all duration-200`}
-                                    size="iconSm"
-                                    onClick={() =>
-                                        void handleToggleVisionMode()
-                                    }
-                                    tabIndex={-1}
-                                >
-                                    <span
-                                        className={`hover:text-foreground/75 ${
-                                            appMetadata[
-                                                "vision_mode_enabled"
-                                            ] === "true"
-                                                ? "text-foreground/80"
-                                                : "text-foreground/75"
-                                        }`}
-                                    >
-                                        <span className="text-sm font-mono">
-                                            ⌘I
-                                        </span>{" "}
-                                        {appMetadata["vision_mode_enabled"] ===
-                                            "true" && (
-                                            <span className="ml-1">
-                                                Vision Mode Enabled
-                                            </span>
-                                        )}
-                                    </span>
-                                    <MouseTrackingEye
-                                        ref={eyeRef}
-                                        canBlink={true}
-                                        isOpen={
-                                            appMetadata[
-                                                "vision_mode_enabled"
-                                            ] === "true"
-                                        }
-                                    />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                {appMetadata["vision_mode_enabled"] ===
-                                "true" ? (
-                                    <>Chorus can see your screen</>
-                                ) : (
-                                    <>
-                                        Enable vision mode to show Chorus your
-                                        screen
-                                    </>
-                                )}
-                            </TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    className="bg-transparent text-foreground hover:bg-muted-foreground/10"
-                                    size="iconSm"
-                                    onClick={() =>
-                                        void handleOpenQuickChatInMainWindow()
-                                    }
-                                    tabIndex={-1}
-                                >
-                                    <span className="text-[10px] text-foreground/75">
-                                        ⌘O
-                                    </span>
-                                    <PictureInPicture2Icon className="w-3.5! h-3.5!" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Open in main window</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    size="iconSm"
-                                    className="bg-transparent text-foreground hover:bg-muted-foreground/10"
-                                    onClick={() => createQuickChat.mutate()}
-                                    tabIndex={-1}
-                                >
-                                    <span className="text-[10px] text-foreground/75">
-                                        ⌘N
-                                    </span>
-                                    <SquarePen className="w-3.5! h-3.5!" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>New ambient chat</TooltipContent>
-                        </Tooltip>
-                    </div>
-                </div>
+                <QuickChatHeaderBar
+                    visionModeEnabled={appMetadata["vision_mode_enabled"] === "true"}
+                    eyeRef={eyeRef}
+                    onClose={closeQuickChat}
+                    onToggleVisionMode={() => void handleToggleVisionMode()}
+                    onOpenInMainWindow={() => void handleOpenQuickChatInMainWindow()}
+                    onNewAmbientChat={() => createQuickChat.mutate()}
+                />
             ) : (
                 <HeaderBar
                     positioning="absolute"
                     canGoForward={canGoForward}
                     actions={
-                        <div className="flex items-center gap-1">
-                            {!isQuickChatWindow &&
-                                messageSetsQuery.data &&
-                                messageSetsQuery.data.length > 1 && (
-                                    <>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="iconSm"
-                                                    className="px-2 text-accent-foreground hover:text-foreground"
-                                                    tabIndex={-1}
-                                                    onClick={() => {
-                                                        document.dispatchEvent(
-                                                            new KeyboardEvent(
-                                                                "keydown",
-                                                                {
-                                                                    key: "f",
-                                                                    metaKey: true,
-                                                                    bubbles: true,
-                                                                },
-                                                            ),
-                                                        );
-                                                    }}
-                                                >
-                                                    <SearchIcon
-                                                        strokeWidth={1.5}
-                                                        className="size-3.5!"
-                                                    />
-                                                </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                Find (⌘F)
-                                            </TooltipContent>
-                                        </Tooltip>
-
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="iconSm"
-                                                    className="px-2 text-accent-foreground hover:text-foreground"
-                                                    tabIndex={-1}
-                                                    onClick={() =>
-                                                        void handleSummarizeChat()
-                                                    }
-                                                    disabled={isSummarizing}
-                                                >
-                                                    {isSummarizing ? (
-                                                        <Loader2 className="w-3 h-3 animate-spin" />
-                                                    ) : (
-                                                        <FileTextIcon
-                                                            strokeWidth={1.5}
-                                                            className="size-3.5!"
-                                                        />
-                                                    )}
-                                                </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                Summarize
-                                            </TooltipContent>
-                                        </Tooltip>
-
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="iconSm"
-                                                    className="px-2 text-accent-foreground hover:text-foreground"
-                                                    tabIndex={-1}
-                                                    onClick={handleShareChat}
-                                                    disabled={
-                                                        isGeneratingShareLink
-                                                    }
-                                                >
-                                                    {isGeneratingShareLink ? (
-                                                        <Loader2 className="w-3 h-3 animate-spin" />
-                                                    ) : (
-                                                        <ShareIcon
-                                                            strokeWidth={1.5}
-                                                            className="size-3.5!"
-                                                        />
-                                                    )}
-                                                </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                Share (⌘⇧S)
-                                            </TooltipContent>
-                                        </Tooltip>
-
-                                        <DropdownMenu>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <DropdownMenuTrigger
-                                                        asChild
-                                                    >
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="iconSm"
-                                                            className="px-2 text-accent-foreground hover:text-foreground"
-                                                            tabIndex={-1}
-                                                        >
-                                                            <DownloadIcon
-                                                                strokeWidth={
-                                                                    1.5
-                                                                }
-                                                                className="size-3.5!"
-                                                            />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    Export
-                                                </TooltipContent>
-                                            </Tooltip>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem
-                                                    onClick={catchAsyncErrors(
-                                                        () =>
-                                                            handleExportChat(
-                                                                "markdown",
-                                                            ),
-                                                    )}
-                                                >
-                                                    Export as Markdown
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    onClick={catchAsyncErrors(
-                                                        () =>
-                                                            handleExportChat(
-                                                                "json",
-                                                            ),
-                                                    )}
-                                                >
-                                                    Export as JSON
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </>
-                                )}
-
-                            {/* Move to button - always show in non-quick chat */}
-                            {!isQuickChatWindow && projectsQuery.data && (
-                                <MoveToProjectDropdown
-                                    chatId={chatId!}
-                                    currentProjectId={
-                                        chatQuery.data?.projectId
-                                    }
-                                    projects={projectsQuery.data}
-                                    onMoveToProject={(chatId, projectId) =>
-                                        setChatProject.mutate({
-                                            chatId,
-                                            projectId,
-                                        })
-                                    }
-                                    onNewProject={onNewProject}
-                                />
-                            )}
-                        </div>
+                        <ChatHeaderActions
+                            hasMessages={!!messageSetsQuery.data && messageSetsQuery.data.length > 1}
+                            isSummarizing={isSummarizing}
+                            isGeneratingShareLink={isGeneratingShareLink}
+                            chatId={chatId!}
+                            currentProjectId={chatQuery.data?.projectId}
+                            projects={projectsQuery.data ?? []}
+                            onSearch={() => {
+                                document.dispatchEvent(
+                                    new KeyboardEvent("keydown", {
+                                        key: "f",
+                                        metaKey: true,
+                                        bubbles: true,
+                                    }),
+                                );
+                            }}
+                            onSummarize={() => void handleSummarizeChat()}
+                            onShare={handleShareChat}
+                            onExport={handleExportChat}
+                            onMoveToProject={(chatId, projectId) =>
+                                setChatProject.mutate({ chatId, projectId })
+                            }
+                            onNewProject={onNewProject}
+                        />
                     }
                 >
                     <ProjectSwitcher />
@@ -934,68 +634,14 @@ export default function MultiChat() {
                 )}
             </div>
 
-            <Dialog
-                id={SHARE_CHAT_DIALOG_ID}
-                onOpenChange={(open) => !open && setShareUrl(null)}
-            >
-                <DialogContent className="p-5">
-                    <DialogHeader>
-                        <DialogTitle>Share Chat</DialogTitle>
-                        <DialogDescription className="space-y-4">
-                            <div className="flex items-center gap-2 mt-2">
-                                <CircleAlertIcon className="h-4 w-4 shrink-0" />
-                                <p className="text-sm">
-                                    Anyone with this link can view your chat.
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => void handleCopyShareUrl()}
-                                className="text-left focus:outline-hidden border text-sm hover:bg-muted/50 rounded-md p-2 w-full"
-                                autoFocus
-                            >
-                                <code>{shareUrl}</code>
-                            </button>
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter className="flex-col gap-2 sm:flex-row">
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => void handleDeleteShare()}
-                            className="sm:mr-auto"
-                        >
-                            <Trash2Icon className="w-4 h-4" />
-                            Delete Link
-                        </Button>
-                        <div className="flex gap-2 w-full sm:w-auto">
-                            <Button
-                                size="sm"
-                                onClick={() => void handleCopyShareUrl()}
-                                className="flex-1 sm:flex-initial"
-                            >
-                                {copiedUrl ? (
-                                    <CheckIcon className="w-4 h-4 text-green-500" />
-                                ) : (
-                                    <CopyIcon className="w-4 h-4" />
-                                )}
-                                <span className="ml-1">
-                                    {copiedUrl ? "Copied" : "Copy"}
-                                </span>
-                                <span className="ml-1 text-sm">↵</span>
-                            </Button>
-                            <Button
-                                size="sm"
-                                onClick={() => void handleOpenShareUrl()}
-                                className="flex-1 sm:flex-initial"
-                            >
-                                <ExternalLinkIcon className="w-4 h-4" />
-                                <span className="ml-1">Open</span>
-                                <span className="ml-1 text-sm">⌘↵</span>
-                            </Button>
-                        </div>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <ShareChatDialog
+                shareUrl={shareUrl}
+                copiedUrl={copiedUrl}
+                onCopyShareUrl={() => void handleCopyShareUrl()}
+                onOpenShareUrl={() => void handleOpenShareUrl()}
+                onDeleteShare={() => void handleDeleteShare()}
+                onClose={() => setShareUrl(null)}
+            />
 
             <SummaryDialog
                 summary={summary || ""}
