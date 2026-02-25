@@ -852,13 +852,12 @@ async function orchestrateConductorSession(params: {
             await setConductor(chatId, scopeId, conductorModelId);
         }
 
-        // Invalidate conductor query so UI updates
+        // Increment turn, then invalidate so UI sees the updated count
+        const turnCount = await incrementConductorTurn(chatId, scopeId);
+
         await queryClient.invalidateQueries({
             queryKey: gcMessageKeys.conductor(chatId, scopeId),
         });
-
-        // Increment turn
-        const turnCount = await incrementConductorTurn(chatId, scopeId);
 
         // Generate conductor's response
         const allConfigs = await ModelsAPI.fetchModelConfigs();
