@@ -546,7 +546,7 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
 
         #[cfg(not(target_os = "macos"))]
         {
-            use image::{io::Reader as ImageReader, ImageFormat};
+            use image::{ImageReader, ImageFormat};
             log::debug!("Using compression only with quality: {}", quality);
 
             // Parse quality percentage
@@ -664,7 +664,7 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
 
     #[cfg(not(target_os = "macos"))]
     {
-        use image::{imageops::FilterType, io::Reader as ImageReader, ImageFormat};
+        use image::{imageops::FilterType, ImageReader, ImageFormat};
 
         // Read the image
         let img = ImageReader::open(input_path)
