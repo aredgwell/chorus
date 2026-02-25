@@ -1353,3 +1353,54 @@ pub async fn convert_draft_attachments(
     .await
     .map_err(|e| format!("Task join error: {}", e))?
 }
+
+/// Atomically acquire a streaming lock on a message and delete its parts.
+/// Returns { "locked": true } if the lock was acquired and parts deleted,
+/// or { "locked": false } if the message was already streaming.
+#[tauri::command]
+pub async fn restart_message(
+    app_handle: AppHandle,
+    message_id: String,
+    streaming_token: String,
+) -> Result<serde_json::Value, String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    let db_path = app_data_dir.join("chorus.db");
+
+    tauri::async_runtime::spawn_blocking(move || -> Result<serde_json::Value, String> {
+        let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        conn.pragma_update(None, "journal_mode", "WAL")
+            .map_err(|e| e.to_string())?;
+
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+        // Acquire lock: set streaming state only if currently idle
+        let lock_rows = tx
+            .execute(
+                "UPDATE messages
+                 SET text = '', error_message = NULL, streaming_token = ?1, state = 'streaming'
+                 WHERE id = ?2 AND state = 'idle' AND streaming_token IS NULL",
+                rusqlite::params![streaming_token, message_id],
+            )
+            .map_err(|e| e.to_string())?;
+
+        if lock_rows == 0 {
+            tx.commit().map_err(|e| e.to_string())?;
+            return Ok(serde_json::json!({ "locked": false }));
+        }
+
+        // Delete message parts — safe to delete 0 rows if message has no parts
+        tx.execute(
+            "DELETE FROM message_parts WHERE message_id = ?1",
+            rusqlite::params![message_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(serde_json::json!({ "locked": true }))
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+}

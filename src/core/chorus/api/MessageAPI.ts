@@ -532,30 +532,13 @@ export function useRestartMessage(
             modelConfig: Models.ModelConfig;
         }) => {
             const streamingToken = uuidv4();
-            const lockResult = await db.execute(
-                `UPDATE messages
-                SET text = '', error_message = NULL, streaming_token = $1, state = 'streaming'
-                WHERE id = $2 AND state = 'idle' AND streaming_token IS NULL`,
-                [streamingToken, messageId],
+            const result = await invoke<{ locked: boolean }>(
+                "restart_message",
+                { messageId, streamingToken },
             );
-            if (lockResult.rowsAffected === 0) {
+            if (!result.locked) {
                 console.log(
                     "Not restarting because lock could not be acquired",
-                );
-                return undefined;
-            }
-            const deleteResult = await db.execute(
-                `DELETE FROM message_parts
-                WHERE message_id IN (
-                    SELECT id
-                    FROM messages
-                    WHERE id = $1 AND state = 'streaming' AND streaming_token = $2
-                )`,
-                [messageId, streamingToken],
-            );
-            if (deleteResult.rowsAffected === 0) {
-                console.log(
-                    "Restart interrupted because streaming lock was lost",
                 );
                 return undefined;
             }

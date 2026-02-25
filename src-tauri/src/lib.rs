@@ -468,6 +468,7 @@ pub fn run() {
             command::create_message_set_pair,
             command::edit_message,
             command::convert_draft_attachments,
+            command::restart_message,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
