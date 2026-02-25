@@ -1404,3 +1404,117 @@ pub async fn restart_message(
     .await
     .map_err(|e| format!("Task join error: {}", e))?
 }
+
+/// Delete an attachment and its project link in a single transaction.
+/// Prevents orphaned rows if one delete succeeds but the other fails.
+#[tauri::command]
+pub async fn delete_attachment_from_project(
+    app_handle: AppHandle,
+    attachment_id: String,
+) -> Result<(), String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    let db_path = app_data_dir.join("chorus.db");
+
+    tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
+        let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        conn.pragma_update(None, "journal_mode", "WAL")
+            .map_err(|e| e.to_string())?;
+
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "DELETE FROM project_attachments WHERE attachment_id = ?1",
+            rusqlite::params![attachment_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "DELETE FROM attachments WHERE id = ?1",
+            rusqlite::params![attachment_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+}
+
+/// Atomically increment a conductor's turn count and return the new value.
+/// Uses UPDATE ... RETURNING to eliminate the race between UPDATE and SELECT.
+#[tauri::command]
+pub async fn increment_conductor_turn(
+    app_handle: AppHandle,
+    chat_id: String,
+    scope_id: Option<String>,
+) -> Result<i64, String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    let db_path = app_data_dir.join("chorus.db");
+
+    tauri::async_runtime::spawn_blocking(move || -> Result<i64, String> {
+        let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        conn.pragma_update(None, "journal_mode", "WAL")
+            .map_err(|e| e.to_string())?;
+
+        let turn_count: i64 = conn
+            .query_row(
+                "UPDATE gc_conductors
+                 SET turn_count = turn_count + 1
+                 WHERE chat_id = ?1 AND scope_id IS ?2 AND is_active = 1
+                 RETURNING turn_count",
+                rusqlite::params![chat_id, scope_id],
+                |row| row.get(0),
+            )
+            .unwrap_or(0);
+
+        Ok(turn_count)
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+}
+
+/// Delete a custom toolset's DB rows in a single transaction.
+/// Keychain deletion stays in JS (not a DB operation).
+#[tauri::command]
+pub async fn delete_custom_toolset(
+    app_handle: AppHandle,
+    name: String,
+) -> Result<(), String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    let db_path = app_data_dir.join("chorus.db");
+
+    tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
+        let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        conn.pragma_update(None, "journal_mode", "WAL")
+            .map_err(|e| e.to_string())?;
+
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "DELETE FROM custom_toolsets WHERE name = ?1",
+            rusqlite::params![name],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "DELETE FROM toolsets_config WHERE toolset_name = ?1",
+            rusqlite::params![name],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+}
