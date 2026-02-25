@@ -17,7 +17,7 @@ import {
     Flame,
     Search,
     CheckIcon,
-    ChevronDown,
+    Settings2,
 } from "lucide-react";
 import { RiClaudeFill, RiSupabaseFill } from "react-icons/ri";
 import {
@@ -259,7 +259,7 @@ function RecommendedIntegrationRow({
     };
 
     return (
-        <div className="space-y-2">
+        <Collapsible className="space-y-2">
             {/* Header row: logo + name + description + status + actions */}
             <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-2.5 flex-1 min-w-0">
@@ -278,8 +278,8 @@ function RecommendedIntegrationRow({
                         </p>
                     </div>
                 </div>
-                {/* Fixed-width icon area: two slots so icons stay aligned */}
-                <div className="flex items-center shrink-0 w-[52px] justify-end gap-0">
+                {/* Fixed-width icon area: three slots so icons stay aligned */}
+                <div className="flex items-center shrink-0 w-[78px] justify-end gap-0">
                     {rec.docsUrl ? (
                         <Button
                             variant="ghost"
@@ -308,16 +308,20 @@ function RecommendedIntegrationRow({
                     ) : (
                         <div className="w-6" />
                     )}
+                    <CollapsibleTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="iconSm"
+                            title={isInstalled ? "Edit configuration" : "Configure & add"}
+                        >
+                            <Settings2 className="size-3.5" />
+                        </Button>
+                    </CollapsibleTrigger>
                 </div>
             </div>
 
             {/* Inline fields */}
-            <Collapsible>
-                <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                    <ChevronDown className="size-3" />
-                    {isInstalled ? "Edit configuration" : "Configure & add"}
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-2 pt-2">
+            <CollapsibleContent className="space-y-2">
                     {/* Command (read-only for recommended) */}
                     <div className="space-y-1">
                         <label className="text-xs text-muted-foreground">
@@ -397,8 +401,7 @@ function RecommendedIntegrationRow({
                         )}
                     </div>
                 </CollapsibleContent>
-            </Collapsible>
-        </div>
+        </Collapsible>
     );
 }
 
