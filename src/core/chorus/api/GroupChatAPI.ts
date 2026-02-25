@@ -140,6 +140,66 @@ async function restoreGCMessage(messageId: string): Promise<void> {
     );
 }
 
+async function fetchGCThreadMessages(
+    chatId: string,
+    threadRootMessageId: string,
+): Promise<GCMessage[]> {
+    const rows = await db.select<GCMessageDBRow[]>(
+        `SELECT * FROM gc_messages
+         WHERE chat_id = ? AND thread_root_message_id = ?
+         ORDER BY created_at ASC`,
+        [chatId, threadRootMessageId],
+    );
+    return rows.map(readGCMessage);
+}
+
+async function fetchGCThreadCounts(
+    chatId: string,
+): Promise<Map<string, number>> {
+    const rows = await db.select<
+        { thread_root_message_id: string; count: number }[]
+    >(
+        `SELECT thread_root_message_id, COUNT(*) as count
+         FROM gc_messages
+         WHERE chat_id = ? AND thread_root_message_id IS NOT NULL AND is_deleted = 0
+         GROUP BY thread_root_message_id`,
+        [chatId],
+    );
+    const map = new Map<string, number>();
+    for (const row of rows) {
+        map.set(row.thread_root_message_id, row.count);
+    }
+    return map;
+}
+
+async function promoteGCMessageToMain(
+    originalMessageId: string,
+    newMessageId: string,
+): Promise<void> {
+    const rows = await db.select<GCMessageDBRow[]>(
+        `SELECT * FROM gc_messages WHERE id = ?`,
+        [originalMessageId],
+    );
+
+    if (rows.length === 0) {
+        throw new Error(`Message not found: ${originalMessageId}`);
+    }
+
+    const original = rows[0];
+    const prefixedText = `[Promoted from thread] ${original.text}`;
+    await db.execute(
+        `INSERT INTO gc_messages (chat_id, id, text, model_config_id, promoted_from_message_id)
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+            original.chat_id,
+            newMessageId,
+            prefixedText,
+            original.model_config_id,
+            originalMessageId,
+        ],
+    );
+}
+
 // ---------------------------------------------------------------------------
 // Query keys & factories
 // ---------------------------------------------------------------------------
@@ -147,12 +207,23 @@ async function restoreGCMessage(messageId: string): Promise<void> {
 const gcMessageKeys = {
     all: (chatId: string) => ["gcMessages", chatId] as const,
     main: (chatId: string) => ["gcMainMessages", chatId] as const,
+    thread: (chatId: string, threadRootId: string) =>
+        ["gcThreadMessages", chatId, threadRootId] as const,
+    threadCounts: (chatId: string) => ["gcThreadCounts", chatId] as const,
 };
 
 export const gcMessageQueries = {
     mainMessages: (chatId: string) => ({
         queryKey: gcMessageKeys.main(chatId),
         queryFn: () => fetchGCMainMessages(chatId),
+    }),
+    threadMessages: (chatId: string, threadRootId: string) => ({
+        queryKey: gcMessageKeys.thread(chatId, threadRootId),
+        queryFn: () => fetchGCThreadMessages(chatId, threadRootId),
+    }),
+    threadCounts: (chatId: string) => ({
+        queryKey: gcMessageKeys.threadCounts(chatId),
+        queryFn: () => fetchGCThreadCounts(chatId),
     }),
 };
 
@@ -201,6 +272,10 @@ const DEFAULT_MODEL_ID = "anthropic::claude-sonnet-4-latest";
 export async function encodeConversation(
     messages: GCMessage[],
     povModelConfigId: string,
+    options?: {
+        threadRootMessageId?: string;
+        threadMessages?: GCMessage[];
+    },
 ): Promise<LLMMessage[]> {
     const result: LLMMessage[] = [];
 
@@ -222,9 +297,26 @@ export async function encodeConversation(
         attachments: [],
     });
 
-    const activeMessages = messages.filter(
-        (m) => !m.isDeleted && !m.threadRootMessageId,
-    );
+    let activeMessages: GCMessage[];
+    if (options?.threadRootMessageId && options.threadMessages) {
+        // Thread mode: main messages up to and including the root, then thread replies
+        const mainMessages = messages.filter(
+            (m) => !m.isDeleted && !m.threadRootMessageId,
+        );
+        const rootIndex = mainMessages.findIndex(
+            (m) => m.id === options.threadRootMessageId,
+        );
+        const mainUpToRoot =
+            rootIndex >= 0 ? mainMessages.slice(0, rootIndex + 1) : mainMessages;
+        const threadReplies = options.threadMessages.filter(
+            (m) => !m.isDeleted,
+        );
+        activeMessages = [...mainUpToRoot, ...threadReplies];
+    } else {
+        activeMessages = messages.filter(
+            (m) => !m.isDeleted && !m.threadRootMessageId,
+        );
+    }
 
     for (const message of activeMessages) {
         if (message.modelConfigId === "tool_result") {
@@ -349,9 +441,11 @@ async function streamGCResponse(params: {
     queryClient: QueryClient;
     scopeId?: string;
     tools?: UserTool[];
+    cacheKey?: readonly string[];
 }): Promise<{ toolCalls?: UserToolCall[] }> {
     const { chatId, messageId, modelConfig, conversation, queryClient, scopeId, tools } =
         params;
+    const effectiveCacheKey = params.cacheKey ?? gcMessageKeys.main(chatId);
     const apiKeys = await getApiKeys();
     const scope = scopeId ?? "main";
 
@@ -366,9 +460,9 @@ async function streamGCResponse(params: {
 
     const updateMessageTextInCache = (text: string) => {
         queryClient.setQueryData(
-            gcMessageKeys.main(chatId),
+            effectiveCacheKey,
             produce(
-                queryClient.getQueryData(gcMessageKeys.main(chatId)),
+                queryClient.getQueryData(effectiveCacheKey),
                 (draft: GCMessage[] | undefined) => {
                     if (!draft) return;
                     const msg = draft.find((m) => m.id === messageId);
@@ -478,16 +572,34 @@ async function streamGCResponseWithTools(params: {
     getTools: () => UserTool[];
     scopeId?: string;
     prefixMessages?: LLMMessage[];
+    threadRootMessageId?: string;
 }): Promise<void> {
-    const { chatId, modelConfig, queryClient, getTools, scopeId, prefixMessages } =
-        params;
+    const {
+        chatId,
+        modelConfig,
+        queryClient,
+        getTools,
+        scopeId,
+        prefixMessages,
+        threadRootMessageId,
+    } = params;
+
+    const cacheKey = threadRootMessageId
+        ? gcMessageKeys.thread(chatId, threadRootMessageId)
+        : gcMessageKeys.main(chatId);
 
     for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
         // Fetch latest messages and encode conversation
         const currentMessages = await fetchGCMainMessages(chatId);
+        const threadMessages = threadRootMessageId
+            ? await fetchGCThreadMessages(chatId, threadRootMessageId)
+            : undefined;
         const conversation = await encodeConversation(
             currentMessages,
             modelConfig.modelId,
+            threadRootMessageId
+                ? { threadRootMessageId, threadMessages }
+                : undefined,
         );
 
         // Add any prefix messages (e.g. variety prompts for multiplied instances)
@@ -500,13 +612,15 @@ async function streamGCResponseWithTools(params: {
 
         // Pre-insert empty AI message
         const messageId = uuidv4().toLowerCase();
-        await insertGCMessage(chatId, messageId, "", modelConfig.modelId);
+        await insertGCMessage(chatId, messageId, "", modelConfig.modelId, {
+            threadRootMessageId,
+        });
 
         // Optimistically add to cache
         queryClient.setQueryData(
-            gcMessageKeys.main(chatId),
+            cacheKey,
             produce(
-                queryClient.getQueryData(gcMessageKeys.main(chatId)),
+                queryClient.getQueryData(cacheKey),
                 (draft: GCMessage[] | undefined) => {
                     if (!draft) return;
                     draft.push({
@@ -517,6 +631,7 @@ async function streamGCResponseWithTools(params: {
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
                         isDeleted: false,
+                        threadRootMessageId,
                     });
                 },
             ),
@@ -529,8 +644,9 @@ async function streamGCResponseWithTools(params: {
             modelConfig,
             conversation,
             queryClient,
-            scopeId,
+            scopeId: scopeId ?? threadRootMessageId,
             tools,
+            cacheKey,
         });
 
         // If no tool calls, we're done
@@ -546,9 +662,9 @@ async function streamGCResponseWithTools(params: {
 
         // Update cache with tool calls
         queryClient.setQueryData(
-            gcMessageKeys.main(chatId),
+            cacheKey,
             produce(
-                queryClient.getQueryData(gcMessageKeys.main(chatId)),
+                queryClient.getQueryData(cacheKey),
                 (draft: GCMessage[] | undefined) => {
                     if (!draft) return;
                     const msg = draft.find((m) => m.id === messageId);
@@ -574,13 +690,14 @@ async function streamGCResponseWithTools(params: {
             toolResultId,
             JSON.stringify(toolResults),
             "tool_result",
+            { threadRootMessageId },
         );
 
         // Optimistically add tool result to cache
         queryClient.setQueryData(
-            gcMessageKeys.main(chatId),
+            cacheKey,
             produce(
-                queryClient.getQueryData(gcMessageKeys.main(chatId)),
+                queryClient.getQueryData(cacheKey),
                 (draft: GCMessage[] | undefined) => {
                     if (!draft) return;
                     draft.push({
@@ -591,6 +708,7 @@ async function streamGCResponseWithTools(params: {
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
                         isDeleted: false,
+                        threadRootMessageId,
                     });
                 },
             ),
@@ -611,6 +729,44 @@ export function useGCMainMessages(chatId: string) {
     });
 }
 
+export function useGCThreadMessages(
+    chatId: string,
+    threadRootId: string | undefined,
+) {
+    return useQuery({
+        ...gcMessageQueries.threadMessages(chatId, threadRootId ?? ""),
+        enabled: !!chatId && !!threadRootId,
+    });
+}
+
+export function useGCThreadCounts(chatId: string) {
+    return useQuery({
+        ...gcMessageQueries.threadCounts(chatId),
+        enabled: !!chatId,
+    });
+}
+
+export function usePromoteGCMessage() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationKey: ["promoteGCMessage"] as const,
+        mutationFn: async (variables: {
+            chatId: string;
+            messageId: string;
+        }) => {
+            const newId = uuidv4().toLowerCase();
+            await promoteGCMessageToMain(variables.messageId, newId);
+            return newId;
+        },
+        onSuccess: async (_, variables) => {
+            await queryClient.invalidateQueries({
+                queryKey: gcMessageKeys.main(variables.chatId),
+            });
+        },
+    });
+}
+
 export function useSendGCMessage() {
     const queryClient = useQueryClient();
 
@@ -619,12 +775,16 @@ export function useSendGCMessage() {
         mutationFn: async ({
             chatId,
             text,
+            threadRootMessageId,
         }: {
             chatId: string;
             text: string;
+            threadRootMessageId?: string;
         }) => {
             const messageId = uuidv4().toLowerCase();
-            await insertGCMessage(chatId, messageId, text, "user");
+            await insertGCMessage(chatId, messageId, text, "user", {
+                threadRootMessageId,
+            });
 
             // Mark chat as no longer "new"
             await db.execute(
@@ -635,9 +795,21 @@ export function useSendGCMessage() {
             return messageId;
         },
         onSuccess: async (_, variables) => {
-            await queryClient.invalidateQueries(
-                gcMessageQueries.mainMessages(variables.chatId),
-            );
+            if (variables.threadRootMessageId) {
+                await queryClient.invalidateQueries({
+                    queryKey: gcMessageKeys.thread(
+                        variables.chatId,
+                        variables.threadRootMessageId,
+                    ),
+                });
+                await queryClient.invalidateQueries({
+                    queryKey: gcMessageKeys.threadCounts(variables.chatId),
+                });
+            } else {
+                await queryClient.invalidateQueries(
+                    gcMessageQueries.mainMessages(variables.chatId),
+                );
+            }
             await queryClient.invalidateQueries(chatQueries.list());
         },
     });
@@ -803,9 +975,11 @@ export function useGenerateAIResponses() {
         mutationFn: async ({
             chatId,
             userMessage,
+            threadRootMessageId,
         }: {
             chatId: string;
             userMessage: string;
+            threadRootMessageId?: string;
         }) => {
             const { models: aiModels, multiplier } =
                 await getRespondingModels(userMessage);
@@ -875,6 +1049,7 @@ export function useGenerateAIResponses() {
                                 prefixMessages.length > 0
                                     ? prefixMessages
                                     : undefined,
+                            threadRootMessageId,
                         });
 
                         results.push({
@@ -904,9 +1079,21 @@ export function useGenerateAIResponses() {
             return results;
         },
         onSuccess: async (_, variables) => {
-            await queryClient.invalidateQueries({
-                queryKey: gcMessageKeys.main(variables.chatId),
-            });
+            if (variables.threadRootMessageId) {
+                await queryClient.invalidateQueries({
+                    queryKey: gcMessageKeys.thread(
+                        variables.chatId,
+                        variables.threadRootMessageId,
+                    ),
+                });
+                await queryClient.invalidateQueries({
+                    queryKey: gcMessageKeys.threadCounts(variables.chatId),
+                });
+            } else {
+                await queryClient.invalidateQueries({
+                    queryKey: gcMessageKeys.main(variables.chatId),
+                });
+            }
             await queryClient.invalidateQueries(chatQueries.list());
         },
     });
