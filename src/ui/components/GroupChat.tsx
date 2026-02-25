@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import {
     Loader2,
@@ -262,17 +262,16 @@ function FullScreenMessageDialog({
 function GCToolCallView({ toolCall }: { toolCall: UserToolCall }) {
     const label = toolCall.namespacedToolName ?? "tool";
 
-    const formattedArgs = useMemo(() => {
-        const args = toolCall.args as Record<string, unknown> | undefined;
-        if (!args) return [];
-        return Object.entries(args).map(([key, value]) => ({
-            key,
-            value:
-                typeof value === "string"
-                    ? value
-                    : JSON.stringify(value, null, 2),
-        }));
-    }, [toolCall.args]);
+    const args = toolCall.args as Record<string, unknown> | undefined;
+    const formattedArgs = args
+        ? Object.entries(args).map(([key, value]) => ({
+              key,
+              value:
+                  typeof value === "string"
+                      ? value
+                      : JSON.stringify(value, null, 2),
+          }))
+        : [];
 
     return (
         <Collapsible className="my-2 rounded-md text-muted-foreground text-sm py-1.5 px-1.5 border w-fit max-w-full">
@@ -556,39 +555,32 @@ export default function GroupChat() {
     }, [chatId]);
 
     // Build thinking indicator instances
-    const thinkingModelInstances = useMemo(() => {
-        const instances: ModelInstance[] = [];
-        generatingModels.forEach((count, modelId) => {
-            if (count > 0) {
-                const modelName = getModelDisplayName(modelId);
-                for (let i = 1; i <= count; i++) {
-                    instances.push({
-                        modelId,
-                        displayName: modelName,
-                        instanceNumber: i,
-                        totalInstances: count,
-                    });
-                }
+    const thinkingModelInstances: ModelInstance[] = [];
+    generatingModels.forEach((count, modelId) => {
+        if (count > 0) {
+            const modelName = getModelDisplayName(modelId);
+            for (let i = 1; i <= count; i++) {
+                thinkingModelInstances.push({
+                    modelId,
+                    displayName: modelName,
+                    instanceNumber: i,
+                    totalInstances: count,
+                });
             }
-        });
-        return instances;
-    }, [generatingModels]);
+        }
+    });
 
     const isGenerating = thinkingModelInstances.length > 0;
 
     // Set of model IDs currently streaming (for inline streaming indicators)
-    const streamingModelIds = useMemo(() => {
-        const ids = new Set<string>();
-        generatingModels.forEach((count, modelId) => {
-            if (count > 0) ids.add(modelId);
-        });
-        return ids;
-    }, [generatingModels]);
+    const streamingModelIds = new Set<string>();
+    generatingModels.forEach((count, modelId) => {
+        if (count > 0) streamingModelIds.add(modelId);
+    });
 
     // Set of message IDs that are actively streaming (last message per streaming model)
-    const streamingMessageIds = useMemo(() => {
-        const ids = new Set<string>();
-        if (!messages || streamingModelIds.size === 0) return ids;
+    const streamingMessageIds = new Set<string>();
+    if (messages && streamingModelIds.size > 0) {
         const seenModels = new Set<string>();
         for (let i = messages.length - 1; i >= 0; i--) {
             const msg = messages[i];
@@ -596,12 +588,11 @@ export default function GroupChat() {
                 streamingModelIds.has(msg.modelConfigId) &&
                 !seenModels.has(msg.modelConfigId)
             ) {
-                ids.add(msg.id);
+                streamingMessageIds.add(msg.id);
                 seenModels.add(msg.modelConfigId);
             }
         }
-        return ids;
-    }, [messages, streamingModelIds]);
+    }
 
     const handleSend = useCallback(
         async (text: string) => {

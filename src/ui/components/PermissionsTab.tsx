@@ -28,7 +28,7 @@ export const PermissionsTab: React.FC = () => {
     const { data: yoloMode } = AppMetadataAPI.useYoloMode();
     const setYoloMode = AppMetadataAPI.useSetYoloMode();
 
-    const groupedPermissions = React.useMemo(() => {
+    const groupedPermissions = (() => {
         if (!permissions) return {};
 
         return permissions.reduce(
@@ -41,7 +41,7 @@ export const PermissionsTab: React.FC = () => {
             },
             {} as Record<string, typeof permissions>,
         );
-    }, [permissions]);
+    })();
 
     const handleDelete = (toolsetName: string, toolName: string) => {
         deletePermission.mutate({ toolsetName, toolName });

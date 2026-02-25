@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -13,9 +13,9 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
     const [isSaving, setIsSaving] = useState(false);
     const queryClient = useQueryClient();
 
-    const handleNextStep = useCallback(() => {
+    const handleNextStep = () => {
         setOnboardingStep.mutate({ step: 1 });
-    }, [setOnboardingStep]);
+    };
 
     const handleSaveAndComplete = useCallback(async () => {
         if (openRouterKey.trim()) {

@@ -7,7 +7,6 @@ import {
 } from "@core/chorus/api/CostAPI";
 import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
 import { ProviderLogo } from "@ui/components/ui/provider-logo";
-import { useMemo, useCallback } from "react";
 
 function CostBar({ value, max }: { value: number; max: number }) {
     const width = max > 0 ? (value / max) * 100 : 0;
@@ -28,42 +27,34 @@ export function CostDashboard() {
     const { data: costByProject = [] } = useCostByProject();
     const { data: modelConfigs } = ModelsAPI.useModelConfigs();
 
-    const getDisplayName = useCallback(
-        (modelId: string): string => {
-            const config = modelConfigs?.find((c) => c.modelId === modelId);
-            return config?.displayName || modelId;
-        },
-        [modelConfigs],
-    );
+    const getDisplayName = (modelId: string): string => {
+        const config = modelConfigs?.find((c) => c.modelId === modelId);
+        return config?.displayName || modelId;
+    };
 
-    const maxModelCost = useMemo(
-        () => Math.max(...costByModel.map((m) => m.total_cost), 0),
-        [costByModel],
-    );
+    const maxModelCost = Math.max(...costByModel.map((m) => m.total_cost), 0);
 
-    const maxDayCost = useMemo(
-        () => Math.max(...costByDay.map((d) => d.total_cost), 0),
-        [costByDay],
-    );
+    const maxDayCost = Math.max(...costByDay.map((d) => d.total_cost), 0);
 
-    const maxProjectCost = useMemo(
-        () => Math.max(...costByProject.map((p) => p.total_cost), 0),
-        [costByProject],
+    const maxProjectCost = Math.max(
+        ...costByProject.map((p) => p.total_cost),
+        0,
     );
 
     // Recent period costs
-    const last7DaysCost = useMemo(() => {
+    const last7DaysCost = (() => {
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - 7);
         const cutoffStr = cutoff.toISOString().slice(0, 10);
         return costByDay
             .filter((d) => d.date >= cutoffStr)
             .reduce((sum, d) => sum + d.total_cost, 0);
-    }, [costByDay]);
+    })();
 
-    const last30DaysCost = useMemo(() => {
-        return costByDay.reduce((sum, d) => sum + d.total_cost, 0);
-    }, [costByDay]);
+    const last30DaysCost = costByDay.reduce(
+        (sum, d) => sum + d.total_cost,
+        0,
+    );
 
     if (totalCost === undefined) {
         return (

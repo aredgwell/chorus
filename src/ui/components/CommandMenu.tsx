@@ -19,7 +19,7 @@ import {
     SearchIcon,
     Settings,
 } from "lucide-react";
-import { useState, useMemo, ReactNode, useCallback } from "react";
+import { useState, useMemo, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import debounce from "lodash/debounce";
 import { DialogTitle } from "./ui/dialog";
@@ -62,75 +62,72 @@ export function CommandMenu() {
 
     const createProject = ProjectAPI.useCreateProject();
 
-    const ACTIONS = useMemo(
-        () => [
-            {
-                id: "new-chat",
-                label: "New chat",
-                icon: Plus,
-                shortcut: "⌘N",
-                action: () => navigate("/"),
+    const ACTIONS = [
+        {
+            id: "new-chat",
+            label: "New chat",
+            icon: Plus,
+            shortcut: "⌘N",
+            action: () => navigate("/"),
+        },
+        {
+            id: "ambient-chat",
+            label: "Ambient chat",
+            icon: ScanTextIcon,
+            shortcut: formatQuickChatShortcut(
+                settings?.quickChat?.shortcut,
+            ),
+            action: () => {
+                void invoke("show");
             },
-            {
-                id: "ambient-chat",
-                label: "Ambient chat",
-                icon: ScanTextIcon,
-                shortcut: formatQuickChatShortcut(
-                    settings?.quickChat?.shortcut,
-                ),
-                action: () => {
-                    void invoke("show");
-                },
+        },
+        {
+            id: "new-project",
+            label: "New project",
+            icon: FolderPlusIcon,
+            shortcut: "⌘⇧N",
+            action: () => {
+                createProject.mutate();
             },
-            {
-                id: "new-project",
-                label: "New project",
-                icon: FolderPlusIcon,
-                shortcut: "⌘⇧N",
-                action: () => {
-                    createProject.mutate();
-                },
+        },
+        {
+            id: "search",
+            label: "Search all conversations",
+            icon: SearchIcon,
+            shortcut: "⌘⇧F",
+            action: () => {
+                navigate("/search");
             },
-            {
-                id: "search",
-                label: "Search all conversations",
-                icon: SearchIcon,
-                shortcut: "⌘⇧F",
-                action: () => {
-                    navigate("/search");
-                },
+        },
+        {
+            id: "settings",
+            label: "Settings",
+            icon: Settings,
+            shortcut: "⌘,",
+            keepOpen: true,
+            action: () => {
+                dialogActions.openDialog(SETTINGS_DIALOG_ID);
             },
-            {
-                id: "settings",
-                label: "Settings",
-                icon: Settings,
-                shortcut: "⌘,",
-                keepOpen: true,
-                action: () => {
-                    dialogActions.openDialog(SETTINGS_DIALOG_ID);
-                },
+        },
+        {
+            id: "forward",
+            label: "Forward",
+            icon: ArrowRight,
+            shortcut: "⌘]",
+            action: () => {
+                navigate(1);
             },
-            {
-                id: "forward",
-                label: "Forward",
-                icon: ArrowRight,
-                shortcut: "⌘]",
-                action: () => {
-                    navigate(1);
-                },
+        },
+        {
+            id: "back",
+            label: "Back",
+            icon: ArrowLeft,
+            shortcut: "⌘[",
+            action: () => {
+                navigate(-1);
             },
-            {
-                id: "back",
-                label: "Back",
-                icon: ArrowLeft,
-                shortcut: "⌘[",
-                action: () => {
-                    navigate(-1);
-                },
-            },
-        ],
-        [navigate, settings, createProject],
-    );
+        },
+    ];
 
     const debouncedSearch = useMemo(
         () =>
@@ -145,75 +142,69 @@ export function CommandMenu() {
         void debouncedSearch(value);
     };
 
-    const handleValueChange = useCallback((value: string) => {
+    const handleValueChange = (value: string) => {
         setSelectedValue(value);
-    }, []);
+    };
 
-    const getTruncatedContext = useCallback(
-        (text: string) => {
-            if (!debouncedSearchTerm)
-                return text.slice(0, SEARCH_CONTEXT_LENGTH);
+    const getTruncatedContext = (text: string) => {
+        if (!debouncedSearchTerm)
+            return text.slice(0, SEARCH_CONTEXT_LENGTH);
 
-            const index = text
-                .toLowerCase()
-                .indexOf(debouncedSearchTerm.toLowerCase());
-            if (index === -1) return text.slice(0, SEARCH_CONTEXT_LENGTH);
+        const index = text
+            .toLowerCase()
+            .indexOf(debouncedSearchTerm.toLowerCase());
+        if (index === -1) return text.slice(0, SEARCH_CONTEXT_LENGTH);
 
-            const start = Math.max(0, index - SEARCH_CONTEXT_LENGTH / 2);
-            const end = Math.min(
-                text.length,
-                index + debouncedSearchTerm.length + SEARCH_CONTEXT_LENGTH / 2,
+        const start = Math.max(0, index - SEARCH_CONTEXT_LENGTH / 2);
+        const end = Math.min(
+            text.length,
+            index + debouncedSearchTerm.length + SEARCH_CONTEXT_LENGTH / 2,
+        );
+
+        return (
+            (start > 0 ? "..." : "") +
+            text.slice(start, end) +
+            (end < text.length ? "..." : "")
+        );
+    };
+
+    const highlightText = (text: string) => {
+        if (!debouncedSearchTerm.trim()) return text;
+
+        try {
+            // Create a safe regex pattern by treating the search term as a literal string
+            const regex = new RegExp(
+                escapeStringRegexp(debouncedSearchTerm),
+                "gi",
             );
+            const parts = text.split(regex);
 
-            return (
-                (start > 0 ? "..." : "") +
-                text.slice(start, end) +
-                (end < text.length ? "..." : "")
-            );
-        },
-        [debouncedSearchTerm],
-    );
+            // Find all matches to preserve their original case
+            const matches = text.match(regex) || [];
 
-    const highlightText = useCallback(
-        (text: string) => {
-            if (!debouncedSearchTerm.trim()) return text;
+            // Combine parts and matches
+            const result: ReactNode[] = [];
+            parts.forEach((part, i) => {
+                result.push(part);
+                if (i < matches.length) {
+                    result.push(
+                        <span
+                            key={i}
+                            className="bg-yellow-200/50 dark:bg-yellow-500/50"
+                        >
+                            {matches[i]}
+                        </span>,
+                    );
+                }
+            });
 
-            try {
-                // Create a safe regex pattern by treating the search term as a literal string
-                const regex = new RegExp(
-                    escapeStringRegexp(debouncedSearchTerm),
-                    "gi",
-                );
-                const parts = text.split(regex);
-
-                // Find all matches to preserve their original case
-                const matches = text.match(regex) || [];
-
-                // Combine parts and matches
-                const result: ReactNode[] = [];
-                parts.forEach((part, i) => {
-                    result.push(part);
-                    if (i < matches.length) {
-                        result.push(
-                            <span
-                                key={i}
-                                className="bg-yellow-200/50 dark:bg-yellow-500/50"
-                            >
-                                {matches[i]}
-                            </span>,
-                        );
-                    }
-                });
-
-                return result;
-            } catch (e) {
-                // Fallback to simple text display if regex fails
-                console.error("Highlight failed:", e);
-                return text;
-            }
-        },
-        [debouncedSearchTerm],
-    );
+            return result;
+        } catch (e) {
+            // Fallback to simple text display if regex fails
+            console.error("Highlight failed:", e);
+            return text;
+        }
+    };
 
     // Helper function to escape regex special characters
     function escapeStringRegexp(str: string) {
@@ -222,7 +213,7 @@ export function CommandMenu() {
     }
 
     // Helper to filter actions and chats based on search
-    const { filteredActions, filteredChats } = useMemo(() => {
+    const { filteredActions, filteredChats } = (() => {
         const searchLower = inputValue.toLowerCase();
         const filteredActions = ACTIONS.filter((item) =>
             item.label.toLowerCase().includes(searchLower),
@@ -248,7 +239,7 @@ export function CommandMenu() {
         });
 
         return { filteredActions, filteredChats };
-    }, [inputValue, chats, ACTIONS]);
+    })();
 
     function triggerAction(item: (typeof ACTIONS)[number]) {
         item.action();
@@ -259,16 +250,13 @@ export function CommandMenu() {
         }
     }
 
-    const getDisplayName = useCallback(
-        (modelId: string): string => {
-            if (modelId === "user") {
-                return "You";
-            }
-            const config = modelConfigs?.find((c) => c.modelId === modelId);
-            return config?.displayName || modelId;
-        },
-        [modelConfigs],
-    );
+    const getDisplayName = (modelId: string): string => {
+        if (modelId === "user") {
+            return "You";
+        }
+        const config = modelConfigs?.find((c) => c.modelId === modelId);
+        return config?.displayName || modelId;
+    };
 
     return (
         <CommandDialog id={COMMAND_MENU_DIALOG_ID}>

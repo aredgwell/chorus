@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { SearchIcon, ArrowLeftIcon, MessageCircleIcon } from "lucide-react";
 import debounce from "lodash/debounce";
@@ -61,7 +61,7 @@ function SearchResultItem({
 }) {
     const navigate = useNavigate();
 
-    const contextText = useMemo(() => {
+    const contextText = (() => {
         if (!query || !result.text) return result.text.slice(0, CONTEXT_LENGTH);
 
         const lowerText = result.text.toLowerCase();
@@ -80,7 +80,7 @@ function SearchResultItem({
             result.text.slice(start, end) +
             (end < result.text.length ? "..." : "")
         );
-    }, [result.text, query]);
+    })();
 
     const handleClick = () => {
         if (result.parent_chat_id && result.reply_to_id) {
@@ -156,17 +156,14 @@ export default function SearchView() {
         void debouncedSearch(value);
     };
 
-    const getDisplayName = useCallback(
-        (modelId: string): string => {
-            if (modelId === "user") return "You";
-            const config = modelConfigs?.find((c) => c.modelId === modelId);
-            return config?.displayName || modelId;
-        },
-        [modelConfigs],
-    );
+    const getDisplayName = (modelId: string): string => {
+        if (modelId === "user") return "You";
+        const config = modelConfigs?.find((c) => c.modelId === modelId);
+        return config?.displayName || modelId;
+    };
 
     // Group results by chat
-    const groupedResults = useMemo(() => {
+    const groupedResults = (() => {
         const groups = new Map<
             string,
             { title: string; results: SearchResult[] }
@@ -186,7 +183,7 @@ export default function SearchView() {
         }
 
         return Array.from(groups.entries());
-    }, [searchResults]);
+    })();
 
     return (
         <div className="flex flex-col h-screen w-full">

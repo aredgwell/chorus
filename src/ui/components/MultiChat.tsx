@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import React from "react";
 import {
     useParams,
@@ -72,11 +72,11 @@ export default function MultiChat() {
     const replyChatId = searchParams.get("replyId");
 
     // Check if forward navigation is available using React Router's internal state
-    const canGoForward = useMemo(() => {
+    // Re-evaluate when location changes (location is read above)
+    const canGoForward = (() => {
         const { state } = window.history as { state: { idx: number } };
         return state && state.idx < window.history.length - 1;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [location]); // Re-evaluate when location changes
+    })();
 
     const { isQuickChatWindow } = useAppContext();
 

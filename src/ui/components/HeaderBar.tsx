@@ -1,4 +1,4 @@
-import { ReactNode, useCallback } from "react";
+import { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
 import { Button } from "./ui/button";
@@ -26,13 +26,13 @@ export function HeaderBar({
     const { open: isSidebarOpen } = useSidebar();
     const navigate = useNavigate();
 
-    const handleBackNavigation = useCallback(() => {
+    const handleBackNavigation = () => {
         navigate(-1);
-    }, [navigate]);
+    };
 
-    const handleForwardNavigation = useCallback(() => {
+    const handleForwardNavigation = () => {
         navigate(1);
-    }, [navigate]);
+    };
 
     return (
         <div

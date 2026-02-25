@@ -126,7 +126,7 @@ function ContextLimitError({ chatId }: { chatId: string }) {
     const navigate = useNavigate();
 
     // Find the last user message
-    const lastUserMessage = useMemo(() => {
+    const lastUserMessage = (() => {
         if (!messageSetsQuery.data) return null;
 
         // Find the last message set with type "user"
@@ -137,7 +137,7 @@ function ContextLimitError({ chatId }: { chatId: string }) {
             }
         }
         return null;
-    }, [messageSetsQuery.data]);
+    })();
 
     const handleSummarizeChat = useCallback(async () => {
         if (!lastUserMessage) {
@@ -589,18 +589,15 @@ function ToolCallView({
     messageState: Message["state"];
 }) {
     // Check if this is an imported tool
-    const isImportedTool: boolean = useMemo(() => {
-        return (
-            toolCallWithResult.namespacedToolName?.startsWith(
-                ANTHROPIC_IMPORT_PREFIX,
-            ) ||
-            toolCallWithResult.namespacedToolName?.startsWith(
-                OPENAI_IMPORT_PREFIX,
-            )
+    const isImportedTool: boolean =
+        toolCallWithResult.namespacedToolName?.startsWith(
+            ANTHROPIC_IMPORT_PREFIX,
+        ) ||
+        toolCallWithResult.namespacedToolName?.startsWith(
+            OPENAI_IMPORT_PREFIX,
         );
-    }, [toolCallWithResult.namespacedToolName]);
 
-    const formattedArgs = useMemo(() => {
+    const formattedArgs = (() => {
         const argsList = toolCallWithResult.args as {
             [k: string]: unknown;
         };
@@ -654,9 +651,9 @@ function ToolCallView({
             console.warn("failed to parse args", toolCallWithResult.args);
             return [];
         }
-    }, [toolCallWithResult.args, toolCallWithResult.toolMetadata]);
+    })();
 
-    const formattedResults = useMemo(() => {
+    const formattedResults = (() => {
         if (!toolCallWithResult.toolResult) {
             return undefined;
         }
@@ -671,15 +668,13 @@ function ToolCallView({
             // if it's not valid JSON, just return the raw text
             return toolCallWithResult.toolResult?.content;
         }
-    }, [toolCallWithResult.toolResult]);
+    })();
 
-    const toolsetLabel = useMemo(() => {
-        return isImportedTool
-            ? toolCallWithResult.namespacedToolName
-                  .replace(ANTHROPIC_IMPORT_PREFIX + "_", "")
-                  .replace(OPENAI_IMPORT_PREFIX + "_", "")
-            : (toolCallWithResult.namespacedToolName ?? "tool");
-    }, [isImportedTool, toolCallWithResult.namespacedToolName]);
+    const toolsetLabel = isImportedTool
+        ? toolCallWithResult.namespacedToolName
+              .replace(ANTHROPIC_IMPORT_PREFIX + "_", "")
+              .replace(OPENAI_IMPORT_PREFIX + "_", "")
+        : (toolCallWithResult.namespacedToolName ?? "tool");
 
     return (
         <Tooltip>

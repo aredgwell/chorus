@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -43,17 +43,13 @@ export function NewPromptInner() {
     const models = ModelsAPI.useModels();
     const createModelConfig = ModelsAPI.useCreateModelConfig();
 
-    const baseModelOptions = useMemo(
-        () =>
-            (models.data ?? [])
-                .filter((model) => !model.isInternal && model.isEnabled)
-                .filter((model) => {
-                    const provider = model.id.split("::")[0];
-                    return CUSTOM_PROMPT_PROVIDERS.includes(provider);
-                })
-                .sort((a, b) => a.displayName.localeCompare(b.displayName)),
-        [models],
-    );
+    const baseModelOptions = (models.data ?? [])
+        .filter((model) => !model.isInternal && model.isEnabled)
+        .filter((model) => {
+            const provider = model.id.split("::")[0];
+            return CUSTOM_PROMPT_PROVIDERS.includes(provider);
+        })
+        .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
     // Cmd+Enter to submit
     useShortcut(["meta", "enter"], () => {

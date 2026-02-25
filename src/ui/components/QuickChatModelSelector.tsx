@@ -13,10 +13,9 @@ import {
     CommandList,
 } from "@ui/components/ui/command";
 import { getProviderName, ModelConfig } from "@core/chorus/Models";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { usePostHog } from "posthog-js/react";
 import { hasApiKey } from "@core/utilities/ProxyUtils";
-import { useMemo } from "react";
 import { ALLOWED_MODEL_IDS_FOR_QUICK_CHAT } from "@ui/lib/models";
 import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
 import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
@@ -36,14 +35,11 @@ export function QuickChatModelSelector({
     const [isOpen, setIsOpen] = useState(false);
     const { data: apiKeys } = AppMetadataAPI.useApiKeys();
 
-    const onChangeOpen = useCallback(
-        (newOpen: boolean) => {
-            console.log("Popover onOpenChange called", newOpen);
-            setIsOpen(newOpen);
-            onOpenChange?.(newOpen);
-        },
-        [onOpenChange],
-    );
+    const onChangeOpen = (newOpen: boolean) => {
+        console.log("Popover onOpenChange called", newOpen);
+        setIsOpen(newOpen);
+        onOpenChange?.(newOpen);
+    };
 
     // Use the Quick Chat model hook to keep track of the selected model
     const { data: selectedModelConfigQuickChat } =
@@ -51,55 +47,46 @@ export function QuickChatModelSelector({
     const modelConfigsQuery = ModelsAPI.useModelConfigs();
 
     // Determine if a model should be allowed based on whether user has the API key
-    const isModelAllowed = useCallback(
-        (model: ModelConfig) => {
-            // Get the provider for this model
-            const provider = getProviderName(model.modelId);
+    const isModelAllowed = (model: ModelConfig) => {
+        // Get the provider for this model
+        const provider = getProviderName(model.modelId);
 
-            // Local models (ollama, lmstudio) don't require API keys
-            if (provider === "ollama" || provider === "lmstudio") {
-                return true;
-            }
+        // Local models (ollama, lmstudio) don't require API keys
+        if (provider === "ollama" || provider === "lmstudio") {
+            return true;
+        }
 
-            // If user has API key for this provider, allow it
-            if (
-                apiKeys &&
-                provider &&
-                hasApiKey(
-                    provider.toLowerCase() as keyof typeof apiKeys,
-                    apiKeys,
-                )
-            ) {
-                return true;
-            }
+        // If user has API key for this provider, allow it
+        if (
+            apiKeys &&
+            provider &&
+            hasApiKey(
+                provider.toLowerCase() as keyof typeof apiKeys,
+                apiKeys,
+            )
+        ) {
+            return true;
+        }
 
-            return false;
-        },
-        [apiKeys],
-    );
+        return false;
+    };
 
-    const quickChatSelectableModelConfigs = useMemo(
-        () =>
-            modelConfigsQuery?.data?.filter(
-                (config) =>
-                    config.isEnabled &&
-                    !config.id.includes("chorus") &&
-                    !config.displayName.includes("Deprecated") &&
-                    ALLOWED_MODEL_IDS_FOR_QUICK_CHAT.includes(config.id) &&
-                    isModelAllowed(config),
-            ) ?? [],
-        [modelConfigsQuery, isModelAllowed],
-    );
+    const quickChatSelectableModelConfigs =
+        modelConfigsQuery?.data?.filter(
+            (config) =>
+                config.isEnabled &&
+                !config.id.includes("chorus") &&
+                !config.displayName.includes("Deprecated") &&
+                ALLOWED_MODEL_IDS_FOR_QUICK_CHAT.includes(config.id) &&
+                isModelAllowed(config),
+        ) ?? [];
 
-    const handleModelSelect = useCallback(
-        (modelId: string) => {
-            onModelSelect(modelId);
-            posthog?.capture("quick_chat_model_selected", {
-                modelId,
-            });
-        },
-        [onModelSelect, posthog],
-    );
+    const handleModelSelect = (modelId: string) => {
+        onModelSelect(modelId);
+        posthog?.capture("quick_chat_model_selected", {
+            modelId,
+        });
+    };
 
     return (
         <Popover

@@ -32,7 +32,6 @@ import React, {
     useRef,
     useEffect,
     useState,
-    useMemo,
     useCallback,
     MutableRefObject,
     forwardRef,
@@ -275,13 +274,9 @@ function Project({ projectId }: { projectId: string }) {
         chatsQuery.data?.filter((chat) => chat.projectId === projectId) ?? [];
     const chats = filterChatsForDisplay(allProjectChats, currentChatId);
 
-    const chatToDisplay = useMemo(
-        () =>
-            showAllChats
-                ? chats
-                : chats.slice(0, NUM_PROJECT_CHATS_TO_SHOW_BY_DEFAULT),
-        [chats, showAllChats],
-    );
+    const chatToDisplay = showAllChats
+        ? chats
+        : chats.slice(0, NUM_PROJECT_CHATS_TO_SHOW_BY_DEFAULT);
 
     if (projectsQuery.isPending) return <RetroSpinner />;
     if (projectsQuery.isError) return null;
@@ -453,19 +448,15 @@ export function AppSidebarInner() {
             },
         }),
     );
-    const chatsByProject = useMemo(
-        () =>
-            (chatsQuery.data ?? []).reduce(
-                (acc: Record<string, Chat[]>, chat) => {
-                    const prev = acc[chat.projectId] ?? [];
-                    acc[chat.projectId] = [...prev, chat];
-                    return acc;
-                },
-                {} as Record<string, Chat[]>,
-            ),
-        [chatsQuery.data],
+    const chatsByProject = (chatsQuery.data ?? []).reduce(
+        (acc: Record<string, Chat[]>, chat) => {
+            const prev = acc[chat.projectId] ?? [];
+            acc[chat.projectId] = [...prev, chat];
+            return acc;
+        },
+        {} as Record<string, Chat[]>,
     );
-    const defaultChats = useMemo(() => {
+    const defaultChats = (() => {
         const chats = filterChatsForDisplay(
             chatsByProject["default"] || [],
             currentChatId,
@@ -477,37 +468,21 @@ export function AppSidebarInner() {
                 chat.title?.toLowerCase().includes(lower) ||
                 chat.id === currentChatId,
         );
-    }, [chatsByProject, currentChatId, sidebarFilter]);
-    const groupedChats = useMemo(
-        () =>
-            groupChatsByDate(
-                showAllChats
-                    ? defaultChats
-                    : defaultChats.slice(
-                          0,
-                          NUM_DEFAULT_CHATS_TO_SHOW_BY_DEFAULT,
-                      ),
-            ),
-        [defaultChats, showAllChats],
+    })();
+    const groupedChats = groupChatsByDate(
+        showAllChats
+            ? defaultChats
+            : defaultChats.slice(0, NUM_DEFAULT_CHATS_TO_SHOW_BY_DEFAULT),
     );
-    const quickChats = useMemo(
-        () =>
-            filterChatsForDisplay(
-                chatsByProject["quick-chat"] || [],
-                currentChatId,
-            ),
-        [chatsByProject, currentChatId],
+    const quickChats = filterChatsForDisplay(
+        chatsByProject["quick-chat"] || [],
+        currentChatId,
     );
-    const projectsToDisplay = useMemo(
-        () =>
-            (projectsQuery.data ?? [])
-                .filter(
-                    (project) =>
-                        !["default", "quick-chat"].includes(project.id),
-                )
-                .sort((a, b) => a.name.localeCompare(b.name)),
-        [projectsQuery.data],
-    );
+    const projectsToDisplay = (projectsQuery.data ?? [])
+        .filter(
+            (project) => !["default", "quick-chat"].includes(project.id),
+        )
+        .sort((a, b) => a.name.localeCompare(b.name));
 
     if (projectsQuery.isPending || chatsQuery.isPending) {
         return <RetroSpinner />;
