@@ -26,6 +26,7 @@ export class ToolsetGithub extends Toolset {
                     id: "personalAccessToken",
                     displayName: "Personal Access Token",
                     type: "string",
+                    isSecret: true,
                 },
             },
             "Manage repos, code, issues, and PRs",

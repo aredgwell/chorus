@@ -18,6 +18,7 @@ import {
 import React from "react";
 import _ from "lodash";
 import { SiElevenlabs, SiLinear, SiStripe, SiSupabase } from "react-icons/si";
+import { getToolsetCredential } from "@core/chorus/ToolsetCredentials";
 
 /**
  * ### Notes on the Toolsets system
@@ -125,6 +126,7 @@ export type MCPParameter = {
     id: string;
     displayName: string;
     type: string;
+    isSecret?: boolean;
 };
 
 /**
@@ -632,10 +634,24 @@ export class Toolset {
             status: "starting",
         };
 
+        // Hydrate secret params from keychain
+        const hydratedConfig = { ...config };
+        for (const param of Object.values(this.config)) {
+            if (param.isSecret && !hydratedConfig[param.id]) {
+                const value = await getToolsetCredential(
+                    this.name,
+                    param.id,
+                );
+                if (value) hydratedConfig[param.id] = value;
+            }
+        }
+
         // Start all servers in parallel
         const allStarted = _.every(
             await Promise.all(
-                this.servers.map((server) => server.ensureStart(config)),
+                this.servers.map((server) =>
+                    server.ensureStart(hydratedConfig),
+                ),
             ),
             Boolean,
         );

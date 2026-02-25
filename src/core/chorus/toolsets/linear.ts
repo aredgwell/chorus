@@ -55,6 +55,7 @@ export class ToolsetLinear extends Toolset {
                     id: "apiKey",
                     displayName: "API Key",
                     type: "string",
+                    isSecret: true,
                 },
             },
             "Manage Linear issues, projects, and teams",

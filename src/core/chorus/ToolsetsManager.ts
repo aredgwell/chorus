@@ -53,6 +53,10 @@ export class ToolsetsManager {
         return ToolsetsManager._instance;
     }
 
+    get builtInToolsets(): readonly Toolset[] {
+        return this._builtInToolsets;
+    }
+
     private get toolsets() {
         return [...this._builtInToolsets, ...this._customToolsets];
     }
