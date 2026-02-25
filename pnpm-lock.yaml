@@ -21,14 +21,14 @@ importers:
         specifier: ^18.0.1
         version: 18.0.1(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@mendable/firecrawl-js':
-        specifier: 1.18.2
-        version: 1.18.2(ws@8.18.3)
+        specifier: 4.13.1
+        version: 4.13.1
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
         version: 1.27.0(@cfworker/json-schema@4.1.1)(zod@4.2.0)
       '@posthog/ai':
         specifier: ^3.3.2
-        version: 3.3.2(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(axios@1.13.2)(cheerio@1.2.0)(encoding@0.1.13)(handlebars@4.7.8)(react@19.2.4)(ws@8.18.3)
+        version: 3.3.2(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(axios@1.13.5)(cheerio@1.2.0)(encoding@0.1.13)(handlebars@4.7.8)(react@19.2.4)(ws@8.18.3)
       '@radix-ui/react-alert-dialog':
         specifier: ^1.1.11
         version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -270,8 +270,8 @@ importers:
         specifier: ^0.3.0
         version: 0.3.0(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       simple-icons:
-        specifier: ^13.21.0
-        version: 13.21.0
+        specifier: ^16.9.0
+        version: 16.9.0
       sonner:
         specifier: ^2.0.5
         version: 2.0.7(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -1912,8 +1912,9 @@ packages:
     peerDependencies:
       '@langchain/core': '>=0.2.21 <0.4.0'
 
-  '@mendable/firecrawl-js@1.18.2':
-    resolution: {integrity: sha512-KkTm5iFI8v1p50xsxFclHNt54XkS9qDYbkGIyc63eBGW8vnJZwc/mmgf+RFBOrQOfMZIQnAAfbbMNUJsdKl3AQ==}
+  '@mendable/firecrawl-js@4.13.1':
+    resolution: {integrity: sha512-3Zv8Obf0jw6MAsvHk7Wtu1BcQCP+VhmHeRBtKoggyRKiPWr7L4Ww37Wc0eJO9BNTXTciASVSAoBkvbZuiihUQw==}
+    engines: {node: '>=22.0.0'}
 
   '@mixmark-io/domino@2.2.0':
     resolution: {integrity: sha512-Y28PR25bHXUg88kCV7nivXrP2Nj2RueZ3/l/jdx6J9f8J4nsEGcgX0Qe6lt7Pa+J79+kPiJU3LguR6O/6zrLOw==}
@@ -4227,8 +4228,8 @@ packages:
     resolution: {integrity: sha512-ilYanEU8vxxBexpJd8cWM4ElSQq4QctCLKih0TSfjIfCQTeyH/6zVrmIJfLPrKTKJRbiG+cfnZbQIjAlJmF1jQ==}
     engines: {node: '>=4'}
 
-  axios@1.13.2:
-    resolution: {integrity: sha512-VPk9ebNqPcy5lRGuSlKx752IlDatOjT9paPlm8A7yOuW2Fbvp4X3JznJtT4f0GzGLLiWE9W8onz51SqLYwzGaA==}
+  axios@1.13.5:
+    resolution: {integrity: sha512-cz4ur7Vb0xS4/KUN0tPWe44eqxrIu31me+fbang3ijiNscE129POzipJJA6zniq2C/Z6sJCjMimjS8Lc/GAs8Q==}
 
   axobject-query@2.2.0:
     resolution: {integrity: sha512-Td525n+iPOOyUQIeBfcASuG6uJsDOITl7Mds5gFyerkWiX7qhUTdYUBlSgNMyVqtSJqwpt1kXGLdUt6SykLMRA==}
@@ -7313,11 +7314,6 @@ packages:
     resolution: {integrity: sha512-u4sej9B1LPSxTGKB/HiuzvEQnXH0ECYkSVQU39koSwmFAxhlEAFl9RdTvLv4TOTQUgBS5O3O5fwUxk6byBZ+IQ==}
     engines: {node: '>=10'}
 
-  isows@1.0.7:
-    resolution: {integrity: sha512-I1fSfDCZL5P0v33sVqeTDSpcstAg/N+wF5HS033mogOVIp4B+oHC7oOCsA3axAbBSGTJ8QubbNmnIRN/h8U7hg==}
-    peerDependencies:
-      ws: '*'
-
   isstream@0.1.2:
     resolution: {integrity: sha512-Yljz7ffyPbrLpLngrMtZ7NduUgVvi6wG9RJ9IUcyCd59YQ911PBJphODUcbOVbqYfxe1wuYf/LJ8PauMRwsM/g==}
 
@@ -10122,8 +10118,8 @@ packages:
   simple-get@4.0.1:
     resolution: {integrity: sha512-brv7p5WgH0jmQJr1ZDDfKDOSeWWg+OVypG99A/5vYGPqJ6pxiaHLy8nxtFjBA7oMa01ebA9gfh1uMCFqOuXxvA==}
 
-  simple-icons@13.21.0:
-    resolution: {integrity: sha512-LI5pVJPBv6oc79OMsffwb6kEqnmB8P1Cjg1crNUlhsxPETQ5UzbCKQdxU+7MW6+DD1qfPkla/vSKlLD4IfyXpQ==}
+  simple-icons@16.9.0:
+    resolution: {integrity: sha512-aKst2C7cLkFyaiQ/Crlwxt9xYOpGPk05XuJZ0ZTJNNCzHCKYrGWz2ebJSi5dG8CmTCxUF/BGs6A8uyJn/EQxqw==}
     engines: {node: '>=0.12.18'}
 
   simple-swizzle@0.2.4:
@@ -13647,16 +13643,14 @@ snapshots:
       '@langchain/core': 0.3.79(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(openai@6.24.0(ws@8.18.3)(zod@4.2.0))
       js-tiktoken: 1.0.21
 
-  '@mendable/firecrawl-js@1.18.2(ws@8.18.3)':
+  '@mendable/firecrawl-js@4.13.1':
     dependencies:
-      axios: 1.13.2
-      isows: 1.0.7(ws@8.18.3)
+      axios: 1.13.5
       typescript-event-target: 1.1.1
       zod: 3.25.76
-      zod-to-json-schema: 3.25.0(zod@3.25.76)
+      zod-to-json-schema: 3.25.1(zod@3.25.76)
     transitivePeerDependencies:
       - debug
-      - ws
 
   '@mixmark-io/domino@2.2.0': {}
 
@@ -13843,12 +13837,12 @@ snapshots:
 
   '@opentelemetry/semantic-conventions@1.39.0': {}
 
-  '@posthog/ai@3.3.2(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(axios@1.13.2)(cheerio@1.2.0)(encoding@0.1.13)(handlebars@4.7.8)(react@19.2.4)(ws@8.18.3)':
+  '@posthog/ai@3.3.2(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(axios@1.13.5)(cheerio@1.2.0)(encoding@0.1.13)(handlebars@4.7.8)(react@19.2.4)(ws@8.18.3)':
     dependencies:
       '@anthropic-ai/sdk': 0.36.3(encoding@0.1.13)
       '@langchain/core': 0.3.79(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(openai@6.24.0(ws@8.18.3)(zod@4.2.0))
       ai: 4.3.19(react@19.2.4)(zod@3.25.76)
-      langchain: 0.3.36(@langchain/core@0.3.79(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(openai@4.104.0(encoding@0.1.13)(ws@8.18.3)(zod@3.25.76)))(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(axios@1.13.2)(cheerio@1.2.0)(handlebars@4.7.8)(openai@4.104.0(encoding@0.1.13)(ws@8.18.3)(zod@3.25.76))(ws@8.18.3)
+      langchain: 0.3.36(@langchain/core@0.3.79(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(openai@4.104.0(encoding@0.1.13)(ws@8.18.3)(zod@3.25.76)))(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(axios@1.13.5)(cheerio@1.2.0)(handlebars@4.7.8)(openai@4.104.0(encoding@0.1.13)(ws@8.18.3)(zod@3.25.76))(ws@8.18.3)
       openai: 4.104.0(encoding@0.1.13)(ws@8.18.3)(zod@3.25.76)
       uuid: 11.1.0
       zod: 3.25.76
@@ -16080,7 +16074,7 @@ snapshots:
 
   axe-core@4.11.0: {}
 
-  axios@1.13.2:
+  axios@1.13.5:
     dependencies:
       follow-redirects: 1.15.11(debug@4.4.3(supports-color@6.1.0))
       form-data: 4.0.5
@@ -19906,10 +19900,6 @@ snapshots:
 
   isomorphic-timers-promises@1.0.1: {}
 
-  isows@1.0.7(ws@8.18.3):
-    dependencies:
-      ws: 8.18.3
-
   isstream@0.1.2: {}
 
   istanbul-lib-coverage@2.0.5: {}
@@ -20487,7 +20477,7 @@ snapshots:
 
   kleur@3.0.3: {}
 
-  langchain@0.3.36(@langchain/core@0.3.79(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(openai@4.104.0(encoding@0.1.13)(ws@8.18.3)(zod@3.25.76)))(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(axios@1.13.2)(cheerio@1.2.0)(handlebars@4.7.8)(openai@4.104.0(encoding@0.1.13)(ws@8.18.3)(zod@3.25.76))(ws@8.18.3):
+  langchain@0.3.36(@langchain/core@0.3.79(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(openai@4.104.0(encoding@0.1.13)(ws@8.18.3)(zod@3.25.76)))(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(axios@1.13.5)(cheerio@1.2.0)(handlebars@4.7.8)(openai@4.104.0(encoding@0.1.13)(ws@8.18.3)(zod@3.25.76))(ws@8.18.3):
     dependencies:
       '@langchain/core': 0.3.79(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(openai@6.24.0(ws@8.18.3)(zod@4.2.0))
       '@langchain/openai': 0.6.16(@langchain/core@0.3.79(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(openai@4.104.0(encoding@0.1.13)(ws@8.18.3)(zod@3.25.76)))(ws@8.18.3)
@@ -20502,7 +20492,7 @@ snapshots:
       yaml: 2.8.2
       zod: 3.25.76
     optionalDependencies:
-      axios: 1.13.2
+      axios: 1.13.5
       cheerio: 1.2.0
       handlebars: 4.7.8
     transitivePeerDependencies:
@@ -23726,7 +23716,7 @@ snapshots:
       simple-concat: 1.0.1
     optional: true
 
-  simple-icons@13.21.0: {}
+  simple-icons@16.9.0: {}
 
   simple-swizzle@0.2.4:
     dependencies:
@@ -25240,7 +25230,8 @@ snapshots:
     dependencies:
       async-limiter: 1.0.1
 
-  ws@8.18.3: {}
+  ws@8.18.3:
+    optional: true
 
   xml-name-validator@3.0.0: {}
 
@@ -25301,6 +25292,10 @@ snapshots:
   yocto-queue@0.1.0: {}
 
   zod-to-json-schema@3.25.0(zod@3.25.76):
+    dependencies:
+      zod: 3.25.76
+
+  zod-to-json-schema@3.25.1(zod@3.25.76):
     dependencies:
       zod: 3.25.76
 

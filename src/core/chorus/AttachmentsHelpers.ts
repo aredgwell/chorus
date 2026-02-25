@@ -2,7 +2,7 @@ import { appDataDir } from "@tauri-apps/api/path";
 import { mkdir, readFile } from "@tauri-apps/plugin-fs";
 import { allowedExtensions, AttachmentType } from "@core/chorus/Models";
 import { v4 as uuidv4 } from "uuid";
-import FirecrawlApp from "@mendable/firecrawl-js";
+import Firecrawl from "@mendable/firecrawl-js";
 import { fileTypeFromBuffer } from "file-type";
 import path from "path";
 import mime from "mime-types";
@@ -21,9 +21,9 @@ export const MAX_SCRAPES_PER_MINUTE = 10;
 // This should match TARGET_SIZE_BYTES in src-tauri/src/command.rs (3.5MB)
 export const TARGET_IMAGE_SIZE_BYTES = 4.5 * 1024 * 1024; // 4.5MB in bytes
 
-// Create FirecrawlApp instance with provided API key
+// Create Firecrawl instance with provided API key
 export const createFirecrawlClient = (apiKey: string) =>
-    new FirecrawlApp({ apiKey });
+    new Firecrawl({ apiKey });
 
 // Add rate limiting tracker
 export const scrapeTimestamps: number[] = [];
@@ -313,22 +313,13 @@ export async function scrapeUrlAndWriteToPath(
         const firecrawl = createFirecrawlClient(firecrawlApiKey);
         const mockScrapeAPI = false;
         const scrapeResult = mockScrapeAPI
-            ? {
-                  success: true as const,
-                  markdown: `test ${url}`,
-              }
-            : await firecrawl.scrapeUrl(url, {
+            ? { markdown: `test ${url}` }
+            : await firecrawl.scrape(url, {
                   formats: ["markdown"],
               });
 
-        if (!scrapeResult.success) {
-            throw new Error(
-                `Failed to scrape: ${"error" in scrapeResult ? scrapeResult.error : "Unknown error"}`,
-            );
-        }
-
         const content = new TextEncoder().encode(
-            `URL: ${url}\n\n${scrapeResult.markdown}`,
+            `URL: ${url}\n\n${scrapeResult.markdown ?? ""}`,
         );
         await invoke("write_file_async", {
             path,

@@ -2,7 +2,7 @@ import { FileIcon } from "lucide-react";
 import {
     siTypescript,
     siJavascript,
-    siCss3,
+    siCss,
     siHtml5,
     siJson,
     siMarkdown,
@@ -24,7 +24,7 @@ export function getFileIcon(filePath: string, className?: string) {
         case "js":
             return renderIcon(siJavascript);
         case "css":
-            return renderIcon(siCss3);
+            return renderIcon(siCss);
         case "html":
             return renderIcon(siHtml5);
         case "json":
