@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { db } from "../DB";
+import { invoke } from "@tauri-apps/api/core";
 import { CustomToolsetConfig, ToolPermissionType } from "../Toolsets";
 import { ToolsetsManager } from "../ToolsetsManager";
 import { homeDir, join } from "@tauri-apps/api/path";
@@ -192,16 +193,9 @@ export function useDeleteCustomToolsetConfig() {
     return useMutation({
         mutationKey: ["deleteCustomToolsetConfig"] as const,
         mutationFn: async (name: string) => {
-            // delete name, command, args, env
-            await db.execute("DELETE FROM custom_toolsets WHERE name = ?", [
-                name,
-            ]);
-            // delete enabled/disabled parameter
-            await db.execute(
-                "DELETE FROM toolsets_config WHERE toolset_name = ?",
-                [name],
-            );
-            // delete env from keychain
+            // delete DB rows (custom_toolsets + toolsets_config) in a single transaction
+            await invoke("delete_custom_toolset", { name });
+            // delete env from keychain (not a DB operation, stays in JS)
             await deleteCustomToolsetEnv(name);
         },
         onSuccess: async () => {
