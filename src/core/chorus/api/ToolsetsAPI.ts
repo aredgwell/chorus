@@ -4,6 +4,13 @@ import { CustomToolsetConfig, ToolPermissionType } from "../Toolsets";
 import { ToolsetsManager } from "../ToolsetsManager";
 import { homeDir, join } from "@tauri-apps/api/path";
 import { exists, readTextFile } from "@tauri-apps/plugin-fs";
+import {
+    getToolsetCredential,
+    setToolsetCredential,
+    getCustomToolsetEnv,
+    setCustomToolsetEnv,
+    deleteCustomToolsetEnv,
+} from "../ToolsetCredentials";
 
 export const toolsetsKeys = {
     // toolset configs
@@ -16,7 +23,7 @@ export const toolsetsKeys = {
 };
 
 async function fetchToolsetsConfig() {
-    return (
+    const dbConfig = (
         await db.select<
             {
                 toolset_name: string;
@@ -36,6 +43,26 @@ async function fetchToolsetsConfig() {
         },
         {} as Record<string, Record<string, string>>,
     );
+
+    // Hydrate secret params from keychain for built-in toolsets
+    for (const toolset of ToolsetsManager.instance.builtInToolsets) {
+        for (const param of Object.values(toolset.config)) {
+            if (param.isSecret) {
+                const value = await getToolsetCredential(
+                    toolset.name,
+                    param.id,
+                );
+                if (value) {
+                    dbConfig[toolset.name] = {
+                        ...dbConfig[toolset.name],
+                        [param.id]: value,
+                    };
+                }
+            }
+        }
+    }
+
+    return dbConfig;
 }
 
 export type CustomToolsetConfigDBRow = {
@@ -63,11 +90,21 @@ export function readCustomToolset(
 export async function fetchCustomToolsetConfigs(): Promise<
     CustomToolsetConfig[]
 > {
-    return (
+    const configs = (
         await db.select<CustomToolsetConfigDBRow[]>(
             "SELECT name, command, args, env, default_permission, updated_at FROM custom_toolsets ORDER BY name",
         )
     ).map(readCustomToolset);
+
+    // Hydrate env from keychain (migration moves env out of DB)
+    for (const config of configs) {
+        const keychainEnv = await getCustomToolsetEnv(config.name);
+        if (keychainEnv) {
+            config.env = keychainEnv;
+        }
+    }
+
+    return configs;
 }
 
 export function useToolsetsConfig() {
@@ -113,13 +150,17 @@ export function useUpdateCustomToolsetConfig() {
     return useMutation({
         mutationKey: ["updateCustomToolsetConfig"] as const,
         mutationFn: async ({ toolset }: { toolset: CustomToolsetConfig }) => {
+            // Store env in keychain, write empty env to DB
+            if (toolset.env && toolset.env !== "{}") {
+                await setCustomToolsetEnv(toolset.name, toolset.env);
+            }
             await db.execute(
                 "INSERT OR REPLACE INTO custom_toolsets (name, command, args, env, default_permission, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
                 [
                     toolset.name,
                     toolset.command,
                     toolset.args,
-                    toolset.env,
+                    "{}",
                     toolset.defaultPermission ?? "ask",
                     new Date().toISOString(),
                 ],
@@ -160,6 +201,8 @@ export function useDeleteCustomToolsetConfig() {
                 "DELETE FROM toolsets_config WHERE toolset_name = ?",
                 [name],
             );
+            // delete env from keychain
+            await deleteCustomToolsetEnv(name);
         },
         onSuccess: async () => {
             // Invalidate both custom toolsets and general toolsets queries
@@ -245,10 +288,20 @@ export function useUpdateToolsetsConfig() {
             parameterId: string;
             value: string;
         }) => {
-            await db.execute(
-                "INSERT OR REPLACE INTO toolsets_config (toolset_name, parameter_id, parameter_value) VALUES (?, ?, ?)",
-                [toolsetName, parameterId, value],
+            // Route secret params to keychain instead of DB
+            const toolset = ToolsetsManager.instance.builtInToolsets.find(
+                (t) => t.name === toolsetName,
             );
+            const paramDef = toolset?.config[parameterId];
+
+            if (paramDef?.isSecret) {
+                await setToolsetCredential(toolsetName, parameterId, value);
+            } else {
+                await db.execute(
+                    "INSERT OR REPLACE INTO toolsets_config (toolset_name, parameter_id, parameter_value) VALUES (?, ?, ?)",
+                    [toolsetName, parameterId, value],
+                );
+            }
         },
         onSuccess: async () => {
             // Invalidate both custom toolsets and general toolsets queries
