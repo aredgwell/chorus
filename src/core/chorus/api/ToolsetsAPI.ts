@@ -411,3 +411,58 @@ export function useImportFromClaudeDesktop() {
         },
     });
 }
+
+// One-time migration: move toolset credentials from plaintext DB to OS keychain
+let toolsetMigrationDone = false;
+
+export async function migrateToolsetCredentialsToKeychain(): Promise<void> {
+    if (toolsetMigrationDone) return;
+    toolsetMigrationDone = true;
+
+    try {
+        // 1. Migrate built-in toolset secrets
+        for (const toolset of ToolsetsManager.instance.builtInToolsets) {
+            for (const param of Object.values(toolset.config)) {
+                if (!param.isSecret) continue;
+
+                const rows = await db.select<{ parameter_value: string }[]>(
+                    "SELECT parameter_value FROM toolsets_config WHERE toolset_name = ? AND parameter_id = ?",
+                    [toolset.name, param.id],
+                );
+
+                if (rows.length > 0 && rows[0].parameter_value) {
+                    await setToolsetCredential(
+                        toolset.name,
+                        param.id,
+                        rows[0].parameter_value,
+                    );
+                    await db.execute(
+                        "DELETE FROM toolsets_config WHERE toolset_name = ? AND parameter_id = ?",
+                        [toolset.name, param.id],
+                    );
+                }
+            }
+        }
+
+        // 2. Migrate custom toolset env
+        const customToolsets = await db.select<
+            { name: string; env: string }[]
+        >(
+            "SELECT name, env FROM custom_toolsets WHERE env IS NOT NULL AND env != '{}'",
+        );
+
+        for (const ct of customToolsets) {
+            if (ct.env && ct.env !== "{}") {
+                await setCustomToolsetEnv(ct.name, ct.env);
+                await db.execute(
+                    "UPDATE custom_toolsets SET env = '{}' WHERE name = ?",
+                    [ct.name],
+                );
+            }
+        }
+
+        console.log("Migrated toolset credentials to keychain");
+    } catch (error) {
+        console.error("Failed to migrate toolset credentials:", error);
+    }
+}

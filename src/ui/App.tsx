@@ -157,6 +157,11 @@ function AppContent() {
         void SettingsManager.getInstance().migrateApiKeysToKeychain();
     }, []);
 
+    // Migrate toolset credentials from plaintext DB to OS keychain (runs once per session)
+    useEffect(() => {
+        void ToolsetsAPI.migrateToolsetCredentialsToKeychain();
+    }, []);
+
     // Get all chats to determine if user is new
     const { data: chats } = useQuery(ChatAPI.chatQueries.list());
 
