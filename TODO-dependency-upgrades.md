@@ -36,9 +36,9 @@ All safe patch/minor updates were applied in the codebase improvements PR. This 
 
 - [x] **`@eslint/js`** 9 -> 10 -- Done. Flat config compatible.
 - [x] **`eslint-plugin-react-refresh`** 0.4 -> 0.5 -- Done.
-- [ ] **`vite`** 6 -> 7 -- Defer to a future cycle.
-- [ ] **`string-width`** 4 -> 8 -- ESM-only in v5+. May break CommonJS consumers.
-- [ ] **`strip-ansi`** 6 -> 7 -- ESM-only in v7. Same concern as string-width.
+- [x] **`vite`** 6 -> 7 -- Done. All plugins already support vite 7. No config changes needed; `vite.config.ts` uses only stable APIs. Updated engines to `>=22.12.0` per vite 7 requirement.
+- [x] **`string-width`** 4 -> 8 -- Done. **Removed** — not imported by any source file. Was a phantom devDependency for hoisting; transitive CJS consumers resolve their own pinned copies via pnpm.
+- [x] **`strip-ansi`** 6 -> 7 -- Done. **Removed** — same reason as string-width.
 
 ## Rust Dependencies
 
@@ -54,11 +54,8 @@ All safe patch/minor updates were applied in the codebase improvements PR. This 
 - [x] **`base64`** 0.21 -> 0.22 -- Done. Code already used Engine-based API; no code changes needed.
 - [x] **`image`** 0.24 -> 0.25 -- Done. Updated `image::io::Reader` import to `image::ImageReader`.
 - [x] **`window-vibrancy`** 0.5 -> 0.6 -- Done. Pinned to 0.6 to match tauri's internal dependency.
-- [ ] **`rusqlite`** 0.32 -> latest -- Blocked: `libsqlite3-sys` link conflict with `tauri-plugin-sql` (which pins `libsqlite3-sys` 0.28 via `sqlx-sqlite`). Upgrade when `tauri-plugin-sql` updates its `sqlx` dependency.
+- [ ] **`rusqlite`** 0.32 -> latest -- Blocked: `libsqlite3-sys` link conflict with `tauri-plugin-sql`. `sqlx-sqlite` 0.8.6 (via `tauri-plugin-sql` 2.3.2) pins `libsqlite3-sys ^0.30.1`, while `rusqlite` 0.38 needs `^0.36.0`. `sqlx` 0.9 is still alpha. Upgrade when `tauri-plugin-sql` adopts `sqlx` 0.9 stable.
 
 ## Remaining Work
 
-- [ ] `rusqlite` 0.32 -> latest (Rust, blocked by tauri-plugin-sql)
-- [ ] `vite` 6 -> 7 (Node, defer)
-- [ ] `string-width` 4 -> 8 (Node, ESM-only concern)
-- [ ] `strip-ansi` 6 -> 7 (Node, ESM-only concern)
+- [ ] `rusqlite` 0.32 -> latest (Rust, blocked by tauri-plugin-sql / sqlx 0.9 alpha)
