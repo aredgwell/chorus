@@ -1174,3 +1174,139 @@ pub async fn find_similar_chats(
     .await
     .map_err(|e| format!("Task join error: {}", e))?
 }
+
+/// Create a user + AI message set pair in a single transaction.
+/// Replaces 3 sequential JS-side db.execute() calls that had a potential race condition.
+#[tauri::command]
+pub async fn create_message_set_pair(
+    app_handle: AppHandle,
+    chat_id: String,
+    user_message_set_id: String,
+    ai_message_set_id: String,
+    user_level: i64,
+    selected_block_type: String,
+) -> Result<(), String> {
+    let db_path = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("chats.db");
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        conn.execute_batch("PRAGMA journal_mode=WAL;")
+            .map_err(|e| e.to_string())?;
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+        // Stop streaming on all previous messages (except review messages)
+        tx.execute(
+            "UPDATE messages SET streaming_token = NULL, state = 'idle'
+             WHERE chat_id = ?1 AND state = 'streaming' AND is_review <> 1",
+            rusqlite::params![chat_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        // Insert user message set
+        tx.execute(
+            "INSERT INTO message_sets (id, chat_id, level, type, selected_block_type) VALUES (?1, ?2, ?3, ?4, ?5)",
+            rusqlite::params![user_message_set_id, chat_id, user_level, "user", "user"],
+        )
+        .map_err(|e| e.to_string())?;
+
+        // Insert AI message set (always one level after user)
+        let ai_level = user_level + 1;
+        tx.execute(
+            "INSERT INTO message_sets (id, chat_id, level, type, selected_block_type) VALUES (?1, ?2, ?3, ?4, ?5)",
+            rusqlite::params![ai_message_set_id, chat_id, ai_level, "ai", &selected_block_type],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok::<(), String>(())
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+}
+
+/// Edit a message and clean up subsequent message sets in a single transaction.
+/// Replaces 4 sequential JS-side db.execute() calls.
+#[tauri::command]
+pub async fn edit_message(
+    app_handle: AppHandle,
+    chat_id: String,
+    message_id: String,
+    message_set_id: String,
+    new_text: String,
+) -> Result<serde_json::Value, String> {
+    let db_path = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("chats.db");
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        conn.execute_batch("PRAGMA journal_mode=WAL;")
+            .map_err(|e| e.to_string())?;
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+        // 1. Update the user message text
+        tx.execute(
+            "UPDATE messages SET text = ?1 WHERE id = ?2",
+            rusqlite::params![new_text, message_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        // 2. Find the level of the edited message set
+        let level: i64 = tx
+            .query_row(
+                "SELECT level FROM message_sets WHERE id = ?1",
+                rusqlite::params![message_set_id],
+                |row| row.get(0),
+            )
+            .map_err(|e| e.to_string())?;
+
+        // 3. Find the next message set (level + 1)
+        let next_message_set_id: Option<String> = tx
+            .query_row(
+                "SELECT id FROM message_sets WHERE chat_id = ?1 AND level = ?2",
+                rusqlite::params![chat_id, level + 1],
+                |row| row.get(0),
+            )
+            .ok();
+
+        if let Some(ref next_id) = next_message_set_id {
+            // 4. Delete all messages in the next AI message set
+            tx.execute(
+                "DELETE FROM messages WHERE message_set_id = ?1",
+                rusqlite::params![next_id],
+            )
+            .map_err(|e| e.to_string())?;
+
+            // 5. Delete all messages beyond the next AI message set
+            tx.execute(
+                "DELETE FROM messages WHERE message_set_id IN (
+                    SELECT id FROM message_sets WHERE chat_id = ?1 AND level > ?2
+                )",
+                rusqlite::params![chat_id, level + 1],
+            )
+            .map_err(|e| e.to_string())?;
+
+            // 6. Delete all message sets beyond the next AI message set
+            tx.execute(
+                "DELETE FROM message_sets WHERE chat_id = ?1 AND level > ?2",
+                rusqlite::params![chat_id, level + 1],
+            )
+            .map_err(|e| e.to_string())?;
+        }
+
+        tx.commit().map_err(|e| e.to_string())?;
+
+        // Return whether there was a next message set (JS side needs this for cache updates)
+        Ok(serde_json::json!({
+            "nextMessageSetId": next_message_set_id,
+        }))
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+}
