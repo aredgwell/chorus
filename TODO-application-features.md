@@ -42,15 +42,6 @@ Done — `babel-plugin-react-compiler` enabled globally in `vite.config.ts`. Aut
 
 ### ~~Linear~~
 Done — `src/core/chorus/toolsets/linear.ts` with 5 tools: `search_issues`, `get_issue`, `create_issue`, `update_issue`, `list_teams`. Uses Linear GraphQL API. Auth via manual API key in toolset config.
-- Follow-up: Add OAuth flow via deep link (`chorus://linear`) — requires backend endpoint on `app.chorus.sh`
-
-### Google Drive / Docs
-- Add as a new toolset in `src/core/chorus/toolsets/gdrive.ts`
-- Capabilities: search files, read document content, list recent documents
-- Auth: OAuth 2.0 via deep link (`chorus://google_integration`)
-- Use case: attach Google Docs as chat context (like project attachments but cloud-hosted)
-- Document content would be fetched at chat time, not stored locally — keeps DB small
-- Consider read-only initially; write support (create/edit docs from AI output) as a follow-up
 
 ---
 
@@ -95,7 +86,7 @@ Done — FTS5 search was already implemented. Enhancements added:
 
 ## Export/Import
 - ~~Export chats as markdown, JSON~~: Done — `ExportService.ts` with `exportChatAsMarkdown` and `exportChatAsJSON`. Export dropdown in MultiChat header.
-- Import conversations from other tools — still TODO
+- ~~Import conversations from other tools~~: Done — `OpenAIImporter.ts` and `AnthropicImporter.ts` in `src/core/chorus/importers/`. UI in Settings > "Import Chat History" via `ImportChatDialog.tsx`.
 
 ## ~~Keyboard-First Navigation~~
 Done — added shortcuts:
@@ -111,12 +102,3 @@ Done — `CostDashboard.tsx` in Settings > Usage tab. Shows:
 - Cost breakdown by model, project, and day
 - Uses aggregate SQL queries in `CostAPI.ts`
 
-## Local Model Management
-- Ollama and LM Studio providers exist but have no model management UI
-- Add UI for pulling/removing Ollama models
-- Show model download progress, disk usage
-
-## Conversation Branching UX
-- `message_sets` already support branching in the data model
-- Improve the UI for navigating, comparing, and managing branches
-- Consider a tree/graph visualization of conversation branches

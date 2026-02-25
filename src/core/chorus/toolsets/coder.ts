@@ -45,6 +45,3 @@ export class ToolsetCoder extends Toolset {
         );
     }
 }
-
-// # todo:
-// - coder toolset?
