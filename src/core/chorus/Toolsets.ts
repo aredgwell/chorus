@@ -125,6 +125,7 @@ export type MCPParameter = {
     id: string;
     displayName: string;
     type: string;
+    isSecret?: boolean;
 };
 
 /**

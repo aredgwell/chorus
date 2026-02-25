@@ -26,6 +26,7 @@ export class ToolsetSlack extends Toolset {
                     id: "apiToken",
                     displayName: "API Token",
                     type: "string",
+                    isSecret: true,
                 },
                 teamId: {
                     id: "teamId",
