@@ -10,6 +10,7 @@ import {
     RiMetaFill,
 } from "react-icons/ri";
 import { SiOllama } from "react-icons/si";
+import { Server } from "lucide-react";
 
 // can pass in either provider or modelId. provider takes precedence over modelId
 export type ProviderLogoProps = {
@@ -60,6 +61,8 @@ export function ProviderLogo({
                 );
             case "meta":
                 return <RiMetaFill className="w-4 h-4" />;
+            case "custom-openai":
+                return <Server className="w-4 h-4" />;
             case "grok":
                 return (
                     <img

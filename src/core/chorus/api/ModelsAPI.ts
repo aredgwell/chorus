@@ -398,10 +398,26 @@ export function useRefreshLMStudioModels() {
     });
 }
 
+export function useRefreshCustomOpenAIModels() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ["refreshCustomOpenAIModels"] as const,
+        mutationFn: async () => {
+            await Models.downloadCustomOpenAIModels(db);
+        },
+        onSuccess: async () => {
+            await queryClient.invalidateQueries(
+                modelConfigQueries.listConfigs(),
+            );
+        },
+    });
+}
+
 export function useRefreshModels() {
     const refreshOpenRouterModels = useRefreshOpenRouterModels();
     const refreshOllamaModels = useRefreshOllamaModels();
     const refreshLMStudioModels = useRefreshLMStudioModels();
+    const refreshCustomOpenAIModels = useRefreshCustomOpenAIModels();
     return useMutation({
         mutationKey: ["refreshAllModels"] as const,
         mutationFn: async () => {
@@ -409,6 +425,7 @@ export function useRefreshModels() {
                 refreshOpenRouterModels.mutateAsync(),
                 refreshOllamaModels.mutateAsync(),
                 refreshLMStudioModels.mutateAsync(),
+                refreshCustomOpenAIModels.mutateAsync(),
             ]);
         },
     });

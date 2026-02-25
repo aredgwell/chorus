@@ -27,6 +27,7 @@ const CONTEXT_LIMIT_PATTERNS: Record<ProviderName, string> = {
     lmstudio: "context window",
     perplexity: "context window",
     ollama: "context window",
+    "custom-openai": "context window",
 };
 
 /**

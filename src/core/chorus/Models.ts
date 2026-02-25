@@ -17,6 +17,8 @@ import { ollamaClient } from "./OllamaClient";
 import { ProviderOllama } from "./ModelProviders/ProviderOllama";
 import { ProviderLMStudio } from "./ModelProviders/ProviderLMStudio";
 import { ProviderGrok } from "./ModelProviders/ProviderGrok";
+import { ProviderCustomOpenAI } from "./ModelProviders/ProviderCustomOpenAI";
+import { SettingsManager } from "@core/utilities/Settings";
 import posthog from "posthog-js";
 import { UserTool, UserToolCall, UserToolResult } from "./Toolsets";
 import { Attachment } from "./api/AttachmentsAPI";
@@ -150,6 +152,7 @@ export type ApiKeys = {
     openrouter?: string;
     google?: string;
     grok?: string;
+    "custom-openai"?: string;
 };
 
 /**
@@ -262,7 +265,8 @@ export type ProviderName =
     | "ollama"
     | "lmstudio"
     | "grok"
-    | "meta";
+    | "meta"
+    | "custom-openai";
 
 /**
  * Returns a human readable label for the provider
@@ -316,6 +320,8 @@ function getProvider(providerName: string): IProvider {
             return new ProviderLMStudio();
         case "grok":
             return new ProviderGrok();
+        case "custom-openai":
+            return new ProviderCustomOpenAI();
         default:
             throw new Error(`Unknown provider: ${providerName}`);
     }
@@ -391,6 +397,7 @@ export async function DEPRECATED_USE_HOOK_INSTEAD_downloadModels(
     await downloadOpenRouterModels(db);
     await downloadOllamaModels(db);
     await downloadLMStudioModels(db);
+    await downloadCustomOpenAIModels(db);
     return 0;
 }
 
@@ -542,6 +549,76 @@ export async function downloadLMStudioModels(db: Database): Promise<void> {
         // If there's an error (e.g., LM Studio is not running), disable all LM Studio models
         await db.execute(
             "UPDATE models SET is_enabled = 0 WHERE id LIKE 'lmstudio::%'",
+        );
+        throw error;
+    }
+}
+
+/**
+ * Downloads models from a custom OpenAI-compatible endpoint to refresh the database.
+ */
+export async function downloadCustomOpenAIModels(
+    db: Database,
+): Promise<void> {
+    const settings = await SettingsManager.getInstance().get();
+    const baseUrl = settings.customOpenAIBaseUrl;
+
+    // If no URL configured, disable all custom-openai models and return
+    if (!baseUrl) {
+        await db.execute(
+            "UPDATE models SET is_enabled = 0 WHERE id LIKE 'custom-openai::%'",
+        );
+        return;
+    }
+
+    try {
+        // Disable all existing custom-openai models
+        await db.execute(
+            "UPDATE models SET is_enabled = 0 WHERE id LIKE 'custom-openai::%'",
+        );
+
+        // Normalize URL: append /models if not already present
+        const modelsUrl = baseUrl.replace(/\/+$/, "").endsWith("/v1")
+            ? `${baseUrl.replace(/\/+$/, "")}/models`
+            : baseUrl.replace(/\/+$/, "").endsWith("/models")
+              ? baseUrl
+              : `${baseUrl.replace(/\/+$/, "")}/v1/models`;
+
+        // Optionally include API key in request
+        const apiKeys = await SettingsManager.getInstance().getApiKeys();
+        const apiKey = apiKeys["custom-openai"];
+        const headers: Record<string, string> = {};
+        if (apiKey) {
+            headers["Authorization"] = `Bearer ${apiKey}`;
+        }
+
+        const response = await fetch(modelsUrl, { headers });
+        if (!response.ok) {
+            return;
+        }
+
+        const { data: models } = (await response.json()) as {
+            data: { id: string }[];
+        };
+
+        for (const model of models) {
+            await saveModelAndDefaultConfig(
+                db,
+                {
+                    id: `custom-openai::${model.id}`,
+                    displayName: `${model.id} (Custom)`,
+                    supportedAttachmentTypes: ["text", "webpage"],
+                    isEnabled: true,
+                    isInternal: false,
+                    isReasoningModel: false,
+                    supportsToolUse: true,
+                },
+                `${model.id} (Custom)`,
+            );
+        }
+    } catch (error) {
+        await db.execute(
+            "UPDATE models SET is_enabled = 0 WHERE id LIKE 'custom-openai::%'",
         );
         throw error;
     }
