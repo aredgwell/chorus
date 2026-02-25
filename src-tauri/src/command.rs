@@ -31,6 +31,15 @@ impl From<CommandError> for String {
     }
 }
 
+/// Resolve the path to the app's SQLite database.
+fn db_path(app_handle: &AppHandle) -> Result<std::path::PathBuf, String> {
+    Ok(app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("chats.db"))
+}
+
 // Target size in bytes (3.5MB) for image resizing
 // This is used as the maximum size for images in the application
 // and should match TARGET_IMAGE_SIZE_BYTES in src/ui/hooks/useAttachments.ts
@@ -836,11 +845,7 @@ pub async fn branch_chat(
     message_id: String,
     reply_to_id: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    let db_path = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("chats.db");
+    let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || {
         let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -1054,11 +1059,7 @@ pub async fn branch_chat(
 /// Create the vec0 virtual table for storing chat embeddings if it doesn't exist.
 #[tauri::command]
 pub async fn ensure_vec_table(app_handle: AppHandle) -> Result<(), String> {
-    let db_path = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("chats.db");
+    let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || {
         let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -1083,11 +1084,7 @@ pub async fn upsert_chat_embedding(
     chat_id: String,
     embedding: Vec<f32>,
 ) -> Result<(), String> {
-    let db_path = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("chats.db");
+    let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || {
         let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -1120,11 +1117,7 @@ pub async fn find_similar_chats(
     limit: i32,
     exclude_chat_id: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    let db_path = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("chats.db");
+    let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || {
         let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -1186,11 +1179,7 @@ pub async fn create_message_set_pair(
     user_level: i64,
     selected_block_type: String,
 ) -> Result<(), String> {
-    let db_path = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("chats.db");
+    let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || {
         let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -1238,11 +1227,7 @@ pub async fn edit_message(
     message_set_id: String,
     new_text: String,
 ) -> Result<serde_json::Value, String> {
-    let db_path = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("chats.db");
+    let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || {
         let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -1319,11 +1304,7 @@ pub async fn convert_draft_attachments(
     chat_id: String,
     message_id: String,
 ) -> Result<(), String> {
-    let app_data_dir = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?;
-    let db_path = app_data_dir.join("chorus.db");
+    let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
         let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -1363,11 +1344,7 @@ pub async fn restart_message(
     message_id: String,
     streaming_token: String,
 ) -> Result<serde_json::Value, String> {
-    let app_data_dir = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?;
-    let db_path = app_data_dir.join("chorus.db");
+    let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || -> Result<serde_json::Value, String> {
         let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -1412,11 +1389,7 @@ pub async fn delete_attachment_from_project(
     app_handle: AppHandle,
     attachment_id: String,
 ) -> Result<(), String> {
-    let app_data_dir = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?;
-    let db_path = app_data_dir.join("chorus.db");
+    let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
         let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -1452,11 +1425,7 @@ pub async fn increment_conductor_turn(
     chat_id: String,
     scope_id: Option<String>,
 ) -> Result<i64, String> {
-    let app_data_dir = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?;
-    let db_path = app_data_dir.join("chorus.db");
+    let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || -> Result<i64, String> {
         let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
@@ -1487,11 +1456,7 @@ pub async fn delete_custom_toolset(
     app_handle: AppHandle,
     name: String,
 ) -> Result<(), String> {
-    let app_data_dir = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?;
-    let db_path = app_data_dir.join("chorus.db");
+    let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
         let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
