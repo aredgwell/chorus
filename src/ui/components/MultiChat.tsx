@@ -42,6 +42,7 @@ import * as MessageAPI from "@core/chorus/api/MessageAPI";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
 import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
+import * as SearchAPI from "@core/chorus/api/SearchAPI";
 import { ProjectSwitcher, MessageSetView } from "./ChatMessageViews";
 import {
     ShareChatDialog,
@@ -66,6 +67,10 @@ export default function MultiChat() {
     const location = useLocation();
     const appMetadata = useWaitForAppMetadata();
     const messageSetsQuery = MessageAPI.useMessageSets(chatId!);
+    const { data: relatedChats } = SearchAPI.useRelatedChats(
+        chatId,
+        chatQuery.data?.summary ?? undefined,
+    );
     const [searchParams] = useSearchParams();
 
     // Extract replyId from query parameters
@@ -543,6 +548,7 @@ export default function MultiChat() {
                             chatId={chatId!}
                             currentProjectId={chatQuery.data?.projectId}
                             projects={projectsQuery.data ?? []}
+                            relatedChats={relatedChats}
                             onSearch={() => {
                                 document.dispatchEvent(
                                     new KeyboardEvent("keydown", {

@@ -5,7 +5,9 @@ import {
     SearchIcon,
     DownloadIcon,
     Loader2,
+    SparklesIcon,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { TooltipContent, Tooltip, TooltipTrigger } from "./ui/tooltip";
 import {
     DropdownMenu,
@@ -13,9 +15,16 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "./ui/popover";
 import { catchAsyncErrors } from "@core/chorus/utilities";
 import { MoveToProjectDropdown } from "./MoveToProjectDropdown";
 import { Project } from "@core/chorus/api/ProjectAPI";
+import type { SimilarChat } from "@core/chorus/api/SearchAPI";
+import { convertDate, displayDate } from "@ui/lib/utils";
 
 export function ChatHeaderActions({
     hasMessages,
@@ -24,6 +33,7 @@ export function ChatHeaderActions({
     chatId,
     currentProjectId,
     projects,
+    relatedChats,
     onSearch,
     onSummarize,
     onShare,
@@ -37,6 +47,7 @@ export function ChatHeaderActions({
     chatId: string;
     currentProjectId: string | undefined;
     projects: Project[];
+    relatedChats?: SimilarChat[];
     onSearch: () => void;
     onSummarize: () => void;
     onShare: () => void;
@@ -44,6 +55,7 @@ export function ChatHeaderActions({
     onMoveToProject: (chatId: string, projectId: string) => void;
     onNewProject: () => void;
 }) {
+    const navigate = useNavigate();
     return (
         <div className="flex items-center gap-1">
             {hasMessages && (
@@ -168,6 +180,67 @@ export function ChatHeaderActions({
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
+
+                    {relatedChats && relatedChats.length > 0 && (
+                        <Popover>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="iconSm"
+                                            className="px-2 text-accent-foreground hover:text-foreground"
+                                            tabIndex={-1}
+                                        >
+                                            <SparklesIcon
+                                                strokeWidth={1.5}
+                                                className="size-3.5!"
+                                            />
+                                        </Button>
+                                    </PopoverTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Related chats
+                                </TooltipContent>
+                            </Tooltip>
+                            <PopoverContent
+                                align="end"
+                                className="w-64 p-2"
+                            >
+                                <p className="text-xs font-medium text-muted-foreground px-2 pb-1">
+                                    Similar conversations
+                                </p>
+                                <ul className="space-y-0.5">
+                                    {relatedChats.map((r) => (
+                                        <li key={r.chatId}>
+                                            <button
+                                                className="w-full text-left px-2 py-1.5 rounded-md hover:bg-accent transition-colors"
+                                                onClick={() =>
+                                                    navigate(
+                                                        `/chat/${r.chatId}`,
+                                                    )
+                                                }
+                                            >
+                                                <div className="text-sm truncate">
+                                                    {r.title ??
+                                                        "Untitled Chat"}
+                                                </div>
+                                                {r.updatedAt && (
+                                                    <div className="text-xs text-muted-foreground">
+                                                        {displayDate(
+                                                            convertDate(
+                                                                r.updatedAt,
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </PopoverContent>
+                        </Popover>
+                    )}
                 </>
             )}
 
