@@ -4,20 +4,12 @@ Codebase cleanup items discovered from inline `TODO` comments. Grouped by area.
 
 ---
 
-## Legacy Code Removal (TODO-GC)
+## ~~Legacy Code Removal (TODO-GC)~~
 
-Several functions in `MessageAPI.ts` are tagged `TODO-GC` — they rely on the old `getUserMessageSets` pattern and should be updated or removed after the "GC migration" (likely a migration to group chats / new message set architecture).
+Done — cleaned up stale TODO-GC markers. The GC (Group Chat) system runs in parallel with legacy MultiChat.
 
-| Function | File | Line | Notes |
-|---|---|---|---|
-| `useGenerateChatTitle` | `MessageAPI.ts` | 2897 | Relies on `getUserMessageSets`. The title generation logic itself is fine but the message set access pattern needs updating. |
-| `useAddModelToCompareConfigs` | `MessageAPI.ts` | 2968 | Manages compare mode model selection. Stores selected config IDs in `app_metadata`. |
-| `useUpdateSelectedModelConfigsCompare` | `MessageAPI.ts` | 3027 | Updates compare mode model list. Already has optimistic updates. |
-| `useUpdateSelectedModelConfigQuickChat` | `MessageAPI.ts` | 3071 | Updates quick chat model config. |
-| `useGetSelectedModelConfigs` | `MessageAPI.ts` | 3101 | Dispatches to quick chat vs compare mode model configs. |
-
-### Action required
-Determine the scope of the "GC migration". If it's a refactor of how message sets work, these functions need to be rewritten to use the new pattern. If GC is already done, these can be cleaned up to remove the TODO markers.
+- **`useGenerateChatTitle`** — still uses `getUserMessageSets` for the legacy path. Comment updated to explain it will be removed when legacy MultiChat is fully deprecated (GroupChat has `useGenerateGCChatTitle()`).
+- **`useAddModelToCompareConfigs`**, **`useUpdateSelectedModelConfigsCompare`**, **`useUpdateSelectedModelConfigQuickChat`**, **`useGetSelectedModelConfigs`** — these use `app_metadata`, not `getUserMessageSets`. Shared between both paths. TODO-GC markers removed.
 
 ---
 
