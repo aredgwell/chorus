@@ -71,8 +71,14 @@ Done — removed unused prop from `ChatInput.tsx`, its `useMemo` computation in 
 
 ---
 
-## Toolset Roadmap Notes
+## ~~Toolset Roadmap Notes~~
 
-**Location**: `terminal.ts:49`, `coder.ts:49`
+Done — removed stale `// # todo: - coder toolset?` comments from `terminal.ts` and `coder.ts`. The coder toolset is fully implemented (commented out in `ToolsetsManager.ts` but ready to enable).
 
-Both files have `// # todo:` comments suggesting potential future toolsets. These are aspirational notes, not bugs. The coder toolset file exists but is commented out in `ToolsetsManager.ts`.
+---
+
+## Group Chat Compatibility
+
+**Location**: `ProjectAPI.ts` — `useRegenerateProjectContextSummary` (line ~376)
+
+`// todo-gc: we'll need to update this to work with group chats` — real debt item. The function needs updating when legacy MultiChat is deprecated in favor of GroupChat. No immediate action needed.

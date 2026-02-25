@@ -45,6 +45,3 @@ export class ToolsetTerminal extends Toolset {
         );
     }
 }
-
-// # todo:
-// - coder toolset?
