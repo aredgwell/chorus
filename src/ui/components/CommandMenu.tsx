@@ -18,6 +18,7 @@ import {
     ScanTextIcon,
     SearchIcon,
     Settings,
+    SparklesIcon,
 } from "lucide-react";
 import { useState, useMemo, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
@@ -59,8 +60,16 @@ export function CommandMenu() {
 
     const { data: searchResults = [], isLoading } =
         SearchAPI.useSearchMessages(debouncedSearchTerm);
+    const { data: semanticResults = [] } =
+        SearchAPI.useSemanticSearch(debouncedSearchTerm);
 
     const createProject = ProjectAPI.useCreateProject();
+
+    // Deduplicate semantic results against keyword results
+    const keywordChatIds = new Set(searchResults.map((r) => r.chat_id));
+    const filteredSemanticResults = semanticResults.filter(
+        (r) => !keywordChatIds.has(r.chatId),
+    );
 
     const ACTIONS = [
         {
@@ -379,6 +388,43 @@ export function CommandMenu() {
                                             </div>
                                         </CommandItem>
                                     ))}
+                                </CommandGroup>
+                            )}
+
+                            {/* Semantic search results */}
+                            {filteredSemanticResults.length > 0 && (
+                                <CommandGroup heading="Similar">
+                                    {filteredSemanticResults.map(
+                                        (result) => (
+                                            <CommandItem
+                                                key={result.chatId}
+                                                value={`semantic-${result.chatId}`}
+                                                onSelect={() => {
+                                                    navigate(
+                                                        `/chat/${encodeURIComponent(result.chatId)}`,
+                                                    );
+                                                    dialogActions.closeDialog();
+                                                }}
+                                            >
+                                                <SparklesIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                                                <div className="flex flex-col flex-1 overflow-hidden">
+                                                    <div className="font-medium truncate">
+                                                        {result.title ??
+                                                            "Untitled Chat"}
+                                                    </div>
+                                                    {result.updatedAt && (
+                                                        <div className="text-xs text-muted-foreground">
+                                                            {displayDate(
+                                                                convertDate(
+                                                                    result.updatedAt,
+                                                                ),
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </CommandItem>
+                                        ),
+                                    )}
                                 </CommandGroup>
                             )}
                         </>
