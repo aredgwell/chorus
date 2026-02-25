@@ -124,7 +124,11 @@ export async function fetchChatIsLoading(chatId: string): Promise<boolean> {
 
 export function useCacheUpdateChat() {
     const queryClient = useQueryClient();
-    return (chatId: string, updateFn: (chat: Chat) => void) => {
+    return (
+        chatId: string,
+        updateFn: (chat: Chat) => void,
+        { sortChanged = true }: { sortChanged?: boolean } = {},
+    ) => {
         queryClient.setQueryData(
             chatQueries.detail(chatId).queryKey,
             (chat: Chat | undefined) =>
@@ -140,11 +144,11 @@ export function useCacheUpdateChat() {
                 const chat = draft.find((c) => c.id === chatId);
                 if (chat) {
                     updateFn(chat);
-                    // NOTE: We don't always need to sort, if this becomes expensive we could gate
-                    // this behind a flag
-                    draft.sort((a, b) =>
-                        b.updatedAt.localeCompare(a.updatedAt),
-                    );
+                    if (sortChanged) {
+                        draft.sort((a, b) =>
+                            b.updatedAt.localeCompare(a.updatedAt),
+                        );
+                    }
                 }
             }),
         );
@@ -443,9 +447,13 @@ export function useRenameChat() {
             const previousChat = queryClient.getQueryData<Chat>(
                 chatQueries.detail(chatId).queryKey,
             );
-            cacheUpdateChat(chatId, (chat) => {
-                chat.title = newTitle;
-            });
+            cacheUpdateChat(
+                chatId,
+                (chat) => {
+                    chat.title = newTitle;
+                },
+                { sortChanged: false },
+            );
             return { previousChats, previousChat };
         },
         onError: (_err, variables, context) => {

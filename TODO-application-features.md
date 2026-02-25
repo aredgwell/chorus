@@ -8,13 +8,13 @@
 - ~~**Memoize MessageMarkdown**~~: Done — React Compiler handles this automatically now.
 - ~~**Chunk batching**~~: Done — implemented 50ms debounce in MessageAPI.ts streaming.
 - ~~**Vite code splitting**~~: Done — manual chunks for markdown, PDF, math, and UI vendor libs.
-- **Component decomposition**: `MultiChat.tsx` (2,848 lines) and `Settings.tsx` (2,012 lines) are large single files. Extract sub-components.
+- ~~**Component decomposition**~~: Done — `MultiChat.tsx` decomposed from 2,925 to ~960 lines. Extracted `ChatMessageViews.tsx` (message rendering), `ShareChatDialog.tsx`, `QuickChatHeaderBar.tsx`, `ChatHeaderActions.tsx`. `Settings.tsx` was already at 624 lines (tabs extracted to `settings/` subdirectory).
 
 ### Database
 
 - ~~**Missing indexes**~~: Done — added indexes on `messages(chat_id, state)` and `message_parts(message_id)` in migration 144.
-- **Batch IPC for multi-step operations**: Operations like `duplicateMessageSet` make 5+ sequential IPC calls. A single Rust command that runs the whole transaction server-side would be faster.
-- **Chat list re-sorting**: `useCacheUpdateChat` re-sorts the entire chat list on every update. Guard to only sort when sort key changes.
+- ~~**Batch IPC for multi-step operations**~~: Done — added `create_message_set_pair` and `edit_message` Rust commands that wrap multi-step DB operations in single SQLite transactions. Fixes documented race condition in `useCreateMessageSetPair`.
+- ~~**Chat list re-sorting**~~: Done — added `sortChanged` option to `useCacheUpdateChat`. Call sites that don't update `updatedAt` (rename, project context summary) skip the sort.
 
 ### Rust offloading candidates
 
@@ -29,12 +29,12 @@
 ### useOptimistic for Chat State
 - ~~Delete chat~~: Done — optimistic removal from cache with rollback on error.
 - ~~Rename chat~~: Done — optimistic title update in cache.
-- Remaining candidates: sending messages (show user message before DB write), toggling pins
+- ~~Remaining candidates~~: Sending messages already has optimistic update (`useOptimisticInsertUserMessage`). `Chat.pinned` is deprecated with no UI — skip.
 - Pattern uses TanStack Query `onMutate/onError/onSettled` with Immer `produce`
 
 ### ~~React Compiler~~
 Done — `babel-plugin-react-compiler` enabled globally in `vite.config.ts`. Automatic memoization active.
-- Follow-up: audit and remove manual `useMemo`/`useCallback` that the compiler now handles
+- ~~Follow-up: audit and remove manual `useMemo`/`useCallback`~~: Done — removed ~45 redundant wrappers across 18 files. Kept debounced functions, DOM-mutating callbacks, and useEffect-dependent handlers.
 
 ---
 

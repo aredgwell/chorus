@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef } from "react";
 import { ArrowUp } from "lucide-react";
 import AutoExpandingTextarea from "@ui/components/AutoExpandingTextarea";
 import { useShortcut } from "@ui/hooks/useShortcut";
@@ -208,64 +208,55 @@ export default function Composer({ onSend, disabled }: ComposerProps) {
         }
     });
 
-    const handleInputChange = useCallback(
-        (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-            const value = e.target.value;
-            setInput(value);
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        setInput(value);
 
-            // Detect @ for mention autocomplete
-            const cursorPos = e.target.selectionStart;
-            const textBeforeCursor = value.slice(0, cursorPos);
-            const atMatch = textBeforeCursor.match(/@(\w*)$/);
+        // Detect @ for mention autocomplete
+        const cursorPos = e.target.selectionStart;
+        const textBeforeCursor = value.slice(0, cursorPos);
+        const atMatch = textBeforeCursor.match(/@(\w*)$/);
 
-            if (atMatch) {
-                setShowMentionPicker(true);
-                setMentionFilter(atMatch[1].toLowerCase());
-            } else {
-                setShowMentionPicker(false);
-            }
-        },
-        [],
-    );
-
-    const handleMentionSelect = useCallback(
-        (handle: string) => {
-            const textarea = textareaRef.current;
-            const cursorPos = textarea?.selectionStart ?? input.length;
-            const textBeforeCursor = input.slice(0, cursorPos);
-            const textAfterCursor = input.slice(cursorPos);
-            const newTextBefore = textBeforeCursor.replace(
-                /@\w*$/,
-                `@${handle} `,
-            );
-            setInput(newTextBefore + textAfterCursor);
+        if (atMatch) {
+            setShowMentionPicker(true);
+            setMentionFilter(atMatch[1].toLowerCase());
+        } else {
             setShowMentionPicker(false);
+        }
+    };
 
-            // Refocus the textarea
-            requestAnimationFrame(() => {
-                textarea?.focus();
-                const newPos = newTextBefore.length;
-                textarea?.setSelectionRange(newPos, newPos);
-            });
-        },
-        [input],
-    );
+    const handleMentionSelect = (handle: string) => {
+        const textarea = textareaRef.current;
+        const cursorPos = textarea?.selectionStart ?? input.length;
+        const textBeforeCursor = input.slice(0, cursorPos);
+        const textAfterCursor = input.slice(cursorPos);
+        const newTextBefore = textBeforeCursor.replace(
+            /@\w*$/,
+            `@${handle} `,
+        );
+        setInput(newTextBefore + textAfterCursor);
+        setShowMentionPicker(false);
 
-    const handleSubmit = useCallback(() => {
+        // Refocus the textarea
+        requestAnimationFrame(() => {
+            textarea?.focus();
+            const newPos = newTextBefore.length;
+            textarea?.setSelectionRange(newPos, newPos);
+        });
+    };
+
+    const handleSubmit = () => {
         if (!input.trim() || disabled) return;
         onSend(input.trim());
         setInput("");
-    }, [input, disabled, onSend]);
+    };
 
-    const handleKeyDown = useCallback(
-        (e: React.KeyboardEvent) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit();
-            }
-        },
-        [handleSubmit],
-    );
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSubmit();
+        }
+    };
 
     const filteredItems = MENTION_ITEMS.filter(
         (item) =>
@@ -276,10 +267,7 @@ export default function Composer({ onSend, disabled }: ComposerProps) {
     const hasContent = input.trim().length > 0;
 
     // Parse @mentions from input text to show as token pills
-    const mentionedModels = useMemo(
-        () => parseMentionedModels(input),
-        [input],
-    );
+    const mentionedModels = parseMentionedModels(input);
     const hasMentions = mentionedModels.length > 0;
 
     return (

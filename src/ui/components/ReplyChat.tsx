@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import * as MessageAPI from "@core/chorus/api/MessageAPI";
 import { ChatInput } from "./ChatInput";
@@ -29,7 +29,7 @@ export default function ReplyChat({ chatId, replyToId }: ReplyChatProps) {
         setShowScrollbar(false);
     };
 
-    const repliedToMessage = useMemo(() => {
+    const repliedToMessage = (() => {
         if (!messageSetsQuery.data) return;
 
         for (const messageSet of messageSetsQuery.data) {
@@ -38,13 +38,14 @@ export default function ReplyChat({ chatId, replyToId }: ReplyChatProps) {
             );
             if (foundMessage) return foundMessage;
         }
-    }, [messageSetsQuery.data, replyToId]);
+    })();
 
     // Filter message sets to only show those created after the chat was created
     // This excludes the copied message sets from the original chat
-    const replyMessageSets = useMemo(() => {
-        return filterReplyMessageSets(messageSetsQuery.data, chatQuery.data);
-    }, [messageSetsQuery.data, chatQuery.data]);
+    const replyMessageSets = filterReplyMessageSets(
+        messageSetsQuery.data,
+        chatQuery.data,
+    );
 
     // Remove auto-scroll when new messages are added to allow users to scroll up while streaming
 

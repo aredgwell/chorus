@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Loader2, X, ArrowUpFromLine, MessageSquare } from "lucide-react";
 import { MessageMarkdown } from "@ui/components/renderers/MessageMarkdown";
 import { ProviderLogo } from "@ui/components/ui/provider-logo";
@@ -122,10 +122,7 @@ export default function GroupChatThread({
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Find the root message
-    const rootMessage = useMemo(
-        () => mainMessages?.find((m) => m.id === threadRootMessageId),
-        [mainMessages, threadRootMessageId],
-    );
+    const rootMessage = mainMessages?.find((m) => m.id === threadRootMessageId);
 
     // Auto-scroll on new thread messages
     const threadMessageCount = threadMessages?.length ?? 0;
@@ -150,23 +147,20 @@ export default function GroupChatThread({
     }, [chatId, threadRootMessageId]);
 
     // Build thinking indicator
-    const thinkingModelInstances = useMemo(() => {
-        const instances: ModelInstance[] = [];
-        generatingModels.forEach((count, modelId) => {
-            if (count > 0) {
-                const modelName = getModelDisplayName(modelId);
-                for (let i = 1; i <= count; i++) {
-                    instances.push({
-                        modelId,
-                        displayName: modelName,
-                        instanceNumber: i,
-                        totalInstances: count,
-                    });
-                }
+    const thinkingModelInstances: ModelInstance[] = [];
+    generatingModels.forEach((count, modelId) => {
+        if (count > 0) {
+            const modelName = getModelDisplayName(modelId);
+            for (let i = 1; i <= count; i++) {
+                thinkingModelInstances.push({
+                    modelId,
+                    displayName: modelName,
+                    instanceNumber: i,
+                    totalInstances: count,
+                });
             }
-        });
-        return instances;
-    }, [generatingModels]);
+        }
+    });
 
     const isGenerating = thinkingModelInstances.length > 0;
 

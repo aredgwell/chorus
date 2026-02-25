@@ -1353,32 +1353,18 @@ export function useCreateMessageSetPair() {
             const userMessageSetId = uuidv4();
             const aiMessageSetId = uuidv4();
 
-            // possible (but extremely hypothetical) race condition here because this is not in a transaction
-
-            // stop streaming on all previous messages (except review messages)
-            await db.execute(
-                `UPDATE messages SET streaming_token = NULL, state = 'idle'
-                    WHERE chat_id = $1 AND state = 'streaming' AND is_review <> 1`,
-                [chatId],
-            );
-
-            // Calculate user message set level based on parent
             const userLevel = userMessageSetParent
                 ? userMessageSetParent.level + 1
                 : 0;
 
-            await db.execute(
-                "INSERT INTO message_sets (id, chat_id, level, type, selected_block_type) VALUES ($1, $2, $3, $4, $5)",
-                [userMessageSetId, chatId, userLevel, "user", "user"],
-            );
-
-            // AI message is always one level after the user message
-            const aiLevel = userLevel + 1;
-
-            await db.execute(
-                "INSERT INTO message_sets (id, chat_id, level, type, selected_block_type) VALUES ($1, $2, $3, $4, $5)",
-                [aiMessageSetId, chatId, aiLevel, "ai", selectedBlockType],
-            );
+            // Single Rust command wraps all 3 operations in a transaction
+            await invoke("create_message_set_pair", {
+                chatId,
+                userMessageSetId,
+                aiMessageSetId,
+                userLevel: userLevel,
+                selectedBlockType,
+            });
 
             return { userMessageSetId, aiMessageSetId };
         },
@@ -1864,58 +1850,39 @@ export function useEditMessage(chatId: string, isQuickChatWindow: boolean) {
             messageSetId: string;
             newText: string;
         }) => {
-            // 1. Update the user message text
-            await db.execute("UPDATE messages SET text = ? WHERE id = ?", [
-                newText,
+            // Single Rust command wraps all DB operations in a transaction
+            const result = await invoke<{
+                nextMessageSetId: string | null;
+            }>("edit_message", {
+                chatId,
                 messageId,
-            ]);
+                messageSetId,
+                newText,
+            });
 
-            // 2. Get message sets from the cache
+            if (!result.nextMessageSetId) {
+                return;
+            }
+
+            // Force refresh so that UI will update and populateBlock will work
+            await forceRefreshMessageSets(chatId);
+
+            // Get the refreshed message sets to find the block type
             const messageSets = await queryClient.ensureQueryData({
                 queryKey: messageKeys.messageSets(chatId),
                 queryFn: () => fetchMessageSets(chatId),
             });
 
-            // Find the next message set (if any)
-            const messageSet = messageSets.find((ms) => ms.id === messageSetId);
-            if (!messageSet) {
-                return;
-            }
             const nextMessageSet = messageSets.find(
-                (ms) => ms.level === messageSet.level + 1,
+                (ms) => ms.id === result.nextMessageSetId,
             );
-            if (!nextMessageSet) {
-                return;
+            if (nextMessageSet) {
+                // Re-populate the next AI message set selected block
+                await populateBlock.mutateAsync({
+                    messageSetId: nextMessageSet.id,
+                    blockType: nextMessageSet.selectedBlockType,
+                });
             }
-
-            // Delete all messages in next AI message set
-            await db.execute("DELETE FROM messages WHERE message_set_id = ?", [
-                nextMessageSet.id,
-            ]);
-
-            // 4a. Delete all messages beyond next AI message set
-            await db.execute(
-                `DELETE FROM messages
-                 WHERE message_set_id IN (
-                     SELECT id FROM message_sets WHERE chat_id = ? AND level > ?
-                 )`,
-                [chatId, messageSet.level + 1],
-            );
-
-            // 4b. Delete all message sets beyond next AI message set
-            await db.execute(
-                "DELETE FROM message_sets WHERE chat_id = ? AND level > ?",
-                [chatId, messageSet.level + 1],
-            );
-
-            // force refresh so that UI will update and populateBlock will work
-            await forceRefreshMessageSets(chatId);
-
-            // 5. Re-populate the next AI message set selected block
-            await populateBlock.mutateAsync({
-                messageSetId: nextMessageSet.id,
-                blockType: nextMessageSet.selectedBlockType,
-            });
         },
         onSuccess: async () => {
             await queryClient.invalidateQueries({

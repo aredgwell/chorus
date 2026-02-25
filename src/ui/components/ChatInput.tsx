@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import React from "react";
 import { useAppContext } from "@ui/hooks/useAppContext";
 import AutoExpandingTextarea from "./AutoExpandingTextarea";
@@ -136,14 +136,11 @@ export function ChatInput({
     const updateReplyModelConfig =
         ModelConfigChatAPI.useUpdateReplyModelConfig();
 
-    const getReplyToModelConfig = useCallback(
-        (modelId: string | undefined) => {
-            return modelId
-                ? modelConfigs.data?.find((m) => m.modelId === modelId)
-                : undefined;
-        },
-        [modelConfigs.data],
-    );
+    const getReplyToModelConfig = (modelId: string | undefined) => {
+        return modelId
+            ? modelConfigs.data?.find((m) => m.modelId === modelId)
+            : undefined;
+    };
 
     const replyToModelConfig = isReply
         ? getReplyToModelConfig(
@@ -382,65 +379,52 @@ export function ChatInput({
     /**
      * Ensures a model config is selected
      */
-    const ensureCompareModelConfigSelected = useCallback(
-        async (modelConfigId: string) => {
-            await addModelToCompareConfigs.mutateAsync({
-                newSelectedModelConfigId: modelConfigId,
-            });
-        },
-        [addModelToCompareConfigs],
-    );
+    const ensureCompareModelConfigSelected = async (
+        modelConfigId: string,
+    ) => {
+        await addModelToCompareConfigs.mutateAsync({
+            newSelectedModelConfigId: modelConfigId,
+        });
+    };
 
-    const ensureCompareModelConfigDeselected = useCallback(
-        async (modelConfigId: string) => {
-            const newModelConfigs = selectedModelConfigsCompare.data?.filter(
-                (m) => m.id !== modelConfigId,
+    const ensureCompareModelConfigDeselected = async (
+        modelConfigId: string,
+    ) => {
+        const newModelConfigs = selectedModelConfigsCompare.data?.filter(
+            (m) => m.id !== modelConfigId,
+        );
+        await updateSelectedModelConfigsCompare.mutateAsync({
+            modelConfigs: newModelConfigs ?? [],
+        });
+
+        posthog.capture("selected_model_configs_updated", {
+            selectedModelConfigs: newModelConfigs?.map((m) => m.id) ?? [],
+            modelConfigRemoved: modelConfigId,
+        });
+    };
+
+    const toggleCompareModelConfig = async (modelConfigId: string) => {
+        console.log("toggleCompareModelConfig", modelConfigId);
+        try {
+            // Check if model is already selected
+            const isSelected = selectedModelConfigsCompare.data?.some(
+                (m) => m.id === modelConfigId,
             );
-            await updateSelectedModelConfigsCompare.mutateAsync({
-                modelConfigs: newModelConfigs ?? [],
-            });
 
-            posthog.capture("selected_model_configs_updated", {
-                selectedModelConfigs: newModelConfigs?.map((m) => m.id) ?? [],
-                modelConfigRemoved: modelConfigId,
-            });
-        },
-        [
-            selectedModelConfigsCompare,
-            posthog,
-            updateSelectedModelConfigsCompare,
-        ],
-    );
-
-    const toggleCompareModelConfig = useCallback(
-        async (modelConfigId: string) => {
-            console.log("toggleCompareModelConfig", modelConfigId);
-            try {
-                // Check if model is already selected
-                const isSelected = selectedModelConfigsCompare.data?.some(
-                    (m) => m.id === modelConfigId,
-                );
-
-                if (isSelected) {
-                    await ensureCompareModelConfigDeselected(modelConfigId);
-                } else {
-                    await ensureCompareModelConfigSelected(modelConfigId);
-                }
-            } catch (error) {
-                console.error(error);
-                toast.error("Error", {
-                    description: "Failed to update model selection",
-                });
+            if (isSelected) {
+                await ensureCompareModelConfigDeselected(modelConfigId);
+            } else {
+                await ensureCompareModelConfigSelected(modelConfigId);
             }
-        },
-        [
-            selectedModelConfigsCompare,
-            ensureCompareModelConfigSelected,
-            ensureCompareModelConfigDeselected,
-        ],
-    );
+        } catch (error) {
+            console.error(error);
+            toast.error("Error", {
+                description: "Failed to update model selection",
+            });
+        }
+    };
 
-    const clearCompareModelConfigs = useCallback(() => {
+    const clearCompareModelConfigs = () => {
         void (async () => {
             await updateSelectedModelConfigsCompare.mutateAsync({
                 modelConfigs: [],
@@ -449,7 +433,7 @@ export function ChatInput({
                 selectedModelConfigs: [],
             });
         })();
-    }, [posthog, updateSelectedModelConfigsCompare]);
+    };
 
     // Update focus when dialog closes or chat id changes
     useEffect(() => {
@@ -496,7 +480,7 @@ export function ChatInput({
 
     const [searchParams] = useSearchParams();
 
-    const isNextFocus = useMemo(() => {
+    const isNextFocus = (() => {
         const isReplyDrawerOpen = searchParams.get("replyId");
 
         if (focusedChatInputId === DEFAULT_CHAT_INPUT_ID) {
@@ -506,7 +490,7 @@ export function ChatInput({
         } else if (isReplyDrawerOpen) {
             return isReply;
         } else return !isReply;
-    }, [focusedChatInputId, isReply, searchParams]);
+    })();
 
     useShortcut(["meta", "l"], () => {
         if (isNextFocus) {

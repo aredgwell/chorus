@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
@@ -179,10 +179,7 @@ export function AttachmentPillsList({
     onRemove?: (attachmentId: string) => void;
     className?: string;
 }) {
-    const nonEphemeralAttachments = useMemo(
-        () => attachments.filter((a) => !a.ephemeral),
-        [attachments],
-    );
+    const nonEphemeralAttachments = attachments.filter((a) => !a.ephemeral);
     if (!nonEphemeralAttachments || nonEphemeralAttachments?.length === 0) {
         return null;
     }
