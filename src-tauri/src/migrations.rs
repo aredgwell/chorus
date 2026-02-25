@@ -2796,5 +2796,22 @@ You have full access to bash commands on the user''''s computer. If you write a 
                 ALTER TABLE gc_messages ADD COLUMN tool_calls TEXT;
             "#,
         },
+        Migration {
+            version: 148,
+            description: "create gc_conductors table",
+            kind: MigrationKind::Up,
+            sql: r#"
+                CREATE TABLE gc_conductors (
+                    chat_id TEXT NOT NULL,
+                    scope_id TEXT,
+                    conductor_model_id TEXT NOT NULL,
+                    turn_count INTEGER NOT NULL DEFAULT 0,
+                    is_active BOOLEAN NOT NULL DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE UNIQUE INDEX idx_gc_conductors_active
+                    ON gc_conductors(chat_id, scope_id) WHERE is_active = 1;
+            "#,
+        },
     ];
 }

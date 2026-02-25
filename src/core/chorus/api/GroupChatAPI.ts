@@ -28,6 +28,8 @@ import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTra
 import {
     getChatFormatPrompt,
     getNonConductorPrompt,
+    getConductorPrompt,
+    getConductorReminder,
 } from "@core/chorus/gc-prototype/PromptsGC";
 import { UpdateQueue } from "@core/chorus/UpdateQueue";
 
@@ -201,6 +203,97 @@ async function promoteGCMessageToMain(
 }
 
 // ---------------------------------------------------------------------------
+// Conductor DB helpers
+// ---------------------------------------------------------------------------
+
+export type GCConductor = {
+    chatId: string;
+    scopeId?: string;
+    conductorModelId: string;
+    turnCount: number;
+    isActive: boolean;
+    createdAt: string;
+};
+
+type GCConductorDBRow = {
+    chat_id: string;
+    scope_id: string | null;
+    conductor_model_id: string;
+    turn_count: number;
+    is_active: number;
+    created_at: string;
+};
+
+function readGCConductor(row: GCConductorDBRow): GCConductor {
+    return {
+        chatId: row.chat_id,
+        scopeId: row.scope_id ?? undefined,
+        conductorModelId: row.conductor_model_id,
+        turnCount: row.turn_count,
+        isActive: row.is_active === 1,
+        createdAt: row.created_at,
+    };
+}
+
+async function fetchActiveConductor(
+    chatId: string,
+    scopeId?: string,
+): Promise<GCConductor | undefined> {
+    const rows = await db.select<GCConductorDBRow[]>(
+        `SELECT chat_id, scope_id, conductor_model_id, turn_count, is_active, created_at
+         FROM gc_conductors
+         WHERE chat_id = ? AND scope_id IS ? AND is_active = 1
+         LIMIT 1`,
+        [chatId, scopeId ?? null],
+    );
+    if (rows.length === 0) return undefined;
+    return readGCConductor(rows[0]);
+}
+
+async function setConductor(
+    chatId: string,
+    scopeId: string | undefined,
+    modelId: string,
+): Promise<void> {
+    await db.execute(
+        `INSERT OR REPLACE INTO gc_conductors (chat_id, scope_id, conductor_model_id, turn_count, is_active)
+         VALUES (?, ?, ?, 0, 1)`,
+        [chatId, scopeId ?? null, modelId],
+    );
+}
+
+async function incrementConductorTurn(
+    chatId: string,
+    scopeId?: string,
+): Promise<number> {
+    await db.execute(
+        `UPDATE gc_conductors
+         SET turn_count = turn_count + 1
+         WHERE chat_id = ? AND scope_id IS ? AND is_active = 1`,
+        [chatId, scopeId ?? null],
+    );
+    const result = await db.select<{ turn_count: number }[]>(
+        `SELECT turn_count
+         FROM gc_conductors
+         WHERE chat_id = ? AND scope_id IS ? AND is_active = 1`,
+        [chatId, scopeId ?? null],
+    );
+    return result[0]?.turn_count ?? 0;
+}
+
+async function clearConductor(
+    chatId: string,
+    scopeId?: string,
+): Promise<void> {
+    await db.execute(
+        `UPDATE gc_conductors
+         SET is_active = 0
+         WHERE chat_id = ? AND scope_id IS ?`,
+        [chatId, scopeId ?? null],
+    );
+}
+
+// ---------------------------------------------------------------------------
 // Query keys & factories
 // ---------------------------------------------------------------------------
 
@@ -210,6 +303,8 @@ const gcMessageKeys = {
     thread: (chatId: string, threadRootId: string) =>
         ["gcThreadMessages", chatId, threadRootId] as const,
     threadCounts: (chatId: string) => ["gcThreadCounts", chatId] as const,
+    conductor: (chatId: string, scopeId?: string) =>
+        ["gcConductor", chatId, scopeId ?? null] as const,
 };
 
 export const gcMessageQueries = {
@@ -275,6 +370,7 @@ export async function encodeConversation(
     options?: {
         threadRootMessageId?: string;
         threadMessages?: GCMessage[];
+        isConductor?: boolean;
     },
 ): Promise<LLMMessage[]> {
     const result: LLMMessage[] = [];
@@ -291,11 +387,19 @@ export async function encodeConversation(
         content: getChatFormatPrompt(modelName),
         attachments: [],
     });
-    result.push({
-        role: "user",
-        content: getNonConductorPrompt(modelName),
-        attachments: [],
-    });
+    if (options?.isConductor) {
+        result.push({
+            role: "user",
+            content: getConductorPrompt(modelName),
+            attachments: [],
+        });
+    } else {
+        result.push({
+            role: "user",
+            content: getNonConductorPrompt(modelName),
+            attachments: [],
+        });
+    }
 
     let activeMessages: GCMessage[];
     if (options?.threadRootMessageId && options.threadMessages) {
@@ -719,6 +823,197 @@ async function streamGCResponseWithTools(params: {
 }
 
 // ---------------------------------------------------------------------------
+// orchestrateConductorSession — recursive conductor loop
+// ---------------------------------------------------------------------------
+
+const MAX_CONDUCTOR_TURNS = 10;
+
+async function orchestrateConductorSession(params: {
+    chatId: string;
+    conductorModelId: string;
+    queryClient: QueryClient;
+    getTools: () => UserTool[];
+    scopeId?: string;
+    threadRootMessageId?: string;
+}): Promise<void> {
+    const {
+        chatId,
+        conductorModelId,
+        queryClient,
+        getTools,
+        scopeId,
+        threadRootMessageId,
+    } = params;
+
+    try {
+        // Initialize conductor on first call
+        const existing = await fetchActiveConductor(chatId, scopeId);
+        if (!existing) {
+            await setConductor(chatId, scopeId, conductorModelId);
+        }
+
+        // Invalidate conductor query so UI updates
+        await queryClient.invalidateQueries({
+            queryKey: gcMessageKeys.conductor(chatId, scopeId),
+        });
+
+        // Increment turn
+        const turnCount = await incrementConductorTurn(chatId, scopeId);
+
+        // Generate conductor's response
+        const allConfigs = await ModelsAPI.fetchModelConfigs();
+        const conductorConfig = allConfigs.find(
+            (c) => c.modelId === conductorModelId,
+        );
+        if (!conductorConfig) {
+            throw new Error(
+                `Conductor model config not found: ${conductorModelId}`,
+            );
+        }
+
+        // Encode conversation with isConductor=true
+        const currentMessages = await fetchGCMainMessages(chatId);
+        const threadMessages = threadRootMessageId
+            ? await fetchGCThreadMessages(chatId, threadRootMessageId)
+            : undefined;
+
+        const conversation = await encodeConversation(
+            currentMessages,
+            conductorModelId,
+            {
+                isConductor: true,
+                threadRootMessageId,
+                threadMessages,
+            },
+        );
+
+        // Add conductor reminder if not first turn
+        if (turnCount > 1) {
+            conversation.push({
+                role: "user",
+                content: getConductorReminder(),
+                attachments: [],
+            });
+        }
+
+        const cacheKey = threadRootMessageId
+            ? gcMessageKeys.thread(chatId, threadRootMessageId)
+            : gcMessageKeys.main(chatId);
+
+        // Pre-insert empty conductor message
+        const messageId = uuidv4().toLowerCase();
+        await insertGCMessage(
+            chatId,
+            messageId,
+            "",
+            conductorModelId,
+            { threadRootMessageId },
+        );
+
+        // Optimistically add to cache
+        queryClient.setQueryData(
+            cacheKey,
+            produce(
+                queryClient.getQueryData(cacheKey),
+                (draft: GCMessage[] | undefined) => {
+                    if (!draft) return;
+                    draft.push({
+                        chatId,
+                        id: messageId,
+                        text: "",
+                        modelConfigId: conductorModelId,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        isDeleted: false,
+                        threadRootMessageId,
+                    });
+                },
+            ),
+        );
+
+        // Gather tools
+        const tools = conductorConfig.supportsToolUse ? getTools() : [];
+
+        // Stream conductor's response
+        await streamGCResponse({
+            chatId,
+            messageId,
+            modelConfig: conductorConfig,
+            conversation,
+            queryClient,
+            scopeId: scopeId ?? threadRootMessageId,
+            tools,
+            cacheKey,
+        });
+
+        // Read the conductor's response text
+        const updatedMessages = threadRootMessageId
+            ? await fetchGCThreadMessages(chatId, threadRootMessageId)
+            : await fetchGCMainMessages(chatId);
+        const conductorMsg = updatedMessages.find((m) => m.id === messageId);
+        const responseText = conductorMsg?.text ?? "";
+
+        // Check for /yield
+        if (responseText.includes("/yield")) {
+            await clearConductor(chatId, scopeId);
+            await queryClient.invalidateQueries({
+                queryKey: gcMessageKeys.conductor(chatId, scopeId),
+            });
+            return;
+        }
+
+        // Parse @mentions from conductor's response
+        const { models: mentionedModels } =
+            await getRespondingModels(responseText);
+
+        // Filter out the conductor itself
+        const respondingModels = mentionedModels.filter(
+            (m) => m.id !== conductorModelId,
+        );
+
+        // Generate parallel responses from mentioned models
+        if (respondingModels.length > 0) {
+            await Promise.all(
+                respondingModels.map(async (model) => {
+                    const modelConfig = allConfigs.find(
+                        (c) => c.modelId === model.id,
+                    );
+                    if (!modelConfig) return;
+
+                    await streamGCResponseWithTools({
+                        chatId,
+                        modelConfig,
+                        queryClient,
+                        getTools,
+                        scopeId,
+                        threadRootMessageId,
+                    });
+                }),
+            );
+        }
+
+        // Check turn limit
+        if (turnCount >= MAX_CONDUCTOR_TURNS) {
+            await clearConductor(chatId, scopeId);
+            await queryClient.invalidateQueries({
+                queryKey: gcMessageKeys.conductor(chatId, scopeId),
+            });
+            return;
+        }
+
+        // Recurse for next conductor turn
+        await orchestrateConductorSession(params);
+    } catch (error) {
+        // Clear conductor on error
+        await clearConductor(chatId, scopeId);
+        await queryClient.invalidateQueries({
+            queryKey: gcMessageKeys.conductor(chatId, scopeId),
+        });
+        throw error;
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Hooks
 // ---------------------------------------------------------------------------
 
@@ -743,6 +1038,39 @@ export function useGCThreadCounts(chatId: string) {
     return useQuery({
         ...gcMessageQueries.threadCounts(chatId),
         enabled: !!chatId,
+    });
+}
+
+export function useGCConductor(chatId: string, scopeId?: string) {
+    return useQuery({
+        queryKey: gcMessageKeys.conductor(chatId, scopeId),
+        queryFn: () => fetchActiveConductor(chatId, scopeId),
+        enabled: !!chatId,
+    });
+}
+
+export function useClearConductor() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationKey: ["clearGCConductor"] as const,
+        mutationFn: async ({
+            chatId,
+            scopeId,
+        }: {
+            chatId: string;
+            scopeId?: string;
+        }) => {
+            await clearConductor(chatId, scopeId);
+        },
+        onSuccess: async (_, variables) => {
+            await queryClient.invalidateQueries({
+                queryKey: gcMessageKeys.conductor(
+                    variables.chatId,
+                    variables.scopeId,
+                ),
+            });
+        },
     });
 }
 
@@ -981,6 +1309,70 @@ export function useGenerateAIResponses() {
             userMessage: string;
             threadRootMessageId?: string;
         }) => {
+            // Check for /conduct command
+            if (userMessage.toLowerCase().startsWith("/conduct")) {
+                const { models } = await getRespondingModels(userMessage);
+                const conductorModelId =
+                    models[0]?.id ?? DEFAULT_MODEL_ID;
+                const toolsets = await getToolsets();
+                const tools = toolsets.flatMap((t) => t.listTools());
+
+                const scopeId = threadRootMessageId;
+                await orchestrateConductorSession({
+                    chatId,
+                    conductorModelId,
+                    queryClient,
+                    getTools: () => tools,
+                    scopeId,
+                    threadRootMessageId,
+                });
+
+                return [
+                    {
+                        model: conductorModelId,
+                        success: true,
+                    },
+                ];
+            }
+
+            // Check for /yield command
+            if (userMessage.toLowerCase().startsWith("/yield")) {
+                const scopeId = threadRootMessageId;
+                await clearConductor(chatId, scopeId);
+                await queryClient.invalidateQueries({
+                    queryKey: gcMessageKeys.conductor(chatId, scopeId),
+                });
+                return [];
+            }
+
+            // Check if there's an active conductor
+            const scopeId = threadRootMessageId;
+            const activeConductor = await fetchActiveConductor(
+                chatId,
+                scopeId,
+            );
+            if (activeConductor) {
+                const toolsets = await getToolsets();
+                const tools = toolsets.flatMap((t) => t.listTools());
+
+                // Continue conductor session
+                await orchestrateConductorSession({
+                    chatId,
+                    conductorModelId: activeConductor.conductorModelId,
+                    queryClient,
+                    getTools: () => tools,
+                    scopeId,
+                    threadRootMessageId,
+                });
+
+                return [
+                    {
+                        model: activeConductor.conductorModelId,
+                        success: true,
+                    },
+                ];
+            }
+
             const { models: aiModels, multiplier } =
                 await getRespondingModels(userMessage);
 

@@ -39,6 +39,8 @@ import { dialogActions } from "@core/infra/DialogStore";
 import {
     useGCMainMessages,
     useGCThreadCounts,
+    useGCConductor,
+    useClearConductor,
     useSendGCMessage,
     useGenerateAIResponses,
     useDeleteGCMessage,
@@ -514,6 +516,8 @@ export default function GroupChat() {
     const restoreMessage = useRestoreGCMessage();
     const regenerateMessage = useRegenerateGCMessage();
     const generateTitle = useGenerateGCChatTitle();
+    const { data: conductor } = useGCConductor(chatId ?? "");
+    const clearConductorMutation = useClearConductor();
 
     const [generatingModels, setGeneratingModels] = useState<
         Map<string, number>
@@ -692,8 +696,44 @@ export default function GroupChat() {
                     </span>
                 </HeaderBar>
 
+                {/* Conductor banner */}
+                {conductor && (
+                    <div className="pt-[52px] px-4 pb-0">
+                        <div className="max-w-3xl mx-auto">
+                            <div className="flex items-center justify-between rounded-md bg-secondary px-4 py-2 text-sm">
+                                <div className="flex items-center gap-2">
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    <ProviderLogo
+                                        size="xs"
+                                        modelId={conductor.conductorModelId}
+                                    />
+                                    <span>
+                                        {getModelDisplayName(
+                                            conductor.conductorModelId,
+                                        )}{" "}
+                                        is conducting (turn{" "}
+                                        {conductor.turnCount}/10)
+                                    </span>
+                                </div>
+                                <button
+                                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                    onClick={() => {
+                                        if (chatId) {
+                                            clearConductorMutation.mutate({
+                                                chatId,
+                                            });
+                                        }
+                                    }}
+                                >
+                                    Stop
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Message list */}
-                <div className="flex-1 overflow-y-auto pt-[52px] pb-4">
+                <div className={`flex-1 overflow-y-auto ${conductor ? "" : "pt-[52px]"} pb-4`}>
                     <div className="max-w-3xl mx-auto">
                         {messages.map((message) => (
                             <GCMessageView
