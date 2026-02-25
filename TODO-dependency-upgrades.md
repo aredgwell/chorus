@@ -51,16 +51,14 @@ All safe patch/minor updates were applied in the codebase improvements PR. This 
 ### Breaking (major or 0.x minor bumps)
 
 - [x] **`thiserror`** 1.x -> 2.x -- Done. Derive syntax compatible, no code changes needed.
-- [ ] **`base64`** 0.21 -> 0.22 -- API changed from `encode()`/`decode()` to `Engine` trait.
-- [ ] **`image`** 0.24 -> 0.25 -- Buffer types and error handling changed.
+- [x] **`base64`** 0.21 -> 0.22 -- Done. Code already used Engine-based API; no code changes needed.
+- [x] **`image`** 0.24 -> 0.25 -- Done. Updated `image::io::Reader` import to `image::ImageReader`.
 - [x] **`window-vibrancy`** 0.5 -> 0.6 -- Done. Pinned to 0.6 to match tauri's internal dependency.
-- [ ] **`rusqlite`** 0.32 -> 0.38 -- Multiple minor versions. Check for API changes.
+- [ ] **`rusqlite`** 0.32 -> latest -- Blocked: `libsqlite3-sys` link conflict with `tauri-plugin-sql` (which pins `libsqlite3-sys` 0.28 via `sqlx-sqlite`). Upgrade when `tauri-plugin-sql` updates its `sqlx` dependency.
 
 ## Remaining Work
 
-- [ ] `base64` 0.21 -> 0.22 (Rust)
-- [ ] `image` 0.24 -> 0.25 (Rust)
-- [ ] `rusqlite` 0.32 -> 0.38 (Rust)
+- [ ] `rusqlite` 0.32 -> latest (Rust, blocked by tauri-plugin-sql)
 - [ ] `vite` 6 -> 7 (Node, defer)
 - [ ] `string-width` 4 -> 8 (Node, ESM-only concern)
 - [ ] `strip-ansi` 6 -> 7 (Node, ESM-only concern)
