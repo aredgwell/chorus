@@ -467,6 +467,7 @@ pub fn run() {
             command::find_similar_chats,
             command::create_message_set_pair,
             command::edit_message,
+            command::convert_draft_attachments,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -416,17 +416,10 @@ export function useConvertDraftAttachmentsToMessageAttachments() {
             chatId: string;
             messageId: string;
         }) => {
-            await db.execute(
-                `INSERT INTO message_attachments (message_id, attachment_id)
-                        SELECT $1, draft_attachments.attachment_id
-                        FROM draft_attachments
-                        WHERE draft_attachments.chat_id = $2`,
-                [messageId, chatId],
-            );
-            await db.execute(
-                "DELETE FROM draft_attachments WHERE chat_id = $1",
-                [chatId],
-            );
+            await invoke("convert_draft_attachments", {
+                chatId,
+                messageId,
+            });
         },
         onSuccess: async (_data, variables) => {
             await queryClient.invalidateQueries({

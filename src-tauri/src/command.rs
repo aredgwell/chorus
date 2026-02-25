@@ -1310,3 +1310,46 @@ pub async fn edit_message(
     .await
     .map_err(|e| format!("Task join error: {}", e))?
 }
+
+/// Move draft attachments to message attachments in a single transaction.
+/// Prevents orphaned drafts if the delete fails after insert.
+#[tauri::command]
+pub async fn convert_draft_attachments(
+    app_handle: AppHandle,
+    chat_id: String,
+    message_id: String,
+) -> Result<(), String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    let db_path = app_data_dir.join("chorus.db");
+
+    tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
+        let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        conn.pragma_update(None, "journal_mode", "WAL")
+            .map_err(|e| e.to_string())?;
+
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "INSERT INTO message_attachments (message_id, attachment_id)
+             SELECT ?1, draft_attachments.attachment_id
+             FROM draft_attachments
+             WHERE draft_attachments.chat_id = ?2",
+            rusqlite::params![message_id, chat_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "DELETE FROM draft_attachments WHERE chat_id = ?1",
+            rusqlite::params![chat_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+}
