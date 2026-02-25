@@ -2894,7 +2894,9 @@ function updateMessageSets({
     return messageSets.map((ms) => (predicate(ms) ? update(ms) : ms));
 }
 
-// TODO-GC: this relies on getUserMessageSets
+// Legacy title generation using getUserMessageSets. Will be removed
+// when legacy MultiChat is fully deprecated in favor of GroupChat,
+// which has its own useGenerateGCChatTitle() in GroupChatAPI.ts.
 export function useGenerateChatTitle() {
     const queryClient = useQueryClient();
     const getMessageSets = useGetMessageSets();
@@ -2965,7 +2967,6 @@ ${userMessageText}
     });
 }
 
-// TODO-GC: remove after migration to GC
 export function useAddModelToCompareConfigs() {
     const queryClient = useQueryClient();
     const modelConfigsQuery = useModelConfigs();
@@ -3024,7 +3025,6 @@ export function useAddModelToCompareConfigs() {
     });
 }
 
-// TODO-GC: remove after migration to GC
 /**
  * Updates the list of selected model configs for comparing model output
  */
@@ -3068,7 +3068,6 @@ export function useUpdateSelectedModelConfigsCompare() {
     });
 }
 
-// TODO-GC: remove after migration to GC
 export function useUpdateSelectedModelConfigQuickChat() {
     const queryClient = useQueryClient();
     return useMutation({
@@ -3098,7 +3097,6 @@ export function useUpdateSelectedModelConfigQuickChat() {
     });
 }
 
-// TODO-GC: remove after migration to GC
 /**
  * Gets the selected model configs for the current chat type (quick chat or compare).
  */
