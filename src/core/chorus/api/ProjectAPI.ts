@@ -386,9 +386,13 @@ function useRegenerateProjectContextSummary() {
                 "UPDATE chats SET project_context_summary_is_stale = 0 WHERE id = ?",
                 [chatId],
             );
-            cacheUpdateChat(chatId, (chat) => {
-                chat.projectContextSummaryIsStale = false;
-            });
+            cacheUpdateChat(
+                chatId,
+                (chat) => {
+                    chat.projectContextSummaryIsStale = false;
+                },
+                { sortChanged: false },
+            );
 
             const messageSets = await getMessageSets(chatId);
 
@@ -428,9 +432,13 @@ function useRegenerateProjectContextSummary() {
             console.debug("regeneration succeeded", variables.chatId);
 
             // update data directly in cache
-            cacheUpdateChat(variables.chatId, (chat) => {
-                chat.projectContextSummary = data.summary;
-            });
+            cacheUpdateChat(
+                variables.chatId,
+                (chat) => {
+                    chat.projectContextSummary = data.summary;
+                },
+                { sortChanged: false },
+            );
         },
     });
 }
