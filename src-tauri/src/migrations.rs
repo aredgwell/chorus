@@ -2892,6 +2892,8 @@ You have full access to bash commands on the user''''s computer. If you write a 
         },
         Migration {
             version: 153,
+            description: "add FTS5 full-text search for notes",
+            kind: MigrationKind::Up,
             sql: r#"
                 -- FTS5 full-text search for notes (mirrors messages_fts pattern from migration 140)
                 CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
