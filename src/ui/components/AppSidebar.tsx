@@ -13,6 +13,8 @@ import {
     SparklesIcon,
     NetworkIcon,
     FileTextIcon,
+    ArrowUpDownIcon,
+    CheckIcon,
 } from "lucide-react";
 import {
     Sidebar,
@@ -78,9 +80,20 @@ import {
 import Droppable from "./Droppable";
 import Draggable from "./Draggable";
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { projectQueries, useCreateProject } from "@core/chorus/api/ProjectAPI";
 import { chatQueries } from "@core/chorus/api/ChatAPI";
 import { noteQueries } from "@core/chorus/api/NoteAPI";
+import {
+    useSidebarSortMode,
+    useSetSidebarSortMode,
+    type SidebarSortMode,
+} from "@core/chorus/api/AppMetadataAPI";
 import { useToggleProjectIsCollapsed } from "@core/chorus/api/ProjectAPI";
 import { SIMILAR_CHATS_DIALOG_ID } from "./SimilarChatsDialog";
 
@@ -464,6 +477,8 @@ export function AppSidebarInner() {
 
     const [showAllItems, setShowAllItems] = useState(false);
     const [sidebarFilter, setSidebarFilter] = useState("");
+    const sortMode = useSidebarSortMode();
+    const setSortMode = useSetSidebarSortMode();
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -492,11 +507,30 @@ export function AppSidebarInner() {
             .filter((note) => note.projectId === "default")
             .map((note) => ({ type: "note" as const, data: note }));
 
-        let items = [...chatItems, ...noteItems].sort(
-            (a, b) =>
-                new Date(sidebarItemUpdatedAt(b)).getTime() -
-                new Date(sidebarItemUpdatedAt(a)).getTime(),
-        );
+        let items = [...chatItems, ...noteItems];
+
+        // Apply sort based on mode
+        if (sortMode === "name") {
+            items.sort((a, b) =>
+                sidebarItemTitle(a).localeCompare(sidebarItemTitle(b)),
+            );
+        } else if (sortMode === "type") {
+            items.sort((a, b) => {
+                if (a.type !== b.type) {
+                    return a.type === "note" ? -1 : 1;
+                }
+                return (
+                    new Date(sidebarItemUpdatedAt(b)).getTime() -
+                    new Date(sidebarItemUpdatedAt(a)).getTime()
+                );
+            });
+        } else {
+            items.sort(
+                (a, b) =>
+                    new Date(sidebarItemUpdatedAt(b)).getTime() -
+                    new Date(sidebarItemUpdatedAt(a)).getTime(),
+            );
+        }
 
         if (sidebarFilter) {
             const lower = sidebarFilter.toLowerCase();
@@ -509,11 +543,16 @@ export function AppSidebarInner() {
         return items;
     })();
 
-    const groupedItems = groupItemsByDate(
-        showAllItems
-            ? defaultItems
-            : defaultItems.slice(0, NUM_DEFAULT_CHATS_TO_SHOW_BY_DEFAULT),
-    );
+    const itemsToDisplay = showAllItems
+        ? defaultItems
+        : defaultItems.slice(0, NUM_DEFAULT_CHATS_TO_SHOW_BY_DEFAULT);
+
+    // When sorting by date, group into Today/Yesterday/etc.
+    // For other sort modes, use a single flat group.
+    const groupedItems =
+        sortMode === "date"
+            ? groupItemsByDate(itemsToDisplay)
+            : [{ label: "", items: itemsToDisplay }];
     const quickChats = filterChatsForDisplay(
         chatsByProject["quick-chat"] || [],
         currentChatId,
@@ -636,9 +675,9 @@ export function AppSidebarInner() {
                                     </Tooltip>
                                 </div>
 
-                                {/* Search input */}
-                                <div className="px-2 mb-2">
-                                    <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-sidebar-accent/50 border border-border/50">
+                                {/* Search input + sort */}
+                                <div className="px-2 mb-2 flex items-center gap-1">
+                                    <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-sidebar-accent/50 border border-border/50 flex-1">
                                         <SearchIcon className="size-3.5 text-muted-foreground shrink-0" />
                                         <input
                                             type="text"
@@ -674,6 +713,59 @@ export function AppSidebarInner() {
                                             </button>
                                         )}
                                     </div>
+                                    <DropdownMenu>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <DropdownMenuTrigger asChild>
+                                                    <button className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors shrink-0">
+                                                        <ArrowUpDownIcon
+                                                            className="size-3.5"
+                                                            strokeWidth={
+                                                                1.5
+                                                            }
+                                                        />
+                                                    </button>
+                                                </DropdownMenuTrigger>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="bottom">
+                                                Sort
+                                            </TooltipContent>
+                                        </Tooltip>
+                                        <DropdownMenuContent align="end">
+                                            {(
+                                                [
+                                                    {
+                                                        value: "date",
+                                                        label: "Date",
+                                                    },
+                                                    {
+                                                        value: "name",
+                                                        label: "Name",
+                                                    },
+                                                    {
+                                                        value: "type",
+                                                        label: "Type",
+                                                    },
+                                                ] as const
+                                            ).map((option) => (
+                                                <DropdownMenuItem
+                                                    key={option.value}
+                                                    onSelect={() =>
+                                                        setSortMode.mutate(
+                                                            option.value as SidebarSortMode,
+                                                        )
+                                                    }
+                                                    className="flex items-center justify-between"
+                                                >
+                                                    {option.label}
+                                                    {sortMode ===
+                                                        option.value && (
+                                                        <CheckIcon className="size-3.5 ml-2" />
+                                                    )}
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </div>
 
                                 {/* Collections section */}
@@ -733,19 +825,23 @@ export function AppSidebarInner() {
 
                                 <Droppable id="default">
                                     {/* Grouped items (chats + notes) */}
-                                    {groupedItems.length > 0 ? (
+                                    {groupedItems.some(
+                                        (g) => g.items.length > 0,
+                                    ) ? (
                                         groupedItems.map(
                                             ({
                                                 label,
                                                 items: groupItems,
                                             }) => (
                                                 <div
-                                                    key={label}
+                                                    key={label || "all"}
                                                     className="pb-3"
                                                 >
-                                                    <div className="px-3 mb-1 sidebar-label flex items-center gap-2 text-muted-foreground">
-                                                        {label}
-                                                    </div>
+                                                    {label && (
+                                                        <div className="px-3 mb-1 sidebar-label flex items-center gap-2 text-muted-foreground">
+                                                            {label}
+                                                        </div>
+                                                    )}
                                                     {groupItems.map((item) =>
                                                         item.type ===
                                                         "chat" ? (
