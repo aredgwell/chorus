@@ -11,6 +11,7 @@ import {
     EllipsisIcon,
     SearchIcon,
     SparklesIcon,
+    NetworkIcon,
 } from "lucide-react";
 import {
     Sidebar,
@@ -712,6 +713,7 @@ export function AppSidebarInner() {
 function QuickChats({ chats }: { chats: Chat[] }) {
     const navigate = useNavigate();
     const settings = useSettings();
+    const [isAmbientOpen, setIsAmbientOpen] = useState(false);
     const convertQuickChatToRegularChat =
         ChatAPI.useConvertQuickChatToRegularChat();
 
@@ -727,98 +729,120 @@ function QuickChats({ chats }: { chats: Chat[] }) {
     };
 
     return (
-        <div className="relative pb-2 pr-2 bg-sidebar z-10">
-            <SidebarMenu>
-                <Collapsible className="group/collapsible data-[state=open]/collapsible:border-t pt-2 mb-1 flex items-stretch w-full">
-                    <SidebarMenuItem className="w-full">
-                        <div className="h-6 w-full flex justify-between">
-                            <span className="h-full group-data-[state=open]/collapsible:hidden px-3 flex items-center gap-2">
+        <div className="relative bg-sidebar z-10">
+            {/* Ambient chats collapsible panel */}
+            <Collapsible
+                open={isAmbientOpen}
+                onOpenChange={setIsAmbientOpen}
+            >
+                <CollapsibleContent className="max-h-[400px] overflow-y-auto no-scrollbar border-t">
+                    <div className="px-3 py-2 flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">
+                            Ambient Chats
+                        </span>
+                        <CollapsibleTrigger asChild>
+                            <button className="text-muted-foreground/75 hover:text-foreground p-1 rounded-full">
+                                <ChevronDownIcon
+                                    className="w-4 h-4"
+                                    strokeWidth={1.5}
+                                />
+                            </button>
+                        </CollapsibleTrigger>
+                    </div>
+                    <SidebarGroup className="min-h-0 pt-0">
+                        <SidebarGroupContent>
+                            {chats.map((chat) => (
+                                <SidebarMenuItem key={chat.id}>
+                                    <SidebarMenuButton
+                                        onClick={(e) =>
+                                            void handleQuickChatConversion(
+                                                e,
+                                                chat,
+                                            )
+                                        }
+                                        className="text-sidebar-accent-foreground truncate group/chat-button flex justify-between"
+                                    >
+                                        <span className="truncate pr-3 text-sm">
+                                            {chat.title || "Untitled Chat"}
+                                        </span>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            ))}
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                    {!chats.length && (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                            Start an Ambient Chat with{" "}
+                            <span className="text-sm">
+                                {settings?.quickChat?.shortcut || "⌥Space"}
                             </span>
-                            <div className="flex items-center gap-2">
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <CollapsibleTrigger asChild>
-                                            <button className="h-full text-muted-foreground/75 hover:text-foreground p-2 rounded-full flex items-center gap-2 group-data-[state=open]/collapsible:w-full">
-                                                <ArchiveIcon
-                                                    className="w-4 h-4 group-data-[state=open]/collapsible:hidden block"
-                                                    strokeWidth={1.5}
-                                                />
-                                                <ChevronDownIcon
-                                                    className="w-4 h-4 group-data-[state=open]/collapsible:block hidden"
-                                                    strokeWidth={1.5}
-                                                />
-
-                                                <span className="text-sm hidden group-data-[state=open]/collapsible:block">
-                                                    Ambient Chats
-                                                </span>
-                                            </button>
-                                        </CollapsibleTrigger>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom">
-                                        Ambient Chats
-                                    </TooltipContent>
-                                </Tooltip>
-
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <button
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                void emit("open_settings", {
-                                                    tab: "general",
-                                                });
-                                            }}
-                                            className="h-full text-muted-foreground/75 hover:text-foreground p-2 rounded-full flex items-center gap-2 group-data-[state=open]/collapsible:hidden"
-                                        >
-                                            <Settings
-                                                className="h-4 w-4"
-                                                strokeWidth={1.5}
-                                            />
-                                        </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom">
-                                        Settings <kbd>⌘,</kbd>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </div>
                         </div>
+                    )}
+                </CollapsibleContent>
+            </Collapsible>
 
-                        <CollapsibleContent className="max-h-[400px] overflow-y-auto no-scrollbar">
-                            <SidebarGroup className="min-h-0">
-                                <SidebarGroupContent>
-                                    {chats.map((chat) => (
-                                        <SidebarMenuItem key={chat.id}>
-                                            <SidebarMenuButton
-                                                onClick={(e) =>
-                                                    void handleQuickChatConversion(
-                                                        e,
-                                                        chat,
-                                                    )
-                                                }
-                                                className="text-sidebar-accent-foreground truncate group/chat-button flex justify-between"
-                                            >
-                                                <span className="truncate pr-3 text-sm">
-                                                    {chat.title ||
-                                                        "Untitled Chat"}
-                                                </span>
-                                            </SidebarMenuButton>
-                                        </SidebarMenuItem>
-                                    ))}
-                                </SidebarGroupContent>
-                            </SidebarGroup>
-                            {!chats.length && (
-                                <div className="px-2 py-2 text-sm text-muted-foreground">
-                                    Start an Ambient Chat with{" "}
-                                    <span className="text-sm">
-                                        {settings?.quickChat?.shortcut ||
-                                            "⌥Space"}
-                                    </span>
-                                </div>
-                            )}
-                        </CollapsibleContent>
-                    </SidebarMenuItem>
-                </Collapsible>
-            </SidebarMenu>
+            {/* Footer icon row */}
+            <div className="flex items-center justify-center gap-1 py-2 px-2 border-t">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <button
+                            onClick={() => setIsAmbientOpen((prev) => !prev)}
+                            className={`p-2 rounded-md transition-colors ${
+                                isAmbientOpen
+                                    ? "text-foreground bg-muted"
+                                    : "text-muted-foreground/75 hover:text-foreground hover:bg-muted/50"
+                            }`}
+                        >
+                            <ArchiveIcon
+                                className="w-4 h-4"
+                                strokeWidth={1.5}
+                            />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                        Ambient Chats
+                    </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <button
+                            onClick={() => {
+                                toast("Graph — coming soon");
+                            }}
+                            className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
+                        >
+                            <NetworkIcon
+                                className="w-4 h-4"
+                                strokeWidth={1.5}
+                            />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">Graph</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <button
+                            onClick={(e) => {
+                                e.preventDefault();
+                                void emit("open_settings", {
+                                    tab: "general",
+                                });
+                            }}
+                            className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
+                        >
+                            <Settings
+                                className="w-4 h-4"
+                                strokeWidth={1.5}
+                            />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                        Settings <kbd>⌘,</kbd>
+                    </TooltipContent>
+                </Tooltip>
+            </div>
         </div>
     );
 }
