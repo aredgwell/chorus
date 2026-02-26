@@ -39,6 +39,7 @@ const API_KEY_PROVIDERS = [
     "openrouter",
     "firecrawl",
     "grok",
+    "jinaai",
     "custom-openai",
 ] as const;
 

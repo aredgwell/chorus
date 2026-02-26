@@ -152,6 +152,7 @@ export type ApiKeys = {
     openrouter?: string;
     google?: string;
     grok?: string;
+    jinaai?: string;
     "custom-openai"?: string;
 };
 

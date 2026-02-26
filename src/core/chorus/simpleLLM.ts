@@ -5,9 +5,12 @@ import {
     SimpleCompletionMode,
 } from "./ModelProviders/simple/ISimpleCompletionProvider";
 
+const MAX_RETRIES = 1;
+
 /**
  * Makes a simple LLM call using the first available provider.
  * Used primarily for generating chat titles and suggestions.
+ * Retries once on transient errors (connection failures, timeouts).
  */
 export async function simpleLLM(
     prompt: string,
@@ -24,5 +27,25 @@ export async function simpleLLM(
     };
 
     const provider = getSimpleCompletionProvider(apiKeys);
-    return provider.complete(prompt, paramsWithMode);
+
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            return await provider.complete(prompt, paramsWithMode);
+        } catch (error: unknown) {
+            lastError = error;
+            const isRetryable =
+                error instanceof Error &&
+                /connection|timeout|network|ECONNRESET|fetch failed/i.test(
+                    error.message,
+                );
+            if (attempt < MAX_RETRIES && isRetryable) {
+                console.warn(
+                    `simpleLLM attempt ${attempt + 1} failed (${error instanceof Error ? error.message : String(error)}), retrying...`,
+                );
+                continue;
+            }
+        }
+    }
+    throw lastError;
 }

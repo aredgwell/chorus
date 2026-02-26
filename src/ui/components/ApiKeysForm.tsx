@@ -1,7 +1,7 @@
 import { Input } from "./ui/input";
 import { ProviderName } from "@core/chorus/Models";
 import { ProviderLogo } from "./ui/provider-logo";
-import { ExternalLinkIcon, FlameIcon } from "lucide-react";
+import { ExternalLinkIcon, FlameIcon, GlobeIcon } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 interface ApiKeysFormProps {
@@ -27,6 +27,12 @@ const providers = [
         name: "Google AI (Gemini)",
         placeholder: "AI...",
         url: "https://aistudio.google.com/apikey",
+    },
+    {
+        id: "jinaai",
+        name: "Jina AI (web fetch)",
+        placeholder: "jina_...",
+        url: "https://jina.ai/reader/#apiform",
     },
     {
         id: "openai",
@@ -66,6 +72,8 @@ export default function ApiKeysForm({
                         <div className="flex items-center gap-2">
                             {provider.id === "firecrawl" ? (
                                 <FlameIcon className="w-4 h-4" />
+                            ) : provider.id === "jinaai" ? (
+                                <GlobeIcon className="w-4 h-4" />
                             ) : (
                                 <ProviderLogo
                                     provider={provider.id as ProviderName}

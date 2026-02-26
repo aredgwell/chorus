@@ -11,6 +11,14 @@ import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 import { Child, Command } from "@tauri-apps/plugin-shell";
 
+// Matches all ANSI escape sequences: CSI (ESC[…), OSC (ESC]…ST), and two-byte ESC+char
+// eslint-disable-next-line no-control-regex
+const ANSI_RE = /\x1b(?:\[[0-9;]*[A-Za-z]|\][^\x07]*(?:\x07|\x1b\\)|[^[\]])/g;
+
+function stripAnsi(input: string): string {
+    return input.replace(ANSI_RE, "");
+}
+
 export type StdioServerParameters =
     | {
           type: "sidecar";
@@ -154,7 +162,10 @@ export class StdioClientTransportChorus implements Transport {
 
         this._command.stdout?.on("data", (chunk) => {
             console.log("Received chunk:", chunk);
-            this._readBuffer.append(Buffer.from(chunk));
+            // Strip ANSI escape codes that some MCP servers emit
+            // (e.g. colored output), which break JSON parsing
+            const cleaned = stripAnsi(chunk);
+            this._readBuffer.append(Buffer.from(cleaned));
             this.processReadBuffer();
         });
 
@@ -182,7 +193,13 @@ export class StdioClientTransportChorus implements Transport {
                 console.log("Received message:", message);
                 this.onmessage?.(message);
             } catch (error) {
-                this.onerror?.(error as Error);
+                // Non-JSON lines (e.g. startup banners, debug output) are
+                // expected from some MCP servers — log and continue rather
+                // than tearing down the connection.
+                console.warn(
+                    "[MCPStdioTauri] Skipping non-JSON line from MCP server:",
+                    error,
+                );
             }
         }
     }

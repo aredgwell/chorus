@@ -58,10 +58,12 @@ export class ToolsetWeb extends Toolset {
             async (args) => {
                 const { url, max_length, start_index, raw } = args;
 
+                const apiKeys = await getApiKeys();
                 const result = await WebTools.fetchWebpage(url as string, {
                     maxLength: max_length as number | undefined,
                     startIndex: start_index as number | undefined,
                     raw: raw as boolean | undefined,
+                    jinaApiKey: apiKeys?.jinaai,
                 });
 
                 return result.content;
