@@ -2828,5 +2828,28 @@ You have full access to bash commands on the user''''s computer. If you write a 
                 );
             "#,
         },
+        Migration {
+            version: 150,
+            description: "create tags and item_tags tables",
+            kind: MigrationKind::Up,
+            sql: r#"
+                CREATE TABLE tags (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    color TEXT,
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE UNIQUE INDEX idx_tags_name ON tags(name);
+
+                CREATE TABLE item_tags (
+                    tag_id TEXT NOT NULL,
+                    item_type TEXT NOT NULL,
+                    item_id TEXT NOT NULL,
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE UNIQUE INDEX idx_item_tags_unique ON item_tags(tag_id, item_type, item_id);
+                CREATE INDEX idx_item_tags_item ON item_tags(item_type, item_id);
+            "#,
+        },
     ];
 }
