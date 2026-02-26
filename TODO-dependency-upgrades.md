@@ -56,6 +56,10 @@ All safe patch/minor updates were applied in the codebase improvements PR. This 
 - [x] **`window-vibrancy`** 0.5 -> 0.6 -- Done. Pinned to 0.6 to match tauri's internal dependency.
 - [ ] **`rusqlite`** 0.32 -> latest -- Blocked: `libsqlite3-sys` link conflict with `tauri-plugin-sql`. `sqlx-sqlite` 0.8.6 (via `tauri-plugin-sql` 2.3.2) pins `libsqlite3-sys ^0.30.1`, while `rusqlite` 0.38 needs `^0.36.0`. `sqlx` 0.9 is still alpha. Upgrade when `tauri-plugin-sql` adopts `sqlx` 0.9 stable.
 
+## Temporary Patches
+
+- [ ] **`ring`** 0.17.14 — patched via `[patch.crates-io]` in `Cargo.toml` to git rev `2e633004` ([briansmith/ring@2e63300](https://github.com/briansmith/ring/commit/2e633004)). Ring 0.17.14 fails to compile on Rust 1.93+ due to type inference changes ([briansmith/ring#2046](https://github.com/briansmith/ring/issues/2046), fix commit `267fccd2`). **To remove:** once `ring` 0.17.15+ is published, delete the `[patch.crates-io]` section from `src-tauri/Cargo.toml` and run `cargo update -p ring`.
+
 ## Remaining Work
 
 - [ ] `rusqlite` 0.32 -> latest (Rust, blocked by tauri-plugin-sql / sqlx 0.9 alpha)
