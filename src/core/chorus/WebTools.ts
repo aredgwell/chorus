@@ -197,9 +197,9 @@ export class WebTools {
             jinaApiKey,
         } = options;
 
+        const useJina = !raw;
         try {
             const fetchHeaders = { ...headers };
-            const useJina = !raw;
             if (useJina && jinaApiKey) {
                 fetchHeaders["Authorization"] = `Bearer ${jinaApiKey}`;
             }
