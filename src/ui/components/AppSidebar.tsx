@@ -13,6 +13,8 @@ import {
     SparklesIcon,
     NetworkIcon,
     FileTextIcon,
+    FilePlusIcon,
+    MessageSquareIcon,
     ArrowUpDownIcon,
     CheckIcon,
     PinIcon,
@@ -462,7 +464,6 @@ function filterChatsForDisplay(chats: Chat[], currentChatId: string) {
     return chats.filter((chat) => !chat.isNewChat || chat.id === currentChatId);
 }
 
-const NUM_DEFAULT_CHATS_TO_SHOW_BY_DEFAULT = 25;
 const NUM_PROJECT_CHATS_TO_SHOW_BY_DEFAULT = 10;
 
 export function AppSidebarInner() {
@@ -481,7 +482,6 @@ export function AppSidebarInner() {
     const setNoteProject = NoteAPI.useSetNoteProject();
     const getOrCreateNewChat = ChatAPI.useGetOrCreateNewChat();
 
-    const [showAllItems, setShowAllItems] = useState(false);
     const [sidebarFilter, setSidebarFilter] = useState("");
     const sortMode = useSidebarSortMode();
     const setSortMode = useSetSidebarSortMode();
@@ -502,39 +502,14 @@ export function AppSidebarInner() {
         {} as Record<string, Chat[]>,
     );
 
-    // Build merged sidebar items for the default section
-    const defaultItems: SidebarItem[] = (() => {
-        const chatItems: SidebarItem[] = filterChatsForDisplay(
-            chatsByProject["default"] || [],
-            currentChatId,
-        ).map((chat) => ({ type: "chat" as const, data: chat }));
-
-        const noteItems: SidebarItem[] = (notesQuery.data ?? [])
-            .filter((note) => note.projectId === "default")
-            .map((note) => ({ type: "note" as const, data: note }));
-
-        let items = [...chatItems, ...noteItems];
-
-        // Apply sort based on mode (pinned items always come first)
+    // Build separate note and chat items for the sidebar
+    const sortItems = (items: SidebarItem[]) => {
         if (sortMode === "name") {
             items.sort((a, b) => {
                 const aPinned = sidebarItemIsPinned(a);
                 const bPinned = sidebarItemIsPinned(b);
                 if (aPinned !== bPinned) return aPinned ? -1 : 1;
                 return sidebarItemTitle(a).localeCompare(sidebarItemTitle(b));
-            });
-        } else if (sortMode === "type") {
-            items.sort((a, b) => {
-                const aPinned = sidebarItemIsPinned(a);
-                const bPinned = sidebarItemIsPinned(b);
-                if (aPinned !== bPinned) return aPinned ? -1 : 1;
-                if (a.type !== b.type) {
-                    return a.type === "note" ? -1 : 1;
-                }
-                return (
-                    new Date(sidebarItemUpdatedAt(b)).getTime() -
-                    new Date(sidebarItemUpdatedAt(a)).getTime()
-                );
             });
         } else {
             items.sort((a, b) => {
@@ -547,28 +522,47 @@ export function AppSidebarInner() {
                 );
             });
         }
-
-        if (sidebarFilter) {
-            const lower = sidebarFilter.toLowerCase();
-            items = items.filter(
-                (item) =>
-                    sidebarItemTitle(item).toLowerCase().includes(lower) ||
-                    (item.type === "chat" && item.data.id === currentChatId),
-            );
-        }
         return items;
-    })();
+    };
 
-    const itemsToDisplay = showAllItems
-        ? defaultItems
-        : defaultItems.slice(0, NUM_DEFAULT_CHATS_TO_SHOW_BY_DEFAULT);
+    const filterItems = (items: SidebarItem[]) => {
+        if (!sidebarFilter) return items;
+        const lower = sidebarFilter.toLowerCase();
+        return items.filter(
+            (item) =>
+                sidebarItemTitle(item).toLowerCase().includes(lower) ||
+                (item.type === "chat" && item.data.id === currentChatId),
+        );
+    };
+
+    const noteItems: SidebarItem[] = filterItems(
+        sortItems(
+            (notesQuery.data ?? [])
+                .filter((note) => note.projectId === "default")
+                .map((note) => ({ type: "note" as const, data: note })),
+        ),
+    );
+
+    const chatItems: SidebarItem[] = filterItems(
+        sortItems(
+            filterChatsForDisplay(
+                chatsByProject["default"] || [],
+                currentChatId,
+            ).map((chat) => ({ type: "chat" as const, data: chat })),
+        ),
+    );
 
     // When sorting by date, group into Today/Yesterday/etc.
     // For other sort modes, use a single flat group.
-    const groupedItems =
+    const groupedNoteItems =
         sortMode === "date"
-            ? groupItemsByDate(itemsToDisplay)
-            : [{ label: "", items: itemsToDisplay }];
+            ? groupItemsByDate(noteItems)
+            : [{ label: "", items: noteItems }];
+
+    const groupedChatItems =
+        sortMode === "date"
+            ? groupItemsByDate(chatItems)
+            : [{ label: "", items: chatItems }];
     const quickChats = filterChatsForDisplay(
         chatsByProject["quick-chat"] || [],
         currentChatId,
@@ -656,41 +650,6 @@ export function AppSidebarInner() {
                     <SidebarGroup className="min-h-0">
                         <SidebarGroupContent>
                             <SidebarMenu className="truncate">
-                                {/* New Chat + New Note buttons */}
-                                <div className="flex items-center gap-1 mb-2">
-                                    <button
-                                        className="group/new-chat text-base pl-3 pr-3 py-2 flex items-center justify-between hover:bg-sidebar-accent rounded-md flex-1 text-sidebar-muted-foreground hover:text-foreground"
-                                        onClick={onNewChatClick}
-                                    >
-                                        <span className="flex items-center gap-2 ">
-                                            <SquarePlusIcon
-                                                className="size-4 text-muted-foreground group-hover/new-chat:text-foreground"
-                                                strokeWidth={1.5}
-                                            />
-                                            Start New Chat
-                                        </span>
-                                        <span className="text-xs hidden group-hover/new-chat:block text-muted-foreground">
-                                            ⌘N
-                                        </span>
-                                    </button>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <button
-                                                className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent transition-colors shrink-0"
-                                                onClick={onNewNoteClick}
-                                            >
-                                                <FileTextIcon
-                                                    className="size-4"
-                                                    strokeWidth={1.5}
-                                                />
-                                            </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            New Note
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </div>
-
                                 {/* Search input + sort */}
                                 <div className="px-2 mb-2 flex items-center gap-1">
                                     <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-sidebar-accent/50 border border-border/50 flex-1">
@@ -836,58 +795,138 @@ export function AppSidebarInner() {
                                         </div>
                                     </>
                                 )}
-                                {/* Spacer */}
-                                <div className="h-3" />
+                                {/* Notes section */}
+                                {noteItems.length > 0 && (
+                                    <>
+                                        <div className="pt-2 flex items-center justify-between group/notes">
+                                            <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
+                                                Notes
+                                            </div>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <button
+                                                        className="text-muted-foreground hover:text-foreground p-1 pr-3 rounded"
+                                                        onClick={onNewNoteClick}
+                                                    >
+                                                        <FilePlusIcon
+                                                            className="size-3.5"
+                                                            strokeWidth={1.5}
+                                                        />
+                                                    </button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    New Note
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </div>
+                                        <Droppable id="default">
+                                            {groupedNoteItems.map(
+                                                ({
+                                                    label,
+                                                    items: groupItems,
+                                                }) => (
+                                                    <div
+                                                        key={
+                                                            label ||
+                                                            "all-notes"
+                                                        }
+                                                        className="pb-1"
+                                                    >
+                                                        {label && (
+                                                            <div className="px-3 mb-1 sidebar-label flex items-center gap-2 text-muted-foreground">
+                                                                {label}
+                                                            </div>
+                                                        )}
+                                                        {groupItems.map(
+                                                            (item) => (
+                                                                <NoteListItem
+                                                                    key={
+                                                                        item
+                                                                            .data
+                                                                            .id +
+                                                                        "-sidebar"
+                                                                    }
+                                                                    note={
+                                                                        item.data as Note
+                                                                    }
+                                                                    isActive={
+                                                                        currentNoteId ===
+                                                                        item
+                                                                            .data
+                                                                            .id
+                                                                    }
+                                                                />
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                ),
+                                            )}
+                                        </Droppable>
+                                    </>
+                                )}
 
+                                {/* Chats section */}
+                                <div className="pt-2 flex items-center justify-between group/chats">
+                                    <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
+                                        Chats
+                                    </div>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button
+                                                className="text-muted-foreground hover:text-foreground p-1 pr-3 rounded"
+                                                onClick={onNewChatClick}
+                                            >
+                                                <SquarePlusIcon
+                                                    className="size-3.5"
+                                                    strokeWidth={1.5}
+                                                />
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            New Chat{" "}
+                                            <span className="text-xs text-muted-foreground">
+                                                ⌘N
+                                            </span>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
                                 <Droppable id="default">
-                                    {/* Grouped items (chats + notes) */}
-                                    {groupedItems.some(
+                                    {groupedChatItems.some(
                                         (g) => g.items.length > 0,
                                     ) ? (
-                                        groupedItems.map(
+                                        groupedChatItems.map(
                                             ({
                                                 label,
                                                 items: groupItems,
                                             }) => (
                                                 <div
-                                                    key={label || "all"}
-                                                    className="pb-3"
+                                                    key={
+                                                        label || "all-chats"
+                                                    }
+                                                    className="pb-1"
                                                 >
                                                     {label && (
                                                         <div className="px-3 mb-1 sidebar-label flex items-center gap-2 text-muted-foreground">
                                                             {label}
                                                         </div>
                                                     )}
-                                                    {groupItems.map((item) =>
-                                                        item.type ===
-                                                        "chat" ? (
+                                                    {groupItems.map(
+                                                        (item) => (
                                                             <ChatListItem
                                                                 key={
-                                                                    item.data
+                                                                    item
+                                                                        .data
                                                                         .id +
                                                                     "-sidebar"
                                                                 }
                                                                 chat={
-                                                                    item.data
+                                                                    item.data as Chat
                                                                 }
                                                                 isActive={
                                                                     currentChatId ===
-                                                                    item.data.id
-                                                                }
-                                                            />
-                                                        ) : (
-                                                            <NoteListItem
-                                                                key={
-                                                                    item.data
-                                                                        .id +
-                                                                    "-sidebar"
-                                                                }
-                                                                note={
-                                                                    item.data
-                                                                }
-                                                                isActive={
-                                                                    currentNoteId ===
-                                                                    item.data.id
+                                                                    item
+                                                                        .data
+                                                                        .id
                                                                 }
                                                             />
                                                         ),
@@ -898,22 +937,6 @@ export function AppSidebarInner() {
                                     ) : (
                                         <EmptyChatState />
                                     )}
-                                    {defaultItems.length >
-                                        NUM_DEFAULT_CHATS_TO_SHOW_BY_DEFAULT &&
-                                        !showAllItems && (
-                                            <SidebarMenuItem className="w-full">
-                                                <SidebarMenuButton
-                                                    onClick={() =>
-                                                        setShowAllItems(true)
-                                                    }
-                                                >
-                                                    <EllipsisIcon className="size-4 text-muted-foreground" />
-                                                    <span className="text-base text-muted-foreground">
-                                                        Show More
-                                                    </span>
-                                                </SidebarMenuButton>
-                                            </SidebarMenuItem>
-                                        )}
                                 </Droppable>
                             </SidebarMenu>
                         </SidebarGroupContent>
@@ -1415,6 +1438,12 @@ const ChatListItemView = React.memo(
                         <div
                             className={`truncate flex items-center text-base w-full ${isNewChat ? "text-muted-foreground" : ""}`}
                         >
+                            {!parentChatId && (
+                                <MessageSquareIcon
+                                    className="size-3.5 mr-2 text-muted-foreground shrink-0"
+                                    strokeWidth={1.5}
+                                />
+                            )}
                             {parentChatId && (
                                 <Tooltip>
                                     <TooltipTrigger asChild>

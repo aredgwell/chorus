@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FileTextIcon, TrashIcon } from "lucide-react";
+import { FileTextIcon, TrashIcon, PencilIcon, EyeIcon } from "lucide-react";
+import { MessageMarkdown } from "@ui/components/renderers/MessageMarkdown";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
 import {
@@ -32,6 +33,7 @@ export default function NoteEditor() {
 
     const [content, setContent] = useState("");
     const [isInitialized, setIsInitialized] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
 
     const isDeleteDialogOpen = useDialogStore((state) =>
         noteId
@@ -109,6 +111,34 @@ export default function NoteEditor() {
                                 <Button
                                     variant="ghost"
                                     size="iconSm"
+                                    onClick={() =>
+                                        setIsEditing((prev) => !prev)
+                                    }
+                                >
+                                    {isEditing ? (
+                                        <EyeIcon
+                                            strokeWidth={1.5}
+                                            className="w-4! h-4!"
+                                        />
+                                    ) : (
+                                        <PencilIcon
+                                            strokeWidth={1.5}
+                                            className="w-4! h-4!"
+                                        />
+                                    )}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                                {isEditing
+                                    ? "Preview markdown"
+                                    : "Edit note"}
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="iconSm"
                                     onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
@@ -149,12 +179,30 @@ export default function NoteEditor() {
                 </div>
             </HeaderBar>
 
-            <textarea
-                value={content}
-                onChange={handleContentChange}
-                placeholder="Start writing..."
-                className="w-full min-h-[calc(100vh-200px)] bg-transparent border-none ring-0 outline-hidden resize-none text-base leading-relaxed placeholder:text-muted-foreground/50"
-            />
+            {isEditing ? (
+                <textarea
+                    value={content}
+                    onChange={handleContentChange}
+                    onBlur={() => setIsEditing(false)}
+                    autoFocus
+                    placeholder="Start writing..."
+                    className="w-full min-h-[calc(100vh-200px)] bg-transparent border-none ring-0 outline-hidden resize-none text-base leading-relaxed placeholder:text-muted-foreground/50"
+                />
+            ) : content ? (
+                <div
+                    onClick={() => setIsEditing(true)}
+                    className="w-full min-h-[calc(100vh-200px)] cursor-text prose prose-sm dark:prose-invert max-w-none"
+                >
+                    <MessageMarkdown text={content} />
+                </div>
+            ) : (
+                <div
+                    onClick={() => setIsEditing(true)}
+                    className="w-full min-h-[calc(100vh-200px)] cursor-text text-base leading-relaxed text-muted-foreground/50"
+                >
+                    Start writing...
+                </div>
+            )}
 
             {/* Delete confirmation dialog */}
             <Dialog
