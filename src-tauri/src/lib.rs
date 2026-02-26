@@ -179,10 +179,32 @@ pub fn run() {
             .separator()
             .item(&MenuItem::with_id(
                 app,
+                "new-chat",
+                "New Chat",
+                true,
+                Some("CmdOrCtrl+N"),
+            )?)
+            .item(&MenuItem::with_id(
+                app,
+                "new-project",
+                "New Collection",
+                true,
+                Some("CmdOrCtrl+Shift+N"),
+            )?)
+            .separator()
+            .item(&MenuItem::with_id(
+                app,
                 "settings",
-                "Settings",
+                "Settings…",
                 true,
                 Some("CmdOrCtrl+,"),
+            )?)
+            .item(&MenuItem::with_id(
+                app,
+                "changelog",
+                "Changelog",
+                true,
+                None::<&str>,
             )?)
             .separator()
             .item(&PredefinedMenuItem::hide(app, None)?)
@@ -216,52 +238,12 @@ pub fn run() {
             .item(&PredefinedMenuItem::close_window(app, None)?)
             .build()?;
 
-        // Create Shortcuts menu
-        let shortcuts_menu = SubmenuBuilder::new(app, "Shortcuts")
-            .separator()
-            .item(&MenuItem::with_id(
-                app,
-                "new-chat",
-                "New chat",
-                true,
-                Some("CmdOrCtrl+N"),
-            )?)
-            .item(&MenuItem::with_id(
-                app,
-                "new-project",
-                "New project",
-                true,
-                Some("CmdOrCtrl+Shift+N"),
-            )?)
-            .separator()
-            .item(&MenuItem::with_id(
-                app,
-                "settings-shortcut",
-                "Settings",
-                true,
-                Some("CmdOrCtrl+,"),
-            )?)
-            .build()?;
-
-        // Create Updates menu
-        let updates_menu = SubmenuBuilder::new(app, "Updates")
-            .item(&MenuItem::with_id(
-                app,
-                "changelog",
-                "Changelog",
-                true,
-                None::<&str>,
-            )?)
-            .build()?;
-
         // Build the complete menu
         let menu = MenuBuilder::new(app)
             .item(&app_menu)
             .item(&edit_menu)
             .item(&view_menu)
             .item(&window_menu)
-            .item(&shortcuts_menu)
-            .item(&updates_menu)
             .build()?;
 
         // Set as app menu
@@ -419,7 +401,7 @@ pub fn run() {
                 "new-project" => {
                     app.emit("menu-new-project", ()).unwrap();
                 }
-                "settings" | "settings-shortcut" => {
+                "settings" => {
                     app.emit("menu-settings", ()).unwrap();
                 }
                 "about-chorus" => {
