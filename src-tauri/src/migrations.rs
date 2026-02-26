@@ -2851,5 +2851,14 @@ You have full access to bash commands on the user''''s computer. If you write a 
                 CREATE INDEX idx_item_tags_item ON item_tags(item_type, item_id);
             "#,
         },
+        Migration {
+            version: 151,
+            description: "add smart collection columns to projects",
+            kind: MigrationKind::Up,
+            sql: r#"
+                ALTER TABLE projects ADD COLUMN collection_type TEXT NOT NULL DEFAULT 'manual';
+                ALTER TABLE projects ADD COLUMN smart_collection_rules TEXT;
+            "#,
+        },
     ];
 }
