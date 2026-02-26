@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { db } from "../DB";
+import { embeddingQueue, deleteEmbedding } from "@core/chorus/EmbeddingService";
 
 const noteKeys = {
     all: () => ["notes"] as const,
@@ -144,8 +145,21 @@ export function useUpdateNote() {
                 params,
             );
         },
-        onSuccess: async () => {
+        onSuccess: async (_data, variables) => {
             await queryClient.invalidateQueries(noteQueries.list());
+
+            // Enqueue embedding generation when note content changes
+            try {
+                const note = await fetchNote(variables.noteId);
+                const text = [note.title, note.content]
+                    .filter(Boolean)
+                    .join("\n\n");
+                if (text.trim()) {
+                    embeddingQueue.enqueue(`note:${variables.noteId}`, text);
+                }
+            } catch {
+                // Note may have been deleted between mutation and callback
+            }
         },
     });
 }
@@ -167,8 +181,21 @@ export function useRenameNote() {
                 [newTitle, noteId],
             );
         },
-        onSuccess: async () => {
+        onSuccess: async (_data, variables) => {
             await queryClient.invalidateQueries(noteQueries.list());
+
+            // Re-generate embedding with updated title
+            try {
+                const note = await fetchNote(variables.noteId);
+                const text = [note.title, note.content]
+                    .filter(Boolean)
+                    .join("\n\n");
+                if (text.trim()) {
+                    embeddingQueue.enqueue(`note:${variables.noteId}`, text);
+                }
+            } catch {
+                // Note may have been deleted between mutation and callback
+            }
         },
     });
 }
@@ -200,8 +227,11 @@ export function useDeleteNote() {
                 );
             }
         },
-        onSettled: async () => {
+        onSettled: async (_data, _error, variables) => {
             await queryClient.invalidateQueries(noteQueries.list());
+
+            // Clean up embedding when note is deleted
+            void deleteEmbedding(`note:${variables.noteId}`);
         },
     });
 }
