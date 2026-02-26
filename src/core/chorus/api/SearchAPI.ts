@@ -189,8 +189,13 @@ export function useFullSearchMessages(query: string) {
 // Semantic search hooks (sqlite-vec)
 // ---------------------------------------------------------------------------
 
-import { findSimilarChats, SimilarChat } from "@core/chorus/EmbeddingService";
-export type { SimilarChat } from "@core/chorus/EmbeddingService";
+import {
+    findSimilarChats,
+    findSimilarItems,
+    SimilarChat,
+    SimilarItem,
+} from "@core/chorus/EmbeddingService";
+export type { SimilarChat, SimilarItem } from "@core/chorus/EmbeddingService";
 
 /**
  * Find chats semantically related to the current chat (by its summary).
@@ -221,6 +226,72 @@ export function useSemanticSearch(query: string) {
         queryFn: (): Promise<SimilarChat[]> => {
             if (!query.trim()) return Promise.resolve([]);
             return findSimilarChats(query, 5);
+        },
+        enabled: query.trim().length > 2,
+        staleTime: 60_000,
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Note search hooks
+// ---------------------------------------------------------------------------
+
+export interface NoteSearchResult {
+    id: string;
+    title: string;
+    content: string;
+    projectId: string;
+}
+
+type NoteSearchRow = {
+    id: string;
+    title: string;
+    content: string;
+    project_id: string;
+};
+
+/**
+ * FTS5 keyword search against notes.
+ */
+export function useSearchNotes(query: string) {
+    return useQuery({
+        queryKey: ["searchNotes", query] as const,
+        queryFn: async (): Promise<NoteSearchResult[]> => {
+            const ftsQuery = escapeFtsQuery(query);
+            if (!ftsQuery) return [];
+
+            const rows = await db.select<NoteSearchRow[]>(
+                `SELECT n.id, n.title, n.content, n.project_id
+                 FROM notes_fts fts
+                 INNER JOIN notes n ON fts.note_id = n.id
+                 WHERE notes_fts MATCH $1
+                 ORDER BY rank
+                 LIMIT 20`,
+                [ftsQuery],
+            );
+
+            return rows.map((r) => ({
+                id: r.id,
+                title: r.title,
+                content: r.content,
+                projectId: r.project_id,
+            }));
+        },
+        enabled: query.trim().length > 0,
+        staleTime: 60_000,
+    });
+}
+
+/**
+ * Semantic (embedding-based) search across both chats and notes.
+ * Returns a unified list of SimilarItem results.
+ */
+export function useUnifiedSemanticSearch(query: string) {
+    return useQuery({
+        queryKey: ["unifiedSemanticSearch", query] as const,
+        queryFn: (): Promise<SimilarItem[]> => {
+            if (!query.trim()) return Promise.resolve([]);
+            return findSimilarItems(query, 10);
         },
         enabled: query.trim().length > 2,
         staleTime: 60_000,
