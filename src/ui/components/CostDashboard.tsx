@@ -136,7 +136,7 @@ export function CostDashboard() {
             {costByProject.length > 0 && (
                 <div>
                     <h3 className="text-sm font-medium mb-3">
-                        Cost by project
+                        Cost by collection
                     </h3>
                     <div className="space-y-2">
                         {costByProject.map((item) => (

@@ -6,7 +6,7 @@ import { useSettings } from "./hooks/useSettings";
 const getTips = (quickChatShortcut: string) => [
     { content: "Press ⌘K to access commands and search." },
     {
-        content: "Create a project to share context across related chats.",
+        content: "Create a collection to share context across related chats.",
     },
     { content: "Press ⌘J to switch models." },
     {

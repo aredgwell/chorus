@@ -147,7 +147,7 @@ function EmptyProjectState() {
             }`}
         >
             <p className="mb-2 text-sm whitespace-normal wrap-break-word">
-                Projects allow you to share context between chats.
+                Collections allow you to share context between chats.
             </p>
 
             <button
@@ -163,8 +163,8 @@ function EmptyProjectState() {
                     />
                     <span className="font-[350]">
                         {active
-                            ? "Drop to create a project"
-                            : "Create a project"}
+                            ? "Drop to create a collection"
+                            : "Create a collection"}
                     </span>
                 </div>
                 <span>
@@ -598,7 +598,7 @@ export function AppSidebarInner() {
                                     <>
                                         <div className="pt-2 flex items-center justify-between group/projects">
                                             <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
-                                                Projects
+                                                Collections
                                             </div>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
@@ -619,7 +619,7 @@ export function AppSidebarInner() {
                                                     )}
                                                 </TooltipTrigger>
                                                 <TooltipContent>
-                                                    New Project
+                                                    New Collection
                                                 </TooltipContent>
                                             </Tooltip>
                                         </div>

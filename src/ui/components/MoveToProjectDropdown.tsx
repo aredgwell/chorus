@@ -49,7 +49,7 @@ export function MoveToProjectDropdown({
                         </Button>
                     </DropdownMenuTrigger>
                 </TooltipTrigger>
-                <TooltipContent>Move to project</TooltipContent>
+                <TooltipContent>Move to collection</TooltipContent>
             </Tooltip>
             <DropdownMenuContent className="mr-3">
                 <DropdownMenuLabel className="flex items-center text-muted-foreground font-geist-mono text-[10px] uppercase tracking-wider">
@@ -69,7 +69,7 @@ export function MoveToProjectDropdown({
                         >
                             {project.id === "default" ? (
                                 <span className="text-muted-foreground/70">
-                                    No project
+                                    No collection
                                 </span>
                             ) : (
                                 projectDisplayName(project.name)
@@ -82,7 +82,7 @@ export function MoveToProjectDropdown({
                     onSelect={() => void onNewProject()}
                 >
                     <PlusIcon className="w-3 h-3 mr-2" />
-                    New project
+                    New collection
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
