@@ -2890,5 +2890,45 @@ You have full access to bash commands on the user''''s computer. If you write a 
                     ('system', 'grok::grok-4-1-fast-non-reasoning', 'grok::grok-4-1-fast-non-reasoning', 'Grok 4.1 Fast (Instant)', '', 0, '2026-04-01 00:00:00');
             "#,
         },
+        Migration {
+            version: 153,
+            sql: r#"
+                -- FTS5 full-text search for notes (mirrors messages_fts pattern from migration 140)
+                CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
+                    note_id UNINDEXED,
+                    title,
+                    content,
+                    tokenize='porter unicode61'
+                );
+
+                -- Backfill existing notes
+                INSERT INTO notes_fts (note_id, title, content)
+                SELECT id, title, content
+                FROM notes
+                WHERE (title IS NOT NULL AND title != '') OR (content IS NOT NULL AND content != '');
+
+                -- Trigger: after INSERT on notes
+                CREATE TRIGGER IF NOT EXISTS notes_fts_insert AFTER INSERT ON notes
+                WHEN (NEW.title IS NOT NULL AND NEW.title != '') OR (NEW.content IS NOT NULL AND NEW.content != '')
+                BEGIN
+                    INSERT INTO notes_fts (note_id, title, content)
+                    VALUES (NEW.id, NEW.title, NEW.content);
+                END;
+
+                -- Trigger: after UPDATE of title or content on notes
+                CREATE TRIGGER IF NOT EXISTS notes_fts_update AFTER UPDATE OF title, content ON notes
+                BEGIN
+                    DELETE FROM notes_fts WHERE note_id = NEW.id;
+                    INSERT INTO notes_fts (note_id, title, content)
+                    VALUES (NEW.id, NEW.title, NEW.content);
+                END;
+
+                -- Trigger: after DELETE on notes
+                CREATE TRIGGER IF NOT EXISTS notes_fts_delete AFTER DELETE ON notes
+                BEGIN
+                    DELETE FROM notes_fts WHERE note_id = OLD.id;
+                END;
+            "#,
+        },
     ];
 }
