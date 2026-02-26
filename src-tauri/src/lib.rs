@@ -357,13 +357,13 @@ pub fn run() {
                         let store = app.store("settings");
                         let quick_chat_enabled = store
                             .ok()
-                            .and_then(|store| store.get("settings"))
-                            .and_then(|settings| {
+                            .and_then(|store: std::sync::Arc<tauri_plugin_store::Store<tauri::Wry>>| store.get("settings"))
+                            .and_then(|settings: serde_json::Value| {
                                 settings
                                     .as_object()
-                                    .and_then(|s| s.get("quickChat"))
-                                    .and_then(|t| t.get("enabled"))
-                                    .and_then(|e| e.as_bool())
+                                    .and_then(|s: &serde_json::Map<String, serde_json::Value>| s.get("quickChat"))
+                                    .and_then(|t: &serde_json::Value| t.get("enabled"))
+                                    .and_then(|e: &serde_json::Value| e.as_bool())
                             })
                             .unwrap_or(false); // Default to enabled if setting not found
                         if quick_chat_enabled {
@@ -391,7 +391,7 @@ pub fn run() {
 
     builder
         .setup(setup_fn)
-        .on_menu_event(|app, event| {
+        .on_menu_event(|app: &tauri::AppHandle, event: tauri::menu::MenuEvent| {
             // Broadcast menu events to all windows
             // Each window will check if it's focused before processing
             match event.id().as_ref() {
@@ -413,7 +413,7 @@ pub fn run() {
                 _ => {}
             }
         })
-        .on_window_event(|window, event| match event {
+        .on_window_event(|window: &tauri::Window, event: &tauri::WindowEvent| match event {
             &tauri::WindowEvent::CloseRequested { ref api, .. } => {
                 // #[cfg(not(target_os = "macos"))] {
                 //   event.window().hide().unwrap();

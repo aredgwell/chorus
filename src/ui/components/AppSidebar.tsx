@@ -15,6 +15,8 @@ import {
     FileTextIcon,
     ArrowUpDownIcon,
     CheckIcon,
+    PinIcon,
+    PinOffIcon,
 } from "lucide-react";
 import {
     Sidebar,
@@ -125,6 +127,10 @@ function sidebarItemUpdatedAt(item: SidebarItem): string {
 
 function sidebarItemTitle(item: SidebarItem): string {
     return item.data.title || "";
+}
+
+function sidebarItemIsPinned(item: SidebarItem): boolean {
+    return item.type === "chat" && item.data.pinned;
 }
 
 
@@ -509,13 +515,19 @@ export function AppSidebarInner() {
 
         let items = [...chatItems, ...noteItems];
 
-        // Apply sort based on mode
+        // Apply sort based on mode (pinned items always come first)
         if (sortMode === "name") {
-            items.sort((a, b) =>
-                sidebarItemTitle(a).localeCompare(sidebarItemTitle(b)),
-            );
+            items.sort((a, b) => {
+                const aPinned = sidebarItemIsPinned(a);
+                const bPinned = sidebarItemIsPinned(b);
+                if (aPinned !== bPinned) return aPinned ? -1 : 1;
+                return sidebarItemTitle(a).localeCompare(sidebarItemTitle(b));
+            });
         } else if (sortMode === "type") {
             items.sort((a, b) => {
+                const aPinned = sidebarItemIsPinned(a);
+                const bPinned = sidebarItemIsPinned(b);
+                if (aPinned !== bPinned) return aPinned ? -1 : 1;
                 if (a.type !== b.type) {
                     return a.type === "note" ? -1 : 1;
                 }
@@ -525,11 +537,15 @@ export function AppSidebarInner() {
                 );
             });
         } else {
-            items.sort(
-                (a, b) =>
+            items.sort((a, b) => {
+                const aPinned = sidebarItemIsPinned(a);
+                const bPinned = sidebarItemIsPinned(b);
+                if (aPinned !== bPinned) return aPinned ? -1 : 1;
+                return (
                     new Date(sidebarItemUpdatedAt(b)).getTime() -
-                    new Date(sidebarItemUpdatedAt(a)).getTime(),
-            );
+                    new Date(sidebarItemUpdatedAt(a)).getTime()
+                );
+            });
         }
 
         if (sidebarFilter) {
@@ -1221,6 +1237,7 @@ function ChatListItem({ chat, isActive }: { chat: Chat; isActive: boolean }) {
     const navigate = useRef(useNavigate());
 
     const { mutateAsync: renameChatMutateAsync } = ChatAPI.useRenameChat();
+    const { mutate: togglePinChat } = ChatAPI.useTogglePinChat();
     const {
         mutateAsync: deleteChatMutateAsync,
         isPending: deleteChatIsPending,
@@ -1297,10 +1314,15 @@ function ChatListItem({ chat, isActive }: { chat: Chat; isActive: boolean }) {
         dialogActions.openDialog(SIMILAR_CHATS_DIALOG_ID);
     }, [chat.id]);
 
+    const handleTogglePin = useCallback(() => {
+        togglePinChat({ chatId: chat.id, pinned: !chat.pinned });
+    }, [chat.id, chat.pinned, togglePinChat]);
+
     return (
         <ChatListItemView
             chatId={chat.id}
             chatTitle={chat.title || ""}
+            pinned={chat.pinned}
             isNewChat={chat.isNewChat}
             parentChatId={parentChat?.id ?? null}
             parentChatTitle={parentChat?.title || null}
@@ -1311,6 +1333,7 @@ function ChatListItem({ chat, isActive }: { chat: Chat; isActive: boolean }) {
             onStopEdit={handleStopEdit}
             onSubmitEdit={handleSubmitEdit}
             onDelete={handleOpenDeleteDialog}
+            onTogglePin={handleTogglePin}
             onFindSimilar={handleFindSimilar}
             onConfirmDelete={handleConfirmDelete}
             deleteIsPending={deleteChatIsPending}
@@ -1325,6 +1348,7 @@ function ChatListItem({ chat, isActive }: { chat: Chat; isActive: boolean }) {
 type ChatListItemViewProps = {
     chatId: string;
     chatTitle: string;
+    pinned: boolean;
     isNewChat: boolean;
     parentChatId: string | null;
     parentChatTitle: string | null;
@@ -1335,6 +1359,7 @@ type ChatListItemViewProps = {
     onStopEdit: () => void;
     onSubmitEdit: (newTitle: string) => Promise<void>;
     onDelete: () => void;
+    onTogglePin: () => void;
     onFindSimilar: () => void;
     onConfirmDelete: () => void;
     deleteIsPending: boolean;
@@ -1348,6 +1373,7 @@ const ChatListItemView = React.memo(
     ({
         chatId,
         chatTitle,
+        pinned,
         isNewChat,
         parentChatId,
         parentChatTitle,
@@ -1358,6 +1384,7 @@ const ChatListItemView = React.memo(
         onStopEdit,
         onSubmitEdit,
         onDelete,
+        onTogglePin,
         onFindSimilar,
         onConfirmDelete,
         deleteIsPending,
@@ -1412,6 +1439,9 @@ const ChatListItemView = React.memo(
                                     </TooltipContent>
                                 </Tooltip>
                             )}
+                            {pinned && (
+                                <PinIcon className="w-2.5 h-2.5 mr-1.5 shrink-0 text-muted-foreground" />
+                            )}
                             <EditableTitle
                                 title={chatTitle || ""}
                                 onUpdate={async (newTitle) => {
@@ -1455,6 +1485,26 @@ const ChatListItemView = React.memo(
 
                         {/* chat actions */}
                         <div className="flex items-center gap-2 absolute right-3 z-10">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            onTogglePin();
+                                        }}
+                                    >
+                                        {pinned ? (
+                                            <PinOffIcon className="h-[13px] w-[13px] opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground" />
+                                        ) : (
+                                            <PinIcon className="h-[13px] w-[13px] opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground" />
+                                        )}
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom">
+                                    {pinned ? "Unpin chat" : "Pin chat"}
+                                </TooltipContent>
+                            </Tooltip>
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <PencilOptimized

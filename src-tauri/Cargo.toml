@@ -63,6 +63,12 @@ objc2-foundation = "0.3"
 name = "generate_schema"
 path = "src/bin/generate_schema.rs"
 
+[patch.crates-io]
+# ring 0.17.14 doesn't compile on Rust 1.93+ due to type inference changes.
+# The fix is on main (commit 267fccd2) but hasn't been released yet.
+# Remove this patch once ring 0.17.15+ is published.
+ring = { git = "https://github.com/briansmith/ring", rev = "2e633004" }
+
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(feature, values(\"cargo-clippy\"))"] }
 
