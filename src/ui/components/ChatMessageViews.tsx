@@ -20,7 +20,7 @@ import {
     BellIcon,
     CircleAlertIcon,
 } from "lucide-react";
-import { ChevronDownIcon, CheckIcon, XIcon } from "lucide-react";
+import { ChevronDownIcon, CheckIcon, XIcon, CopyIcon } from "lucide-react";
 import RetroSpinner from "./ui/retro-spinner";
 import { TooltipContent } from "./ui/tooltip";
 import { Tooltip } from "./ui/tooltip";
@@ -100,16 +100,34 @@ function ErrorView({ message }: { message: Message }) {
         return <ContextLimitError chatId={message.chatId} />;
     }
 
+    const handleCopyError = () => {
+        void navigator.clipboard.writeText(message.errorMessage ?? "");
+        toast.success("Error details copied to clipboard");
+    };
+
     return (
         <div>
             <CircleAlertIcon className="w-3 h-3 inline-block mr-1 mb-0.5" />
             Model did not return a response
             {message.errorMessage && (
-                <div className="text-md rounded-md my-1 items-center justify-between font-[350]">
-                    <div className="flex items-center text-destructive">
-                        {message.errorMessage}
-                    </div>
-                </div>
+                <Collapsible className="my-1">
+                    <CollapsibleTrigger className="flex items-center gap-1 text-sm text-destructive hover:underline cursor-pointer">
+                        <ChevronDownIcon className="w-3 h-3 transition-transform [[data-state=open]_&]:rotate-180" />
+                        Show error details
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                        <div className="mt-1 rounded-md bg-muted/50 p-2 text-sm font-mono text-destructive whitespace-pre-wrap break-all">
+                            {message.errorMessage}
+                        </div>
+                        <button
+                            onClick={handleCopyError}
+                            className="mt-1 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                        >
+                            <CopyIcon className="w-3 h-3" />
+                            Copy error
+                        </button>
+                    </CollapsibleContent>
+                </Collapsible>
             )}
         </div>
     );
@@ -1015,10 +1033,8 @@ function ToolsAIMessageViewInner({
                     <DeepResearchNotificationHandler message={message} />
                     <DeepResearchNotificationButton message={message} />
                     {message.errorMessage && (
-                        <div className="text-md rounded-md my-1 items-center justify-between font-[350]">
-                            <div className="flex items-center text-destructive font-medium">
-                                {message.errorMessage}
-                            </div>
+                        <div className="text-sm text-muted-foreground/50 uppercase font-[350] font-geist-mono tracking-wider">
+                            <ErrorView message={message} />
                         </div>
                     )}
                 </>
