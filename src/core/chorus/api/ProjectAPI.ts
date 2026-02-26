@@ -6,6 +6,7 @@ import * as Prompts from "../prompts/prompts";
 import { produce } from "immer";
 import { useGetMessageSets } from "./MessageAPI";
 import { llmConversation } from "../ChatState";
+import { fetchGCMainMessages } from "./GroupChatAPI";
 import { simpleLLM } from "../simpleLLM";
 import { SimpleCompletionMode } from "../ModelProviders/simple/ISimpleCompletionProvider";
 import _ from "lodash";
@@ -374,8 +375,8 @@ export function useRegenerateProjectContextSummaries() {
     });
 }
 
-// todo-gc: we'll need to update this to work with group chats
 function useRegenerateProjectContextSummary() {
+    const queryClient = useQueryClient();
     const cacheUpdateChat = useCacheUpdateChat();
     const getMessageSets = useGetMessageSets();
 
@@ -395,16 +396,40 @@ function useRegenerateProjectContextSummary() {
                 { sortChanged: false },
             );
 
-            const messageSets = await getMessageSets(chatId);
+            // Branch on chat type: GC chats use gc_messages, legacy chats use message_sets
+            const chat = await queryClient.ensureQueryData(
+                chatQueries.detail(chatId),
+            );
 
-            if (messageSets.length === 0) {
-                return { skipped: true };
+            let conversationText: string;
+
+            if (chat.gcPrototype) {
+                const gcMessages = await fetchGCMainMessages(chatId);
+                const activeMessages = gcMessages.filter(
+                    (m) => !m.isDeleted && m.modelConfigId !== "tool_result",
+                );
+                if (activeMessages.length === 0) {
+                    return { skipped: true };
+                }
+                conversationText = activeMessages
+                    .map((m) => {
+                        const role =
+                            m.modelConfigId === "user" ? "user" : "assistant";
+                        return `${role}: ${m.text}`;
+                    })
+                    .join("\n\n");
+            } else {
+                const messageSets = await getMessageSets(chatId);
+                if (messageSets.length === 0) {
+                    return { skipped: true };
+                }
+                conversationText = llmConversation(messageSets)
+                    .filter(
+                        (m) => m.role === "user" || m.role === "assistant",
+                    ) // Intentionally excludes tool messages — they add noise without improving summary quality
+                    .map((m) => `${m.role}: ${m.content}`)
+                    .join("\n\n");
             }
-
-            const conversationText = llmConversation(messageSets)
-                .filter((m) => m.role === "user" || m.role === "assistant") // Intentionally excludes tool messages — they add noise without improving summary quality
-                .map((m) => `${m.role}: ${m.content}`)
-                .join("\n\n");
 
             const summary = await simpleLLM(
                 Prompts.PROJECT_CONTEXT_SUMMARY_PROMPT(conversationText),

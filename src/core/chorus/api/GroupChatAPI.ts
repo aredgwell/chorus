@@ -92,7 +92,7 @@ function readGCMessage(row: GCMessageDBRow): GCMessage {
 // DB helpers (private)
 // ---------------------------------------------------------------------------
 
-async function fetchGCMainMessages(chatId: string): Promise<GCMessage[]> {
+export async function fetchGCMainMessages(chatId: string): Promise<GCMessage[]> {
     const rows = await db.select<GCMessageDBRow[]>(
         `SELECT * FROM gc_messages
          WHERE chat_id = ? AND thread_root_message_id IS NULL
