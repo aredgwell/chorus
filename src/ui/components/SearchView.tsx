@@ -186,7 +186,7 @@ export default function SearchView() {
     })();
 
     return (
-        <div className="flex flex-col h-screen w-full">
+        <div className="flex flex-col h-full w-full">
             {/* Header */}
             <div className="flex items-center gap-2 p-3 border-b border-border">
                 <SidebarTrigger />

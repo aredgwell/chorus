@@ -118,7 +118,7 @@ const Sidebar = React.forwardRef<
                     >
                         <div
                             data-tauri-drag-region
-                            className="flex items-center justify-end gap-4 pr-3 pt-[17px]"
+                            className="flex items-center justify-end gap-4 pr-3 h-[44px] shrink-0"
                         >
                             <SidebarTrigger />
                         </div>

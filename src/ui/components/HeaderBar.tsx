@@ -37,7 +37,7 @@ export function HeaderBar({
     return (
         <div
             data-tauri-drag-region
-            className={`${positioning} top-0 left-0 ${isSidebarOpen ? (positioning === "fixed" ? "left-64" : "") : "pl-20"} right-0 h-[52px] z-10
+            className={`${positioning} ${positioning === "fixed" ? "top-[44px]" : "top-0"} left-0 ${isSidebarOpen ? (positioning === "fixed" ? "left-64" : "") : "pl-20"} right-0 h-[52px] z-10
                  items-center justify-between px-3 -mt-px flex bg-background
             hover:bg-background
             active:bg-background

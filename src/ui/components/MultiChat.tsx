@@ -523,7 +523,7 @@ export default function MultiChat() {
 
     return (
         <div
-            className={`flex flex-col h-screen w-full min-w-0 mx-auto @container group relative
+            className={`flex flex-col ${isQuickChatWindow ? "h-screen" : "h-full"} w-full min-w-0 mx-auto @container group relative
         ${isQuickChatWindow && (windowIsFocused ? "rounded-xl" : "bg-foreground/5 rounded-xl")}`}
         >
             {/* header bar */}
