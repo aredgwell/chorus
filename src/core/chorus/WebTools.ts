@@ -7,6 +7,7 @@ type FetchOptions = {
     startIndex?: number;
     raw?: boolean;
     headers?: Record<string, string>;
+    jinaApiKey?: string;
 };
 
 type FetchResult = {
@@ -193,12 +194,19 @@ export class WebTools {
             startIndex = 0,
             raw = false,
             headers = {},
+            jinaApiKey,
         } = options;
 
         try {
+            const fetchHeaders = { ...headers };
+            const useJina = !raw;
+            if (useJina && jinaApiKey) {
+                fetchHeaders["Authorization"] = `Bearer ${jinaApiKey}`;
+            }
+
             const response = await this._fetch(
-                raw ? normalizeUrl(url) : `https://r.jina.ai/${url}`,
-                headers,
+                useJina ? `https://r.jina.ai/${url}` : normalizeUrl(url),
+                fetchHeaders,
             );
             let content = await response.text();
             console.log("raw text content", content);
@@ -247,11 +255,17 @@ export class WebTools {
                 truncated: false,
             };
         } catch (error) {
+            const msg = getErrorMessage(error);
+            // Jina requires an API key — surface a helpful hint on 401/403
+            const isAuthError = /40[13]/.test(msg);
+            const hint =
+                isAuthError && useJina && !jinaApiKey
+                    ? " Jina AI now requires an API key. Please add your Jina AI API key in Settings."
+                    : "";
             return {
-                // Format error message according to spec
-                content: `<web_fetch_system_message>Error fetching webpage: ${getErrorMessage(error)}</web_fetch_system_message>`,
+                content: `<web_fetch_system_message>Error fetching webpage: ${msg}${hint}</web_fetch_system_message>`,
                 truncated: false,
-                error: getErrorMessage(error),
+                error: msg + hint,
             };
         }
     }
