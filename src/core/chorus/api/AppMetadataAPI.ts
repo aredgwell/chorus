@@ -257,3 +257,30 @@ export function useSetZoomLevel() {
         },
     });
 }
+
+export type SidebarSortMode = "date" | "name" | "type";
+
+export function useSidebarSortMode(): SidebarSortMode {
+    const { data: appMetadata } = useAppMetadata();
+    const value = appMetadata?.["sidebar_sort_mode"];
+    if (value === "name" || value === "type") return value;
+    return "date";
+}
+
+export function useSetSidebarSortMode() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ["setSidebarSortMode"] as const,
+        mutationFn: async (mode: SidebarSortMode) => {
+            await db.execute(
+                "INSERT OR REPLACE INTO app_metadata (key, value) VALUES (?, ?)",
+                ["sidebar_sort_mode", mode],
+            );
+        },
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({
+                queryKey: appMetadataKeys.appMetadata(),
+            });
+        },
+    });
+}

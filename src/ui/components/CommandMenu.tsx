@@ -92,7 +92,7 @@ export function CommandMenu() {
         },
         {
             id: "new-project",
-            label: "New project",
+            label: "New collection",
             icon: FolderPlusIcon,
             shortcut: "⌘⇧N",
             action: () => {

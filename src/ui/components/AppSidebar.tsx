@@ -11,6 +11,10 @@ import {
     EllipsisIcon,
     SearchIcon,
     SparklesIcon,
+    NetworkIcon,
+    FileTextIcon,
+    ArrowUpDownIcon,
+    CheckIcon,
 } from "lucide-react";
 import {
     Sidebar,
@@ -56,6 +60,8 @@ import {
     DialogTitle,
 } from "./ui/dialog";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
+import * as NoteAPI from "@core/chorus/api/NoteAPI";
+import { type Note } from "@core/chorus/api/NoteAPI";
 import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
 import { formatCost } from "@core/chorus/api/CostAPI";
 import RetroSpinner from "./ui/retro-spinner";
@@ -74,8 +80,20 @@ import {
 import Droppable from "./Droppable";
 import Draggable from "./Draggable";
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { projectQueries, useCreateProject } from "@core/chorus/api/ProjectAPI";
 import { chatQueries } from "@core/chorus/api/ChatAPI";
+import { noteQueries } from "@core/chorus/api/NoteAPI";
+import {
+    useSidebarSortMode,
+    useSetSidebarSortMode,
+    type SidebarSortMode,
+} from "@core/chorus/api/AppMetadataAPI";
 import { useToggleProjectIsCollapsed } from "@core/chorus/api/ProjectAPI";
 import { SIMILAR_CHATS_DIALOG_ID } from "./SimilarChatsDialog";
 
@@ -97,35 +115,48 @@ function isLastWeek(date: Date) {
     return date >= lastWeek && date < today;
 }
 
-function groupChatsByDate(chats: Chat[]) {
-    const groups: { label: string; chats: Chat[] }[] = [];
+type SidebarItem =
+    | { type: "chat"; data: Chat }
+    | { type: "note"; data: Note };
 
-    const today: Chat[] = [];
-    const yesterday: Chat[] = [];
-    const lastWeek: Chat[] = [];
-    const older: Chat[] = [];
-    chats.forEach((chat) => {
-        const utcDate = new Date(chat.updatedAt || 0);
+function sidebarItemUpdatedAt(item: SidebarItem): string {
+    return item.data.updatedAt || item.data.createdAt;
+}
+
+function sidebarItemTitle(item: SidebarItem): string {
+    return item.data.title || "";
+}
+
+
+function groupItemsByDate(items: SidebarItem[]) {
+    const groups: { label: string; items: SidebarItem[] }[] = [];
+
+    const today: SidebarItem[] = [];
+    const yesterday: SidebarItem[] = [];
+    const lastWeek: SidebarItem[] = [];
+    const older: SidebarItem[] = [];
+    items.forEach((item) => {
+        const utcDate = new Date(sidebarItemUpdatedAt(item) || 0);
         // Convert to local time
         const date = new Date(
             utcDate.getTime() - utcDate.getTimezoneOffset() * 60000,
         );
 
         if (isToday(date)) {
-            today.push(chat);
+            today.push(item);
         } else if (isYesterday(date)) {
-            yesterday.push(chat);
+            yesterday.push(item);
         } else if (isLastWeek(date)) {
-            lastWeek.push(chat);
+            lastWeek.push(item);
         } else {
-            older.push(chat);
+            older.push(item);
         }
     });
 
-    if (today.length) groups.push({ label: "Today", chats: today });
-    if (yesterday.length) groups.push({ label: "Yesterday", chats: yesterday });
-    if (lastWeek.length) groups.push({ label: "Last Week", chats: lastWeek });
-    if (older.length) groups.push({ label: "Older", chats: older });
+    if (today.length) groups.push({ label: "Today", items: today });
+    if (yesterday.length) groups.push({ label: "Yesterday", items: yesterday });
+    if (lastWeek.length) groups.push({ label: "Last Week", items: lastWeek });
+    if (older.length) groups.push({ label: "Older", items: older });
 
     return groups;
 }
@@ -146,7 +177,7 @@ function EmptyProjectState() {
             }`}
         >
             <p className="mb-2 text-sm whitespace-normal wrap-break-word">
-                Projects allow you to share context between chats.
+                Collections allow you to share context between chats.
             </p>
 
             <button
@@ -162,8 +193,8 @@ function EmptyProjectState() {
                     />
                     <span className="font-[350]">
                         {active
-                            ? "Drop to create a project"
-                            : "Create a project"}
+                            ? "Drop to create a collection"
+                            : "Create a collection"}
                     </span>
                 </div>
                 <span>
@@ -431,15 +462,23 @@ const NUM_PROJECT_CHATS_TO_SHOW_BY_DEFAULT = 10;
 export function AppSidebarInner() {
     const projectsQuery = useQuery(ProjectAPI.projectQueries.list());
     const chatsQuery = useQuery(ChatAPI.chatQueries.list());
+    const notesQuery = useQuery(noteQueries.list());
     const createProject = ProjectAPI.useCreateProject();
+    const createNote = NoteAPI.useCreateNote();
     const location = useLocation();
     const navigate = useNavigate();
     const currentChatId = location.pathname.split("/").pop()!; // well this is super hacky
+    const currentNoteId = location.pathname.startsWith("/note/")
+        ? location.pathname.split("/").pop()!
+        : undefined;
     const updateChatProject = ProjectAPI.useSetChatProject();
+    const setNoteProject = NoteAPI.useSetNoteProject();
     const getOrCreateNewChat = ChatAPI.useGetOrCreateNewChat();
 
-    const [showAllChats, setShowAllChats] = useState(false);
+    const [showAllItems, setShowAllItems] = useState(false);
     const [sidebarFilter, setSidebarFilter] = useState("");
+    const sortMode = useSidebarSortMode();
+    const setSortMode = useSetSidebarSortMode();
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -456,24 +495,64 @@ export function AppSidebarInner() {
         },
         {} as Record<string, Chat[]>,
     );
-    const defaultChats = (() => {
-        const chats = filterChatsForDisplay(
+
+    // Build merged sidebar items for the default section
+    const defaultItems: SidebarItem[] = (() => {
+        const chatItems: SidebarItem[] = filterChatsForDisplay(
             chatsByProject["default"] || [],
             currentChatId,
-        );
-        if (!sidebarFilter) return chats;
-        const lower = sidebarFilter.toLowerCase();
-        return chats.filter(
-            (chat) =>
-                chat.title?.toLowerCase().includes(lower) ||
-                chat.id === currentChatId,
-        );
+        ).map((chat) => ({ type: "chat" as const, data: chat }));
+
+        const noteItems: SidebarItem[] = (notesQuery.data ?? [])
+            .filter((note) => note.projectId === "default")
+            .map((note) => ({ type: "note" as const, data: note }));
+
+        let items = [...chatItems, ...noteItems];
+
+        // Apply sort based on mode
+        if (sortMode === "name") {
+            items.sort((a, b) =>
+                sidebarItemTitle(a).localeCompare(sidebarItemTitle(b)),
+            );
+        } else if (sortMode === "type") {
+            items.sort((a, b) => {
+                if (a.type !== b.type) {
+                    return a.type === "note" ? -1 : 1;
+                }
+                return (
+                    new Date(sidebarItemUpdatedAt(b)).getTime() -
+                    new Date(sidebarItemUpdatedAt(a)).getTime()
+                );
+            });
+        } else {
+            items.sort(
+                (a, b) =>
+                    new Date(sidebarItemUpdatedAt(b)).getTime() -
+                    new Date(sidebarItemUpdatedAt(a)).getTime(),
+            );
+        }
+
+        if (sidebarFilter) {
+            const lower = sidebarFilter.toLowerCase();
+            items = items.filter(
+                (item) =>
+                    sidebarItemTitle(item).toLowerCase().includes(lower) ||
+                    (item.type === "chat" && item.data.id === currentChatId),
+            );
+        }
+        return items;
     })();
-    const groupedChats = groupChatsByDate(
-        showAllChats
-            ? defaultChats
-            : defaultChats.slice(0, NUM_DEFAULT_CHATS_TO_SHOW_BY_DEFAULT),
-    );
+
+    const itemsToDisplay = showAllItems
+        ? defaultItems
+        : defaultItems.slice(0, NUM_DEFAULT_CHATS_TO_SHOW_BY_DEFAULT);
+
+    // When sorting by date, group into Today/Yesterday/etc.
+    // For other sort modes, use a single flat group.
+    const groupedItems =
+        sortMode === "date"
+            ? groupItemsByDate(itemsToDisplay)
+            : [{ label: "", items: itemsToDisplay }];
     const quickChats = filterChatsForDisplay(
         chatsByProject["quick-chat"] || [],
         currentChatId,
@@ -484,7 +563,11 @@ export function AppSidebarInner() {
         )
         .sort((a, b) => a.name.localeCompare(b.name));
 
-    if (projectsQuery.isPending || chatsQuery.isPending) {
+    if (
+        projectsQuery.isPending ||
+        chatsQuery.isPending ||
+        notesQuery.isPending
+    ) {
         return <RetroSpinner />;
     }
 
@@ -502,31 +585,53 @@ export function AppSidebarInner() {
     }
 
     const handleDragEnd = async (event: DragEndEvent) => {
-        const chatId = event.active.id.toString();
+        const itemId = event.active.id.toString();
         const dropTargetId = event.over?.id.toString();
 
-        if (!chatId || !dropTargetId) return;
+        if (!itemId || !dropTargetId) return;
 
-        // Check if dropped on empty project state
+        // Determine if the dragged item is a note or a chat
+        const isNote = (notesQuery.data ?? []).some(
+            (note) => note.id === itemId,
+        );
+
         if (dropTargetId === "empty-project-state") {
-            // Create new project
             const projectId = await createProject.mutateAsync();
-            // Add the chat to the new project
-            updateChatProject.mutate({ chatId, projectId });
+            if (isNote) {
+                setNoteProject.mutate({ noteId: itemId, projectId });
+            } else {
+                updateChatProject.mutate({ chatId: itemId, projectId });
+            }
         } else {
-            // Normal project drop
-            updateChatProject.mutate({ chatId, projectId: dropTargetId });
+            if (isNote) {
+                setNoteProject.mutate({
+                    noteId: itemId,
+                    projectId: dropTargetId,
+                });
+            } else {
+                updateChatProject.mutate({
+                    chatId: itemId,
+                    projectId: dropTargetId,
+                });
+            }
         }
     };
 
     function onNewChatClick() {
-        // Always create a default (non-project) chat when clicking "Start New Chat"
         void getOrCreateNewChat.mutateAsync({ projectId: "default" });
+    }
+
+    function onNewNoteClick() {
+        void createNote.mutateAsync({ projectId: "default" });
     }
 
     const hasNonQuickChats =
         chatsQuery.data?.filter((chat) => chat.projectId !== "quick-chat")
             .length > 0;
+    const hasDefaultNotes =
+        (notesQuery.data ?? []).filter((n) => n.projectId === "default")
+            .length > 0;
+    const hasNonQuickItems = hasNonQuickChats || hasDefaultNotes;
 
     return (
         <SidebarContent className="relative h-full pt-5">
@@ -535,26 +640,44 @@ export function AppSidebarInner() {
                     <SidebarGroup className="min-h-0">
                         <SidebarGroupContent>
                             <SidebarMenu className="truncate">
-                                {/* New Chat button */}
-                                <button
-                                    className="group/new-chat text-base pl-3 pr-3 py-2 flex items-center justify-between hover:bg-sidebar-accent rounded-md w-full text-sidebar-muted-foreground hover:text-foreground mb-2"
-                                    onClick={onNewChatClick}
-                                >
-                                    <span className="flex items-center gap-2 ">
-                                        <SquarePlusIcon
-                                            className="size-4 text-muted-foreground group-hover/new-chat:text-foreground"
-                                            strokeWidth={1.5}
-                                        />
-                                        Start New Chat
-                                    </span>
-                                    <span className="text-xs hidden group-hover/new-chat:block text-muted-foreground">
-                                        ⌘N
-                                    </span>
-                                </button>
+                                {/* New Chat + New Note buttons */}
+                                <div className="flex items-center gap-1 mb-2">
+                                    <button
+                                        className="group/new-chat text-base pl-3 pr-3 py-2 flex items-center justify-between hover:bg-sidebar-accent rounded-md flex-1 text-sidebar-muted-foreground hover:text-foreground"
+                                        onClick={onNewChatClick}
+                                    >
+                                        <span className="flex items-center gap-2 ">
+                                            <SquarePlusIcon
+                                                className="size-4 text-muted-foreground group-hover/new-chat:text-foreground"
+                                                strokeWidth={1.5}
+                                            />
+                                            Start New Chat
+                                        </span>
+                                        <span className="text-xs hidden group-hover/new-chat:block text-muted-foreground">
+                                            ⌘N
+                                        </span>
+                                    </button>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button
+                                                className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent transition-colors shrink-0"
+                                                onClick={onNewNoteClick}
+                                            >
+                                                <FileTextIcon
+                                                    className="size-4"
+                                                    strokeWidth={1.5}
+                                                />
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            New Note
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
 
-                                {/* Search input */}
-                                <div className="px-2 mb-2">
-                                    <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-sidebar-accent/50 border border-border/50">
+                                {/* Search input + sort */}
+                                <div className="px-2 mb-2 flex items-center gap-1">
+                                    <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-sidebar-accent/50 border border-border/50 flex-1">
                                         <SearchIcon className="size-3.5 text-muted-foreground shrink-0" />
                                         <input
                                             type="text"
@@ -574,7 +697,7 @@ export function AppSidebarInner() {
                                                     );
                                                 }
                                             }}
-                                            placeholder="Filter chats..."
+                                            placeholder="Filter..."
                                             className="bg-transparent border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-hidden w-full"
                                         />
                                         {sidebarFilter && (
@@ -590,14 +713,67 @@ export function AppSidebarInner() {
                                             </button>
                                         )}
                                     </div>
+                                    <DropdownMenu>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <DropdownMenuTrigger asChild>
+                                                    <button className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors shrink-0">
+                                                        <ArrowUpDownIcon
+                                                            className="size-3.5"
+                                                            strokeWidth={
+                                                                1.5
+                                                            }
+                                                        />
+                                                    </button>
+                                                </DropdownMenuTrigger>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="bottom">
+                                                Sort
+                                            </TooltipContent>
+                                        </Tooltip>
+                                        <DropdownMenuContent align="end">
+                                            {(
+                                                [
+                                                    {
+                                                        value: "date",
+                                                        label: "Date",
+                                                    },
+                                                    {
+                                                        value: "name",
+                                                        label: "Name",
+                                                    },
+                                                    {
+                                                        value: "type",
+                                                        label: "Type",
+                                                    },
+                                                ] as const
+                                            ).map((option) => (
+                                                <DropdownMenuItem
+                                                    key={option.value}
+                                                    onSelect={() =>
+                                                        setSortMode.mutate(
+                                                            option.value as SidebarSortMode,
+                                                        )
+                                                    }
+                                                    className="flex items-center justify-between"
+                                                >
+                                                    {option.label}
+                                                    {sortMode ===
+                                                        option.value && (
+                                                        <CheckIcon className="size-3.5 ml-2" />
+                                                    )}
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </div>
 
-                                {/* add new project */}
-                                {hasNonQuickChats && (
+                                {/* Collections section */}
+                                {hasNonQuickItems && (
                                     <>
                                         <div className="pt-2 flex items-center justify-between group/projects">
                                             <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
-                                                Projects
+                                                Collections
                                             </div>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
@@ -618,7 +794,7 @@ export function AppSidebarInner() {
                                                     )}
                                                 </TooltipTrigger>
                                                 <TooltipContent>
-                                                    New Project
+                                                    New Collection
                                                 </TooltipContent>
                                             </Tooltip>
                                         </div>
@@ -648,43 +824,71 @@ export function AppSidebarInner() {
                                 <div className="h-3" />
 
                                 <Droppable id="default">
-                                    {/* Grouped chats */}
-                                    {groupedChats.length > 0 ? (
-                                        groupedChats.map(
-                                            ({ label, chats: groupChats }) => (
+                                    {/* Grouped items (chats + notes) */}
+                                    {groupedItems.some(
+                                        (g) => g.items.length > 0,
+                                    ) ? (
+                                        groupedItems.map(
+                                            ({
+                                                label,
+                                                items: groupItems,
+                                            }) => (
                                                 <div
-                                                    key={label}
+                                                    key={label || "all"}
                                                     className="pb-3"
                                                 >
-                                                    <div className="px-3 mb-1 sidebar-label flex items-center gap-2 text-muted-foreground">
-                                                        {label}
-                                                    </div>
-                                                    {groupChats.map((chat) => (
-                                                        <ChatListItem
-                                                            key={
-                                                                chat.id +
-                                                                "-sidebar"
-                                                            }
-                                                            chat={chat}
-                                                            isActive={
-                                                                currentChatId ===
-                                                                chat.id
-                                                            }
-                                                        />
-                                                    ))}
+                                                    {label && (
+                                                        <div className="px-3 mb-1 sidebar-label flex items-center gap-2 text-muted-foreground">
+                                                            {label}
+                                                        </div>
+                                                    )}
+                                                    {groupItems.map((item) =>
+                                                        item.type ===
+                                                        "chat" ? (
+                                                            <ChatListItem
+                                                                key={
+                                                                    item.data
+                                                                        .id +
+                                                                    "-sidebar"
+                                                                }
+                                                                chat={
+                                                                    item.data
+                                                                }
+                                                                isActive={
+                                                                    currentChatId ===
+                                                                    item.data.id
+                                                                }
+                                                            />
+                                                        ) : (
+                                                            <NoteListItem
+                                                                key={
+                                                                    item.data
+                                                                        .id +
+                                                                    "-sidebar"
+                                                                }
+                                                                note={
+                                                                    item.data
+                                                                }
+                                                                isActive={
+                                                                    currentNoteId ===
+                                                                    item.data.id
+                                                                }
+                                                            />
+                                                        ),
+                                                    )}
                                                 </div>
                                             ),
                                         )
                                     ) : (
                                         <EmptyChatState />
                                     )}
-                                    {defaultChats.length >
+                                    {defaultItems.length >
                                         NUM_DEFAULT_CHATS_TO_SHOW_BY_DEFAULT &&
-                                        !showAllChats && (
+                                        !showAllItems && (
                                             <SidebarMenuItem className="w-full">
                                                 <SidebarMenuButton
                                                     onClick={() =>
-                                                        setShowAllChats(true)
+                                                        setShowAllItems(true)
                                                     }
                                                 >
                                                     <EllipsisIcon className="size-4 text-muted-foreground" />
@@ -712,6 +916,7 @@ export function AppSidebarInner() {
 function QuickChats({ chats }: { chats: Chat[] }) {
     const navigate = useNavigate();
     const settings = useSettings();
+    const [isAmbientOpen, setIsAmbientOpen] = useState(false);
     const convertQuickChatToRegularChat =
         ChatAPI.useConvertQuickChatToRegularChat();
 
@@ -727,98 +932,277 @@ function QuickChats({ chats }: { chats: Chat[] }) {
     };
 
     return (
-        <div className="relative pb-2 pr-2 bg-sidebar z-10">
-            <SidebarMenu>
-                <Collapsible className="group/collapsible data-[state=open]/collapsible:border-t pt-2 mb-1 flex items-stretch w-full">
-                    <SidebarMenuItem className="w-full">
-                        <div className="h-6 w-full flex justify-between">
-                            <span className="h-full group-data-[state=open]/collapsible:hidden px-3 flex items-center gap-2">
+        <div className="relative bg-sidebar z-10">
+            {/* Ambient chats collapsible panel */}
+            <Collapsible
+                open={isAmbientOpen}
+                onOpenChange={setIsAmbientOpen}
+            >
+                <CollapsibleContent className="max-h-[400px] overflow-y-auto no-scrollbar border-t">
+                    <div className="px-3 py-2 flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">
+                            Ambient Chats
+                        </span>
+                        <CollapsibleTrigger asChild>
+                            <button className="text-muted-foreground/75 hover:text-foreground p-1 rounded-full">
+                                <ChevronDownIcon
+                                    className="w-4 h-4"
+                                    strokeWidth={1.5}
+                                />
+                            </button>
+                        </CollapsibleTrigger>
+                    </div>
+                    <SidebarGroup className="min-h-0 pt-0">
+                        <SidebarGroupContent>
+                            {chats.map((chat) => (
+                                <SidebarMenuItem key={chat.id}>
+                                    <SidebarMenuButton
+                                        onClick={(e) =>
+                                            void handleQuickChatConversion(
+                                                e,
+                                                chat,
+                                            )
+                                        }
+                                        className="text-sidebar-accent-foreground truncate group/chat-button flex justify-between"
+                                    >
+                                        <span className="truncate pr-3 text-sm">
+                                            {chat.title || "Untitled Chat"}
+                                        </span>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            ))}
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                    {!chats.length && (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                            Start an Ambient Chat with{" "}
+                            <span className="text-sm">
+                                {settings?.quickChat?.shortcut || "⌥Space"}
                             </span>
-                            <div className="flex items-center gap-2">
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <CollapsibleTrigger asChild>
-                                            <button className="h-full text-muted-foreground/75 hover:text-foreground p-2 rounded-full flex items-center gap-2 group-data-[state=open]/collapsible:w-full">
-                                                <ArchiveIcon
-                                                    className="w-4 h-4 group-data-[state=open]/collapsible:hidden block"
-                                                    strokeWidth={1.5}
-                                                />
-                                                <ChevronDownIcon
-                                                    className="w-4 h-4 group-data-[state=open]/collapsible:block hidden"
-                                                    strokeWidth={1.5}
-                                                />
-
-                                                <span className="text-sm hidden group-data-[state=open]/collapsible:block">
-                                                    Ambient Chats
-                                                </span>
-                                            </button>
-                                        </CollapsibleTrigger>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom">
-                                        Ambient Chats
-                                    </TooltipContent>
-                                </Tooltip>
-
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <button
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                void emit("open_settings", {
-                                                    tab: "general",
-                                                });
-                                            }}
-                                            className="h-full text-muted-foreground/75 hover:text-foreground p-2 rounded-full flex items-center gap-2 group-data-[state=open]/collapsible:hidden"
-                                        >
-                                            <Settings
-                                                className="h-4 w-4"
-                                                strokeWidth={1.5}
-                                            />
-                                        </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom">
-                                        Settings <kbd>⌘,</kbd>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </div>
                         </div>
+                    )}
+                </CollapsibleContent>
+            </Collapsible>
 
-                        <CollapsibleContent className="max-h-[400px] overflow-y-auto no-scrollbar">
-                            <SidebarGroup className="min-h-0">
-                                <SidebarGroupContent>
-                                    {chats.map((chat) => (
-                                        <SidebarMenuItem key={chat.id}>
-                                            <SidebarMenuButton
-                                                onClick={(e) =>
-                                                    void handleQuickChatConversion(
-                                                        e,
-                                                        chat,
-                                                    )
-                                                }
-                                                className="text-sidebar-accent-foreground truncate group/chat-button flex justify-between"
-                                            >
-                                                <span className="truncate pr-3 text-sm">
-                                                    {chat.title ||
-                                                        "Untitled Chat"}
-                                                </span>
-                                            </SidebarMenuButton>
-                                        </SidebarMenuItem>
-                                    ))}
-                                </SidebarGroupContent>
-                            </SidebarGroup>
-                            {!chats.length && (
-                                <div className="px-2 py-2 text-sm text-muted-foreground">
-                                    Start an Ambient Chat with{" "}
-                                    <span className="text-sm">
-                                        {settings?.quickChat?.shortcut ||
-                                            "⌥Space"}
-                                    </span>
+            {/* Footer icon row */}
+            <div className="flex items-center justify-center gap-1 py-2 px-2 border-t">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <button
+                            onClick={() => setIsAmbientOpen((prev) => !prev)}
+                            className={`p-2 rounded-md transition-colors ${
+                                isAmbientOpen
+                                    ? "text-foreground bg-muted"
+                                    : "text-muted-foreground/75 hover:text-foreground hover:bg-muted/50"
+                            }`}
+                        >
+                            <ArchiveIcon
+                                className="w-4 h-4"
+                                strokeWidth={1.5}
+                            />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                        Ambient Chats
+                    </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <button
+                            onClick={() => {
+                                toast("Graph — coming soon");
+                            }}
+                            className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
+                        >
+                            <NetworkIcon
+                                className="w-4 h-4"
+                                strokeWidth={1.5}
+                            />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">Graph</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <button
+                            onClick={(e) => {
+                                e.preventDefault();
+                                void emit("open_settings", {
+                                    tab: "general",
+                                });
+                            }}
+                            className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
+                        >
+                            <Settings
+                                className="w-4 h-4"
+                                strokeWidth={1.5}
+                            />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                        Settings <kbd>⌘,</kbd>
+                    </TooltipContent>
+                </Tooltip>
+            </div>
+        </div>
+    );
+}
+
+const deleteNoteDialogId = (noteId: string) =>
+    `delete-note-dialog-${noteId}`;
+
+function NoteListItem({
+    note,
+    isActive,
+}: {
+    note: Note;
+    isActive: boolean;
+}) {
+    const navigate = useNavigate();
+    const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const renameNote = NoteAPI.useRenameNote();
+    const deleteNote = NoteAPI.useDeleteNote();
+    const isDeleteDialogOpen = useDialogStore(
+        (state) => state.activeDialogId === deleteNoteDialogId(note.id),
+    );
+    const deleteConfirmButtonRef = useRef<HTMLButtonElement>(null);
+
+    const handleConfirmDelete = useCallback(async () => {
+        const noteTitle = note.title || "Untitled note";
+        await deleteNote.mutateAsync({ noteId: note.id });
+        dialogActions.closeDialog();
+        toast(`'${noteTitle}' deleted`);
+    }, [note.id, note.title, deleteNote]);
+
+    useEffect(() => {
+        if (isDeleteDialogOpen && deleteConfirmButtonRef.current) {
+            deleteConfirmButtonRef.current.focus();
+        }
+    }, [isDeleteDialogOpen]);
+
+    return (
+        <div
+            key={note.id + "-sidebar"}
+            className={deleteNote.isPending ? "opacity-50" : ""}
+        >
+            <Draggable id={note.id}>
+                <SidebarMenuButton
+                    asChild={false}
+                    data-active={isActive}
+                    onClick={() => navigate(`/note/${note.id}`)}
+                    className="data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground text-sidebar-foreground truncate group/chat-button flex justify-between mb-0.5 font-[350] relative"
+                >
+                    <div className="truncate flex items-center text-base w-full">
+                        <FileTextIcon
+                            className="size-3.5 mr-2 text-muted-foreground shrink-0"
+                            strokeWidth={1.5}
+                        />
+                        <EditableTitle
+                            title={note.title || ""}
+                            onUpdate={async (newTitle) => {
+                                await renameNote.mutateAsync({
+                                    noteId: note.id,
+                                    newTitle,
+                                });
+                            }}
+                            className="flex-1 truncate"
+                            editClassName={`h-auto text-base px-0 py-0 ${isActive ? "bg-sidebar-accent" : ""} group-hover/chat-button:bg-sidebar-accent border-0 focus:ring-0 focus:outline-hidden shadow-none`}
+                            placeholder="Untitled note"
+                            showEditIcon={false}
+                            clickToEdit={false}
+                            isEditing={isEditingTitle}
+                            onStartEdit={() => setIsEditingTitle(true)}
+                            onStopEdit={() => setIsEditingTitle(false)}
+                        />
+                    </div>
+
+                    {/* Gradient overlay on hover */}
+                    <div className="absolute right-0 w-20 h-full opacity-0 group-hover/chat-button:opacity-100 transition-opacity bg-linear-to-l from-sidebar-accent via-sidebar-accent to-transparent pointer-events-none" />
+
+                    {/* Note actions */}
+                    <div className="flex items-center gap-2 absolute right-3 z-10">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <PencilOptimized
+                                    className="h-[13px] w-[13px] opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                                    onClick={(e: React.MouseEvent) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setIsEditingTitle(true);
+                                    }}
+                                />
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                                Rename note
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        dialogActions.openDialog(
+                                            deleteNoteDialogId(note.id),
+                                        );
+                                    }}
+                                >
+                                    <Trash2Optimized className="h-[13px] w-[13px] opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground" />
                                 </div>
-                            )}
-                        </CollapsibleContent>
-                    </SidebarMenuItem>
-                </Collapsible>
-            </SidebarMenu>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                                Delete note
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
+                </SidebarMenuButton>
+            </Draggable>
+
+            {/* Delete confirmation dialog */}
+            <Dialog
+                id={deleteNoteDialogId(note.id)}
+                open={isDeleteDialogOpen}
+            >
+                <DialogContent className="sm:max-w-md p-5">
+                    <DialogHeader>
+                        <DialogTitle>
+                            Delete &ldquo;
+                            {note.title || "Untitled note"}
+                            &rdquo;
+                        </DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this note? This
+                            action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => dialogActions.closeDialog()}
+                            tabIndex={-1}
+                        >
+                            Cancel{" "}
+                            <span className="ml-1 text-sm text-muted-foreground/70">
+                                Esc
+                            </span>
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="default"
+                            size="sm"
+                            onClick={() => void handleConfirmDelete()}
+                            ref={deleteConfirmButtonRef}
+                            tabIndex={1}
+                        >
+                            Delete <span className="ml-1 text-sm">↵</span>
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

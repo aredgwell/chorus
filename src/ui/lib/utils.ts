@@ -55,7 +55,7 @@ export function displayDate(d: Date): string {
 }
 
 export function projectDisplayName(name: string) {
-    if (!name) return "Untitled project";
+    if (!name) return "Untitled collection";
     return name;
 }
 

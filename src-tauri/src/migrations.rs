@@ -2813,5 +2813,52 @@ You have full access to bash commands on the user''''s computer. If you write a 
                     ON gc_conductors(chat_id, scope_id) WHERE is_active = 1;
             "#,
         },
+        Migration {
+            version: 149,
+            description: "create notes table",
+            kind: MigrationKind::Up,
+            sql: r#"
+                CREATE TABLE notes (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    title TEXT NOT NULL DEFAULT '',
+                    content TEXT NOT NULL DEFAULT '',
+                    project_id TEXT NOT NULL DEFAULT 'default',
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+            "#,
+        },
+        Migration {
+            version: 150,
+            description: "create tags and item_tags tables",
+            kind: MigrationKind::Up,
+            sql: r#"
+                CREATE TABLE tags (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    color TEXT,
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE UNIQUE INDEX idx_tags_name ON tags(name);
+
+                CREATE TABLE item_tags (
+                    tag_id TEXT NOT NULL,
+                    item_type TEXT NOT NULL,
+                    item_id TEXT NOT NULL,
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE UNIQUE INDEX idx_item_tags_unique ON item_tags(tag_id, item_type, item_id);
+                CREATE INDEX idx_item_tags_item ON item_tags(item_type, item_id);
+            "#,
+        },
+        Migration {
+            version: 151,
+            description: "add smart collection columns to projects",
+            kind: MigrationKind::Up,
+            sql: r#"
+                ALTER TABLE projects ADD COLUMN collection_type TEXT NOT NULL DEFAULT 'manual';
+                ALTER TABLE projects ADD COLUMN smart_collection_rules TEXT;
+            "#,
+        },
     ];
 }
