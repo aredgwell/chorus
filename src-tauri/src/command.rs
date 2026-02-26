@@ -1168,6 +1168,122 @@ pub async fn find_similar_chats(
     .map_err(|e| format!("Task join error: {}", e))?
 }
 
+/// Find items (chats and notes) with similar embeddings using KNN search.
+/// Note embeddings are stored with a "note:" prefix on the chat_id column.
+#[tauri::command]
+pub async fn find_similar_items(
+    app_handle: AppHandle,
+    embedding: Vec<f32>,
+    limit: i32,
+    exclude_id: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let db_path = db_path(&app_handle)?;
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+
+        // KNN query returns all matching IDs (both chat and note: prefixed)
+        let sql = "
+            SELECT ce.chat_id, ce.distance
+            FROM chat_embeddings ce
+            WHERE ce.embedding MATCH ?1
+              AND k = ?2
+            ORDER BY ce.distance
+        ";
+
+        let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
+        // Request extra rows to account for excluded/deleted items
+        let rows = stmt
+            .query_map(
+                rusqlite::params![embedding.as_bytes(), limit + 5],
+                |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, f64>(1)?))
+                },
+            )
+            .map_err(|e| e.to_string())?;
+
+        let mut results: Vec<serde_json::Value> = Vec::new();
+        for row in rows {
+            let (id, distance) = row.map_err(|e| e.to_string())?;
+
+            if let Some(ref exclude) = exclude_id {
+                if id == *exclude {
+                    continue;
+                }
+            }
+
+            if let Some(note_id) = id.strip_prefix("note:") {
+                let note_row: Option<(String, String, Option<String>, Option<String>)> = conn
+                    .query_row(
+                        "SELECT id, title, project_id, updated_at FROM notes WHERE id = ?1",
+                        rusqlite::params![note_id],
+                        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+                    )
+                    .ok();
+
+                if let Some((nid, title, project_id, updated_at)) = note_row {
+                    results.push(serde_json::json!({
+                        "type": "note",
+                        "id": nid,
+                        "title": title,
+                        "distance": distance,
+                        "projectId": project_id,
+                        "updatedAt": updated_at,
+                    }));
+                }
+            } else {
+                let chat_row: Option<(String, Option<String>, Option<String>, Option<String>)> =
+                    conn.query_row(
+                        "SELECT id, title, project_id, updated_at FROM chats WHERE id = ?1",
+                        rusqlite::params![id],
+                        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+                    )
+                    .ok();
+
+                if let Some((cid, title, project_id, updated_at)) = chat_row {
+                    results.push(serde_json::json!({
+                        "type": "chat",
+                        "id": cid,
+                        "title": title,
+                        "distance": distance,
+                        "projectId": project_id,
+                        "updatedAt": updated_at,
+                    }));
+                }
+            }
+
+            if results.len() >= limit as usize {
+                break;
+            }
+        }
+
+        Ok(serde_json::json!(results))
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+}
+
+/// Delete an embedding by its ID.
+#[tauri::command]
+pub async fn delete_embedding(
+    app_handle: AppHandle,
+    id: String,
+) -> Result<(), String> {
+    let db_path = db_path(&app_handle)?;
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        conn.execute(
+            "DELETE FROM chat_embeddings WHERE chat_id = ?1",
+            rusqlite::params![id],
+        )
+        .map_err(|e| e.to_string())?;
+        Ok::<(), String>(())
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+}
+
 /// Create a user + AI message set pair in a single transaction.
 /// Replaces 3 sequential JS-side db.execute() calls that had a potential race condition.
 #[tauri::command]

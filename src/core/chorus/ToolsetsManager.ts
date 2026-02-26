@@ -21,6 +21,7 @@ import { ToolsetTerminal } from "./toolsets/terminal";
 // import { ToolsetCoder } from "./toolsets/coder";
 import { ToolsetGithub } from "./toolsets/github";
 import { ToolsetLinear } from "./toolsets/linear";
+import { ToolsetKnowledgeBase } from "./toolsets/knowledgebase";
 // import { ToolsetNotion } from "./toolsets/notion";
 // import { ToolsetFiles } from "./toolsets/files";
 // import { ToolsetMessages } from "./toolsets/messages";
@@ -43,6 +44,7 @@ export class ToolsetsManager {
                 new ToolsetMedia(),
                 new ToolsetGithub(),
                 new ToolsetLinear(),
+                new ToolsetKnowledgeBase(),
                 // new ToolsetCoder(),
                 // new ToolsetSlack(),
                 // new ToolsetMessages(),

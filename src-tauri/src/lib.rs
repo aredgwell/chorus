@@ -447,6 +447,8 @@ pub fn run() {
             command::ensure_vec_table,
             command::upsert_chat_embedding,
             command::find_similar_chats,
+            command::find_similar_items,
+            command::delete_embedding,
             command::create_message_set_pair,
             command::edit_message,
             command::convert_draft_attachments,
