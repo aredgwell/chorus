@@ -6,7 +6,7 @@ import { db } from "../DB";
  * Wraps each token in double quotes to treat them as literals,
  * preventing FTS5 syntax errors from special characters.
  */
-function escapeFtsQuery(query: string): string {
+export function escapeFtsQuery(query: string): string {
     return query
         .split(/\s+/)
         .filter((token) => token.length > 0)
