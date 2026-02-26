@@ -29,10 +29,10 @@ export class SimpleCompletionProviderOpenRouter
 
         const model = this.getModel(params.model);
 
-        const stream = await client.chat.completions.create({
+        const response = await client.chat.completions.create({
             model,
             max_tokens: params.maxTokens,
-            stream: true,
+            stream: false,
             messages: [
                 {
                     role: "user",
@@ -41,16 +41,7 @@ export class SimpleCompletionProviderOpenRouter
             ],
         });
 
-        let fullResponse = "";
-
-        for await (const chunk of stream) {
-            const delta = chunk.choices?.[0]?.delta?.content;
-            if (typeof delta === "string") {
-                fullResponse += delta;
-            }
-        }
-
-        return fullResponse;
+        return response.choices?.[0]?.message?.content ?? "";
     }
 
     private getModel(model: SimpleCompletionMode | string | undefined): string {
