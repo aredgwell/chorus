@@ -77,8 +77,6 @@ Done — removed stale `// # todo: - coder toolset?` comments from `terminal.ts`
 
 ---
 
-## Group Chat Compatibility
+## ~~Group Chat Compatibility~~
 
-**Location**: `ProjectAPI.ts` — `useRegenerateProjectContextSummary` (line ~376)
-
-`// todo-gc: we'll need to update this to work with group chats` — real debt item. The function needs updating when legacy MultiChat is deprecated in favor of GroupChat. No immediate action needed.
+Done — `useRegenerateProjectContextSummary` in `ProjectAPI.ts` now branches on `chat.gcPrototype`: GC chats fetch from `gc_messages` via `fetchGCMainMessages`, legacy chats use `message_sets` via `getMessageSets`. Both `GroupChat.tsx` and `GroupChatThread.tsx` now call `useMarkProjectContextSummaryAsStale` after sending messages, matching the legacy `ChatInput.tsx` behavior.

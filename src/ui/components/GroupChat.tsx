@@ -50,6 +50,7 @@ import {
     type GCMessage,
 } from "@core/chorus/api/GroupChatAPI";
 import { useChat } from "@core/chorus/api/ChatAPI";
+import { useMarkProjectContextSummaryAsStale } from "@core/chorus/api/ProjectAPI";
 import { type UserToolCall } from "@core/chorus/Toolsets";
 import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
 import { getModelDisplayName } from "@core/chorus/gc-prototype/UtilsGC";
@@ -517,6 +518,8 @@ export default function GroupChat() {
     const generateTitle = useGenerateGCChatTitle();
     const { data: conductor } = useGCConductor(chatId ?? "");
     const clearConductorMutation = useClearConductor();
+    const markProjectContextSummaryAsStale =
+        useMarkProjectContextSummaryAsStale();
 
     const [generatingModels, setGeneratingModels] = useState<
         Map<string, number>
@@ -607,10 +610,13 @@ export default function GroupChat() {
                 generateTitle.mutate({ chatId });
             }
 
+            // Mark project context summary as stale so other chats in the project re-summarize
+            void markProjectContextSummaryAsStale.mutateAsync({ chatId });
+
             // Trigger AI responses
             generateAIResponses.mutate({ chatId, userMessage: text });
         },
-        [chatId, messages, sendMessage, generateTitle, generateAIResponses],
+        [chatId, messages, sendMessage, generateTitle, markProjectContextSummaryAsStale, generateAIResponses],
     );
 
     const handleDelete = useCallback(

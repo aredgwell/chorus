@@ -11,6 +11,7 @@ import {
     usePromoteGCMessage,
     type GCMessage,
 } from "@core/chorus/api/GroupChatAPI";
+import { useMarkProjectContextSummaryAsStale } from "@core/chorus/api/ProjectAPI";
 import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
 import { getModelDisplayName } from "@core/chorus/gc-prototype/UtilsGC";
 
@@ -114,6 +115,8 @@ export default function GroupChatThread({
     const sendMessage = useSendGCMessage();
     const generateAIResponses = useGenerateAIResponses();
     const promoteMessage = usePromoteGCMessage();
+    const markProjectContextSummaryAsStale =
+        useMarkProjectContextSummaryAsStale();
 
     const [generatingModels, setGeneratingModels] = useState<
         Map<string, number>
@@ -171,13 +174,17 @@ export default function GroupChatThread({
                 text,
                 threadRootMessageId,
             });
+
+            // Mark project context summary as stale so other chats in the project re-summarize
+            void markProjectContextSummaryAsStale.mutateAsync({ chatId });
+
             generateAIResponses.mutate({
                 chatId,
                 userMessage: text,
                 threadRootMessageId,
             });
         },
-        [chatId, threadRootMessageId, sendMessage, generateAIResponses],
+        [chatId, threadRootMessageId, sendMessage, markProjectContextSummaryAsStale, generateAIResponses],
     );
 
     const handlePromote = useCallback(
