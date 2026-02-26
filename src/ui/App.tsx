@@ -30,6 +30,7 @@ import NewPrompt from "./components/NewPrompt";
 import ListPrompts from "./components/ListPrompts";
 import Onboarding from "./components/Onboarding";
 import ProjectView from "./components/ProjectView";
+import NoteEditor from "./components/NoteEditor";
 import SearchView from "./components/SearchView";
 import {
     onOpenUrl,
@@ -920,6 +921,10 @@ function AppContent() {
                         <Route path="/prompts" element={<ListPrompts />} />
                         <Route path="/search" element={<SearchView />} />
                         <Route path="/chat/:chatId" element={<MultiChat />} />
+                        <Route
+                            path="/note/:noteId"
+                            element={<NoteEditor />}
+                        />
                         <Route
                             path="/projects/:projectId"
                             element={<ProjectView />}

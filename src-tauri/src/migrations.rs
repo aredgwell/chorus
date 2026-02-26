@@ -2813,5 +2813,20 @@ You have full access to bash commands on the user''''s computer. If you write a 
                     ON gc_conductors(chat_id, scope_id) WHERE is_active = 1;
             "#,
         },
+        Migration {
+            version: 149,
+            description: "create notes table",
+            kind: MigrationKind::Up,
+            sql: r#"
+                CREATE TABLE notes (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    title TEXT NOT NULL DEFAULT '',
+                    content TEXT NOT NULL DEFAULT '',
+                    project_id TEXT NOT NULL DEFAULT 'default',
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+            "#,
+        },
     ];
 }
