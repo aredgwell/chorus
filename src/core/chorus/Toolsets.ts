@@ -14,6 +14,7 @@ import {
     WrenchIcon,
     CodeIcon,
     ImageIcon,
+    BookOpenIcon,
 } from "lucide-react";
 import React from "react";
 import _ from "lodash";
@@ -229,6 +230,10 @@ export function getToolsetIcon(toolsetName: string): React.ReactNode {
             className: "w-3 h-3",
         });
 
+    if (name === "knowledge")
+        return React.createElement(BookOpenIcon, {
+            className: "w-3 h-3",
+        });
     if (name === "linear")
         return React.createElement(SiLinear, {
             className: "w-3 h-3",
