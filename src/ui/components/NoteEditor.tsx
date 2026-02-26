@@ -1,7 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FileTextIcon, TrashIcon, PencilIcon, EyeIcon } from "lucide-react";
-import { MessageMarkdown } from "@ui/components/renderers/MessageMarkdown";
+import { FileTextIcon, TrashIcon } from "lucide-react";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
 import {
@@ -18,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import RetroSpinner from "./ui/retro-spinner";
 import * as NoteAPI from "@core/chorus/api/NoteAPI";
+import { MarkdownEditor } from "./MarkdownEditor";
 import _ from "lodash";
 
 const deleteNoteDialogId = (noteId: string) =>
@@ -31,47 +31,31 @@ export default function NoteEditor() {
     const deleteNote = NoteAPI.useDeleteNote();
     const renameNote = NoteAPI.useRenameNote();
 
-    const [content, setContent] = useState("");
-    const [isInitialized, setIsInitialized] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
-
     const isDeleteDialogOpen = useDialogStore((state) =>
         noteId
             ? state.activeDialogId === deleteNoteDialogId(noteId)
             : false,
     );
 
-    // Initialize content from query data
-    useEffect(() => {
-        if (noteQuery.data && !isInitialized) {
-            setContent(noteQuery.data.content);
-            setIsInitialized(true);
-        }
-    }, [noteQuery.data, isInitialized]);
-
-    // Reset initialization when noteId changes
-    useEffect(() => {
-        setIsInitialized(false);
-    }, [noteId]);
-
-    // Debounced save
+    // Debounced save — receives markdown string from MarkdownEditor.
+    // noteId is captured in closure; safe because key={noteId} on MarkdownEditor
+    // forces remount (and thus a new debounce instance) when noteId changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const debouncedSave = useCallback(
-        _.debounce((noteId: string, content: string) => {
-            void updateNote.mutateAsync({ noteId, content });
+        _.debounce((markdown: string) => {
+            if (noteId) {
+                void updateNote.mutateAsync({ noteId, content: markdown });
+            }
         }, 500),
-        [updateNote],
+        [noteId, updateNote],
     );
 
-    const handleContentChange = (
-        e: React.ChangeEvent<HTMLTextAreaElement>,
-    ) => {
-        const newContent = e.target.value;
-        setContent(newContent);
-        if (noteId) {
-            debouncedSave(noteId, newContent);
-        }
-    };
+    // Flush any pending save on unmount (e.g. navigating away)
+    useEffect(() => {
+        return () => {
+            debouncedSave.flush();
+        };
+    }, [debouncedSave]);
 
     const handleConfirmDelete = async () => {
         if (!noteId) return;
@@ -106,34 +90,6 @@ export default function NoteEditor() {
                 positioning="fixed"
                 actions={
                     <div className="flex items-center gap-2 mr-2">
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="iconSm"
-                                    onClick={() =>
-                                        setIsEditing((prev) => !prev)
-                                    }
-                                >
-                                    {isEditing ? (
-                                        <EyeIcon
-                                            strokeWidth={1.5}
-                                            className="w-4! h-4!"
-                                        />
-                                    ) : (
-                                        <PencilIcon
-                                            strokeWidth={1.5}
-                                            className="w-4! h-4!"
-                                        />
-                                    )}
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom">
-                                {isEditing
-                                    ? "Preview markdown"
-                                    : "Edit note"}
-                            </TooltipContent>
-                        </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
@@ -179,30 +135,11 @@ export default function NoteEditor() {
                 </div>
             </HeaderBar>
 
-            {isEditing ? (
-                <textarea
-                    value={content}
-                    onChange={handleContentChange}
-                    onBlur={() => setIsEditing(false)}
-                    autoFocus
-                    placeholder="Start writing..."
-                    className="w-full min-h-[calc(100vh-200px)] bg-transparent border-none ring-0 outline-hidden resize-none text-base leading-relaxed placeholder:text-muted-foreground/50"
-                />
-            ) : content ? (
-                <div
-                    onClick={() => setIsEditing(true)}
-                    className="w-full min-h-[calc(100vh-200px)] cursor-text prose prose-sm dark:prose-invert max-w-none"
-                >
-                    <MessageMarkdown text={content} />
-                </div>
-            ) : (
-                <div
-                    onClick={() => setIsEditing(true)}
-                    className="w-full min-h-[calc(100vh-200px)] cursor-text text-base leading-relaxed text-muted-foreground/50"
-                >
-                    Start writing...
-                </div>
-            )}
+            <MarkdownEditor
+                key={noteId}
+                content={note.content}
+                onUpdate={debouncedSave}
+            />
 
             {/* Delete confirmation dialog */}
             <Dialog
