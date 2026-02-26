@@ -2860,5 +2860,35 @@ You have full access to bash commands on the user''''s computer. If you write a 
                 ALTER TABLE projects ADD COLUMN smart_collection_rules TEXT;
             "#,
         },
+        Migration {
+            version: 152,
+            description: "add native grok 4.1 models",
+            kind: MigrationKind::Up,
+            sql: r#"
+                -- Add Grok 4 (native xAI API, previously only available via OpenRouter)
+                INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types, supports_tool_use,
+                    prompt_price_per_token, completion_price_per_token) VALUES
+                    ('grok::grok-4-0709', 'Grok 4', 1, '["text", "image", "webpage"]', 1,
+                    0.000003, 0.000015);
+                INSERT OR REPLACE INTO model_configs (author, id, model_id, display_name, system_prompt, is_default, new_until) VALUES
+                    ('system', 'grok::grok-4-0709', 'grok::grok-4-0709', 'Grok 4', '', 0, '2026-04-01 00:00:00');
+
+                -- Add Grok 4.1 Fast (reasoning mode)
+                INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types, supports_tool_use,
+                    prompt_price_per_token, completion_price_per_token) VALUES
+                    ('grok::grok-4-1-fast-reasoning', 'Grok 4.1 Fast', 1, '["text", "image", "webpage"]', 1,
+                    0.0000002, 0.0000005);
+                INSERT OR REPLACE INTO model_configs (author, id, model_id, display_name, system_prompt, is_default, new_until) VALUES
+                    ('system', 'grok::grok-4-1-fast-reasoning', 'grok::grok-4-1-fast-reasoning', 'Grok 4.1 Fast', '', 0, '2026-04-01 00:00:00');
+
+                -- Add Grok 4.1 Fast (non-reasoning mode)
+                INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types, supports_tool_use,
+                    prompt_price_per_token, completion_price_per_token) VALUES
+                    ('grok::grok-4-1-fast-non-reasoning', 'Grok 4.1 Fast (Instant)', 1, '["text", "image", "webpage"]', 1,
+                    0.0000002, 0.0000005);
+                INSERT OR REPLACE INTO model_configs (author, id, model_id, display_name, system_prompt, is_default, new_until) VALUES
+                    ('system', 'grok::grok-4-1-fast-non-reasoning', 'grok::grok-4-1-fast-non-reasoning', 'Grok 4.1 Fast (Instant)', '', 0, '2026-04-01 00:00:00');
+            "#,
+        },
     ];
 }

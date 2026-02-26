@@ -33,6 +33,7 @@ export class ProviderGrok implements IProvider {
         onChunk,
         onComplete,
         additionalHeaders,
+        tools,
         customBaseUrl,
     }: StreamResponseParams) {
         const modelName = modelConfig.modelId.split("::")[1];
@@ -56,12 +57,15 @@ export class ProviderGrok implements IProvider {
             dangerouslyAllowBrowser: true,
         });
 
+        const hasFunctionSupport =
+            modelConfig.supportsToolUse && tools && tools.length > 0;
+
         let messages: OpenAI.ChatCompletionMessageParam[] =
             await OpenAICompletionsAPIUtils.convertConversation(
                 llmConversation,
                 {
                     imageSupport: true,
-                    functionSupport: false,
+                    functionSupport: !!hasFunctionSupport,
                 },
             );
 
@@ -84,16 +88,24 @@ export class ProviderGrok implements IProvider {
             include_reasoning: true,
         };
 
+        // Add tools definitions if model supports them
+        if (hasFunctionSupport) {
+            streamParams.tools =
+                OpenAICompletionsAPIUtils.convertToolDefinitions(tools);
+            streamParams.tool_choice = "auto";
+        }
+
+        const chunks: OpenAI.ChatCompletionChunk[] = [];
+
         try {
             const stream = await client.chat.completions.create(streamParams);
 
             for await (const chunk of stream) {
+                chunks.push(chunk);
                 if (chunk.choices[0]?.delta?.content) {
                     onChunk(chunk.choices[0].delta.content);
                 }
             }
-
-            await onComplete();
         } catch (error: unknown) {
             console.error("Raw error:", error);
             console.error(JSON.stringify(error, null, 2));
@@ -111,5 +123,34 @@ export class ProviderGrok implements IProvider {
             }
             throw error;
         }
+
+        // Extract usage data from the last chunk
+        const lastChunk = chunks[chunks.length - 1];
+        let usageData:
+            | {
+                  prompt_tokens?: number;
+                  completion_tokens?: number;
+                  total_tokens?: number;
+              }
+            | undefined;
+
+        if (lastChunk?.usage) {
+            usageData = {
+                prompt_tokens: lastChunk.usage.prompt_tokens,
+                completion_tokens: lastChunk.usage.completion_tokens,
+                total_tokens: lastChunk.usage.total_tokens,
+            };
+        }
+
+        const toolCalls = OpenAICompletionsAPIUtils.convertToolCalls(
+            chunks,
+            tools ?? [],
+        );
+
+        await onComplete(
+            undefined,
+            toolCalls.length > 0 ? toolCalls : undefined,
+            usageData,
+        );
     }
 }
