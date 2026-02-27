@@ -305,7 +305,7 @@ export function MarkdownEditor({
         editorProps: {
             attributes: {
                 class: [
-                    "prose prose-sm dark:prose-invert max-w-none",
+                    "prose dark:prose-invert max-w-none",
                     "focus:outline-none",
                     "min-h-[calc(100vh-200px)]",
                     className ?? "",
