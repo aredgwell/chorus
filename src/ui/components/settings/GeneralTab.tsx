@@ -6,11 +6,7 @@ import {
     SelectValue,
 } from "@ui/components/ui/select";
 import { Separator } from "@ui/components/ui/separator";
-import { Button } from "@ui/components/ui/button";
 import { Switch } from "@ui/components/ui/switch";
-import { BookOpen } from "lucide-react";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { SettingsTabId } from "./types";
 
 const FONT_OPTIONS = {
     sans: [
@@ -35,8 +31,6 @@ interface GeneralTabProps {
     onAutoScrapeUrlsChange: (enabled: boolean) => void;
     onCautiousEnterChange: (enabled: boolean) => void;
     onShowCostChange: (enabled: boolean) => void;
-    onShowOnboarding: () => void;
-    setActiveTab: (tab: SettingsTabId) => void;
 }
 
 export default function GeneralTab({
@@ -52,8 +46,6 @@ export default function GeneralTab({
     onAutoScrapeUrlsChange,
     onCautiousEnterChange,
     onShowCostChange,
-    onShowOnboarding,
-    setActiveTab,
 }: GeneralTabProps) {
     const getCurrentThemeValue = () => {
         return `default-${mode}`;
@@ -64,43 +56,6 @@ export default function GeneralTab({
             <div>
                 <h2 className="text-2xl font-semibold mb-2">General</h2>
             </div>
-            <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                    Chorus requires you to bring your own API keys to use AI
-                    models. Add your keys in the API Keys tab.
-                </p>
-                <div className="flex gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setActiveTab("api-keys")}
-                    >
-                        Configure API Keys
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={onShowOnboarding}
-                    >
-                        <BookOpen className="h-4 w-4 mr-2" />
-                        Restart Onboarding
-                    </Button>
-                </div>
-                <p className="text-sm text-muted-foreground flex items-center flex-wrap gap-1">
-                    <button
-                        className="underline hover:no-underline"
-                        onClick={() => {
-                            void openUrl("https://cal.com/choltz/jam");
-                        }}
-                    >
-                        Book a call
-                    </button>
-                    with the founders.
-                </p>
-            </div>
-
-            <Separator className="my-4" />
-
             <div className="space-y-4">
                 <div>
                     <label

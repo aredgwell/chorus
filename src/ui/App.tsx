@@ -82,14 +82,6 @@ import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
 import { SettingsManager } from "@core/utilities/Settings";
 import { SimilarChatsDialog } from "./components/SimilarChatsDialog";
-import { AppModeProvider } from "./providers/AppModeProvider";
-import { AppHeader } from "./components/AppHeader";
-import { ModePlaceholder } from "./components/ModePlaceholder";
-import { useAppMode } from "./hooks/useAppMode";
-import {
-    Sidebar,
-    SidebarContent,
-} from "./components/ui/sidebar";
 
 scan({
     enabled: import.meta.env.DEV,
@@ -919,110 +911,55 @@ function AppContent() {
             <div
                 className={`select-none ${isQuickChatWindow ? "bg-transparent" : "bg-background"}`}
             >
-                <AppModeProvider>
-                    <SidebarProvider>
-                        {!isQuickChatWindow && <ModeAwareSidebar />}
+                <SidebarProvider>
+                    {!isQuickChatWindow && <AppSidebar />}
 
-                        {!isQuickChatWindow && <CommandMenu />}
-                        <main className="flex flex-col flex-1 min-h-svh min-w-0">
-                            {!isQuickChatWindow && <AppHeader />}
-                            <div className="flex-1 min-h-0 relative">
-                                <ModeAwareContent />
-                            </div>
-                        </main>
-                        {!isQuickChatWindow && (
-                            <Settings
-                                tab={defaultSettingsTab || "general"}
-                            />
-                        )}
-                        <ToolPermissionDialog />
-                        {!isQuickChatWindow && <SimilarChatsDialog />}
-                        <Toaster
-                            theme={
-                                mode === "system"
-                                    ? window.matchMedia(
-                                          "(prefers-color-scheme: dark)",
-                                      ).matches
-                                        ? "dark"
-                                        : "light"
-                                    : mode
-                            }
-                            position="bottom-right"
-                            closeButton
+                    {!isQuickChatWindow && <CommandMenu />}
+                    <main className="flex flex-col flex-1 min-h-svh min-w-0">
+                        <div className="flex-1 min-h-0 relative">
+                            <Routes>
+                                <Route path="/" element={<Home />} />
+                                <Route path="/new-prompt" element={<NewPrompt />} />
+                                <Route path="/prompts" element={<ListPrompts />} />
+                                <Route path="/search" element={<SearchView />} />
+                                <Route path="/chat/:chatId" element={<MultiChat />} />
+                                <Route
+                                    path="/note/:noteId"
+                                    element={<NoteEditor />}
+                                />
+                                <Route
+                                    path="/projects/:projectId"
+                                    element={<ProjectView />}
+                                />
+                            </Routes>
+                        </div>
+                    </main>
+                    {!isQuickChatWindow && (
+                        <Settings
+                            tab={defaultSettingsTab || "general"}
                         />
-                    </SidebarProvider>
-                </AppModeProvider>
+                    )}
+                    <ToolPermissionDialog />
+                    {!isQuickChatWindow && <SimilarChatsDialog />}
+                    <Toaster
+                        theme={
+                            mode === "system"
+                                ? window.matchMedia(
+                                      "(prefers-color-scheme: dark)",
+                                  ).matches
+                                    ? "dark"
+                                    : "light"
+                                : mode
+                        }
+                        position="bottom-right"
+                        closeButton
+                    />
+                </SidebarProvider>
             </div>
         </>
     );
 }
 
-function ModeAwareSidebar() {
-    const { mode } = useAppMode();
-
-    if (mode === "chats") {
-        return <AppSidebar />;
-    }
-
-    return (
-        <Sidebar collapsible="offcanvas">
-            <SidebarContent className="relative h-full pt-5">
-                <div className="p-4 text-muted-foreground text-sm">
-                    {mode === "editor" && "Notes will go here"}
-                    {mode === "graph" && "Graph controls will go here"}
-                    {mode === "synthesis" && "Synthesis panel will go here"}
-                </div>
-            </SidebarContent>
-        </Sidebar>
-    );
-}
-
-function ModeAwareContent() {
-    const { mode, setMode } = useAppMode();
-    const location = useLocation();
-
-    // Auto-switch to chats mode when navigating to chat-related routes
-    useEffect(() => {
-        const chatPrefixes = [
-            "/chat/",
-            "/note/",
-            "/projects/",
-            "/search",
-            "/prompts",
-            "/new-prompt",
-        ];
-        const isChatRoute =
-            location.pathname === "/" ||
-            chatPrefixes.some((prefix) =>
-                location.pathname.startsWith(prefix),
-            );
-        if (isChatRoute && mode !== "chats") {
-            setMode("chats");
-        }
-    }, [location.pathname, mode, setMode]);
-
-    if (mode !== "chats") {
-        return <ModePlaceholder mode={mode} />;
-    }
-
-    return (
-        <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/new-prompt" element={<NewPrompt />} />
-            <Route path="/prompts" element={<ListPrompts />} />
-            <Route path="/search" element={<SearchView />} />
-            <Route path="/chat/:chatId" element={<MultiChat />} />
-            <Route
-                path="/note/:noteId"
-                element={<NoteEditor />}
-            />
-            <Route
-                path="/projects/:projectId"
-                element={<ProjectView />}
-            />
-        </Routes>
-    );
-}
 
 async function getDeviceId(): Promise<string> {
     const db = await Database.load(config.dbUrl);

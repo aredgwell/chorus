@@ -25,11 +25,8 @@ import {
     BarChart3,
     Puzzle,
 } from "lucide-react";
-import { toast } from "sonner";
-import { config } from "@core/config";
 import { useSearchParams } from "react-router-dom";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import Database from "@tauri-apps/plugin-sql";
 import { useDatabase } from "@ui/hooks/useDatabase";
 import { UNIVERSAL_SYSTEM_PROMPT_DEFAULT } from "@core/chorus/prompts/prompts";
 import { useQueryClient } from "@tanstack/react-query";
@@ -102,10 +99,6 @@ export default function Settings({ tab = "general" }: SettingsProps) {
         tab || (searchParams.get("tab") as SettingsTabId) || "general";
     const [quickChatEnabled, setQuickChatEnabled] = useState(true);
     const [quickChatShortcut, setQuickChatShortcut] = useState("Alt+Space");
-    const [lmStudioBaseUrl, setLmStudioBaseUrl] = useState(
-        "http://localhost:1234/v1",
-    );
-    const [customOpenAIBaseUrl, setCustomOpenAIBaseUrl] = useState("");
     const queryClient = useQueryClient();
 
     // Use React Query hooks for custom base URL
@@ -172,11 +165,6 @@ export default function Settings({ tab = "general" }: SettingsProps) {
             setAutoScrapeUrls(settings.autoScrapeUrls ?? true);
             setCautiousEnter(settings.cautiousEnter ?? false);
             setShowCost(settings.showCost ?? false);
-            setLmStudioBaseUrl(
-                settings.lmStudioBaseUrl ?? "http://localhost:1234/v1",
-            );
-            setCustomOpenAIBaseUrl(settings.customOpenAIBaseUrl ?? "");
-
             // Load API keys from keychain
             const keychainKeys = await settingsManager.getApiKeys();
             setApiKeys(keychainKeys);
@@ -268,58 +256,9 @@ export default function Settings({ tab = "general" }: SettingsProps) {
         });
     };
 
-    const onLmStudioBaseUrlChange = async (
-        e: React.ChangeEvent<HTMLInputElement>,
-    ) => {
-        const newUrl = e.target.value || "http://localhost:1234/v1";
-        setLmStudioBaseUrl(newUrl);
-        const currentSettings = await settingsManager.get();
-        void settingsManager.set({
-            ...currentSettings,
-            lmStudioBaseUrl: newUrl,
-        });
-    };
-
-    const onCustomOpenAIBaseUrlChange = async (
-        e: React.ChangeEvent<HTMLInputElement>,
-    ) => {
-        const newUrl = e.target.value;
-        setCustomOpenAIBaseUrl(newUrl);
-        const currentSettings = await settingsManager.get();
-        void settingsManager.set({
-            ...currentSettings,
-            customOpenAIBaseUrl: newUrl,
-        });
-    };
-
-    const onCustomOpenAIApiKeyChange = async (
-        e: React.ChangeEvent<HTMLInputElement>,
-    ) => {
-        const newKey = e.target.value;
-        await settingsManager.setApiKey("custom-openai", newKey);
-        const keychainKeys = await settingsManager.getApiKeys();
-        setApiKeys(keychainKeys);
-    };
-
     const onCustomBaseUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newUrl = e.target.value;
         void setCustomBaseUrlMutation.mutate(newUrl);
-    };
-
-    const showOnboarding = async () => {
-        const db = await Database.load(config.dbUrl);
-        await db.execute(
-            "UPDATE app_metadata SET value = 'false' WHERE key = 'has_dismissed_onboarding'; UPDATE app_metadata SET value = '0' WHERE key = 'onboarding_step';",
-        );
-
-        await queryClient.invalidateQueries({ queryKey: ["appMetadata"] });
-        await queryClient.invalidateQueries({
-            queryKey: ["hasDismissedOnboarding"],
-        });
-
-        toast("Onboarding Reset", {
-            description: "Onboarding will appear now.",
-        });
     };
 
     const handleImportHistory = (platform: "openai" | "anthropic") => {
@@ -418,8 +357,6 @@ export default function Settings({ tab = "general" }: SettingsProps) {
                             onShowCostChange={(v) =>
                                 void handleShowCostChange(v)
                             }
-                            onShowOnboarding={() => void showOnboarding()}
-                            setActiveTab={setActiveTab}
                         />
                     )}
 
@@ -513,22 +450,8 @@ export default function Settings({ tab = "general" }: SettingsProps) {
                     {activeTab === "api-keys" && (
                         <ApiKeysTab
                             apiKeys={apiKeys}
-                            lmStudioBaseUrl={lmStudioBaseUrl}
-                            customOpenAIBaseUrl={customOpenAIBaseUrl}
-                            customOpenAIApiKey={
-                                apiKeys["custom-openai"] ?? ""
-                            }
                             onApiKeyChange={(provider, value) =>
                                 void handleApiKeyChange(provider, value)
-                            }
-                            onLmStudioBaseUrlChange={(e) =>
-                                void onLmStudioBaseUrlChange(e)
-                            }
-                            onCustomOpenAIBaseUrlChange={(e) =>
-                                void onCustomOpenAIBaseUrlChange(e)
-                            }
-                            onCustomOpenAIApiKeyChange={(e) =>
-                                void onCustomOpenAIApiKeyChange(e)
                             }
                         />
                     )}

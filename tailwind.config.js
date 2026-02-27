@@ -235,7 +235,7 @@ export default {
                         code: {
                             "border-radius": theme("borderRadius.md"),
                             color: "hsl(var(--foreground))",
-                            "background-color": "transparent",
+                            "background-color": "hsl(var(--muted))",
                             padding: "0.2em 0.4em",
                             "font-size": "85%",
                             "font-weight": "400",

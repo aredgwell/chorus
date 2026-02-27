@@ -76,13 +76,6 @@ export default function MultiChat() {
     // Extract replyId from query parameters
     const replyChatId = searchParams.get("replyId");
 
-    // Check if forward navigation is available using React Router's internal state
-    // Re-evaluate when location changes (location is read above)
-    const canGoForward = (() => {
-        const { state } = window.history as { state: { idx: number } };
-        return state && state.idx < window.history.length - 1;
-    })();
-
     const { isQuickChatWindow } = useAppContext();
 
     const createQuickChat = ChatAPI.useGetOrCreateNewQuickChat();
@@ -539,7 +532,6 @@ export default function MultiChat() {
             ) : (
                 <HeaderBar
                     positioning="absolute"
-                    canGoForward={canGoForward}
                     actions={
                         <ChatHeaderActions
                             hasMessages={!!messageSetsQuery.data && messageSetsQuery.data.length > 1}

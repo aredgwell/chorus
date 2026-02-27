@@ -1,2 +1,5 @@
 [build]
 rustflags = ["--check-cfg=cfg(feature,values(\"cargo-clippy\"))"]
+
+[target.'cfg(target_os = "macos")']
+runner = "./dev-runner.sh"
