@@ -44,7 +44,7 @@ export async function withRetry<T>(
     }
 
     // Unreachable, but TypeScript needs this
-    throw lastError ?? new Error("Retry exhausted");
+    throw lastError ?? new Error("Retry exhausted"); // eslint-disable-line @typescript-eslint/only-throw-error
 }
 
 /**

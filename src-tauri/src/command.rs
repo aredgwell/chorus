@@ -160,7 +160,7 @@ pub fn capture_window() -> Result<String, String> {
 
     // Clean up the temporary files
     let _ = fs::remove_file(&raw_screenshot_path);
-    if resized_path != raw_screenshot_path.to_string_lossy().to_string() {
+    if resized_path != raw_screenshot_path.to_string_lossy() {
         let _ = fs::remove_file(&resized_path);
     }
 
@@ -219,9 +219,9 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
 
             // Parse main display resolution
             let main_display_resolution = String::from_utf8_lossy(&main_display_output.stdout);
-            let parts: Vec<&str> = main_display_resolution.trim().split_whitespace().collect();
+            let parts: Vec<&str> = main_display_resolution.split_whitespace().collect();
 
-            let main_width = if parts.len() >= 1 {
+            let main_width = if !parts.is_empty() {
                 parts[0].parse::<i32>().unwrap_or(3456)
             } else {
                 3456
@@ -293,7 +293,7 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
             let image_data = fs::read(&resized_path).map_err(|e| e.to_string())?;
 
             // Clean up the resized file if it's not the same as the raw screenshot
-            if resized_path != raw_screenshot_path.to_string_lossy().to_string() {
+            if resized_path != raw_screenshot_path.to_string_lossy() {
                 let _ = fs::remove_file(&resized_path);
             }
 
@@ -326,7 +326,7 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
     let image_data = fs::read(&resized_path).map_err(|e| e.to_string())?;
 
     // Clean up the resized file if it's not the same as the raw screenshot
-    if resized_path != raw_screenshot_path.to_string_lossy().to_string() {
+    if resized_path != raw_screenshot_path.to_string_lossy() {
         let _ = fs::remove_file(&resized_path);
     }
 
@@ -413,7 +413,7 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
 
                     // Clean up the temporary files
                     let _ = std::fs::remove_file(&raw_screenshot_path);
-                    if resized_path != raw_screenshot_path.to_string_lossy().to_string() {
+                    if resized_path != raw_screenshot_path.to_string_lossy() {
                         let _ = std::fs::remove_file(&resized_path);
                     }
 
@@ -480,7 +480,7 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
 
     // Clean up the temporary files
     let _ = std::fs::remove_file(&raw_screenshot_path);
-    if resized_path != raw_screenshot_path.to_string_lossy().to_string() {
+    if resized_path != raw_screenshot_path.to_string_lossy() {
         let _ = std::fs::remove_file(&resized_path);
     }
 
@@ -636,7 +636,7 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
         let target_pixels = target_size_bytes as f64 / bytes_per_pixel_estimation;
 
         // Calculate the scale factor - square root because we're scaling in 2D
-        let scale_factor = ((target_pixels / original_pixels) as f64).sqrt() * 0.9; // 10% safety margin
+        let scale_factor = (target_pixels / original_pixels).sqrt() * 0.9; // 10% safety margin
 
         // Never go below 30% quality
         let scale_factor = scale_factor.max(0.3);
@@ -695,7 +695,7 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
         let target_pixels = target_size_bytes as f64 / bytes_per_pixel_estimation;
 
         // Calculate the scale factor - square root because we're scaling in 2D
-        let scale_factor = ((target_pixels / original_pixels) as f64).sqrt() * 0.9; // 10% safety margin
+        let scale_factor = (target_pixels / original_pixels).sqrt() * 0.9; // 10% safety margin
 
         // Never go below 30% quality
         let scale_factor = scale_factor.max(0.3);
@@ -837,6 +837,7 @@ fn gen_uuid() -> String {
 /// - newChatId: the ID of the new chat
 /// - messageSetIdMap: mapping of old message set IDs to new ones
 /// - messageIdMap: mapping of old message IDs to new ones
+#[allow(clippy::type_complexity)]
 #[tauri::command]
 pub async fn branch_chat(
     app_handle: AppHandle,
@@ -1170,6 +1171,7 @@ pub async fn find_similar_chats(
 
 /// Find items (chats and notes) with similar embeddings using KNN search.
 /// Note embeddings are stored with a "note:" prefix on the chat_id column.
+#[allow(clippy::type_complexity)]
 #[tauri::command]
 pub async fn find_similar_items(
     app_handle: AppHandle,

@@ -124,12 +124,56 @@ const Sidebar = React.forwardRef<
                         </div>
                         {children}
                     </div>
+                    <SidebarResizeHandle />
                 </div>
             </div>
         );
     },
 );
 Sidebar.displayName = "Sidebar";
+
+function SidebarResizeHandle() {
+    const { sidebarWidth, setSidebarWidth } = useSidebar();
+    const isDragging = React.useRef(false);
+    const startX = React.useRef(0);
+    const startWidth = React.useRef(0);
+
+    const handleMouseDown = React.useCallback(
+        (e: React.MouseEvent) => {
+            e.preventDefault();
+            isDragging.current = true;
+            startX.current = e.clientX;
+            startWidth.current = sidebarWidth;
+
+            const handleMouseMove = (e: MouseEvent) => {
+                if (!isDragging.current) return;
+                const delta = e.clientX - startX.current;
+                setSidebarWidth(startWidth.current + delta);
+            };
+
+            const handleMouseUp = () => {
+                isDragging.current = false;
+                document.removeEventListener("mousemove", handleMouseMove);
+                document.removeEventListener("mouseup", handleMouseUp);
+                document.body.style.cursor = "";
+                document.body.style.userSelect = "";
+            };
+
+            document.addEventListener("mousemove", handleMouseMove);
+            document.addEventListener("mouseup", handleMouseUp);
+            document.body.style.cursor = "col-resize";
+            document.body.style.userSelect = "none";
+        },
+        [sidebarWidth, setSidebarWidth],
+    );
+
+    return (
+        <div
+            onMouseDown={handleMouseDown}
+            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-border/50 active:bg-border transition-colors z-20"
+        />
+    );
+}
 
 const SidebarTrigger = React.forwardRef<
     React.ElementRef<typeof Button>,

@@ -23,8 +23,9 @@ export async function captureWholeScreenCompressed() {
     } catch (error) {
         console.timeEnd("captureWholeScreen");
         console.error("Screenshot capture failed:", error);
-        throw new Error(
-            typeof error === "string" ? error : "Failed to capture screenshot",
+        throw Object.assign(
+            new Error(typeof error === "string" ? error : "Failed to capture screenshot"),
+            { cause: error },
         );
     }
 }

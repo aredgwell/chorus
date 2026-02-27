@@ -41,7 +41,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for migration in &migrations {
         if matches!(migration.kind, MigrationKind::Up) {
             println!("Applying migration {}: {}", migration.version, migration.description);
-            conn.execute_batch(&migration.sql)?;
+            conn.execute_batch(migration.sql)?;
         }
     }
     

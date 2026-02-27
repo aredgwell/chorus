@@ -300,7 +300,7 @@ function RecommendedIntegrationRow({
                         <Button
                             variant="ghost"
                             size="iconSm"
-                            onClick={() => void openUrl(rec.apiKeyUrl!)}
+                            onClick={() => void openUrl(rec.apiKeyUrl)}
                             title="Get API key"
                         >
                             <ExternalLinkIcon className="size-3.5" />
@@ -360,7 +360,7 @@ function RecommendedIntegrationRow({
                                         type="button"
                                         className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
                                         onClick={() =>
-                                            void openUrl(rec.apiKeyUrl!)
+                                            void openUrl(rec.apiKeyUrl)
                                         }
                                     >
                                         Get API key
@@ -745,7 +745,7 @@ export default function ConnectionsTab() {
             });
         } catch (err) {
             toast.error("Error", {
-                description: `Failed to add ${toolset.name} integration ${err}`,
+                description: `Failed to add ${toolset.name} integration ${String(err)}`,
             });
         }
     };

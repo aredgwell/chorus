@@ -46,6 +46,7 @@ function CodeBlockView({ node, updateAttributes }: NodeViewProps) {
         <NodeViewWrapper className="code-block-wrapper">
             <select
                 contentEditable={false}
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 value={node.attrs.language ?? ""}
                 onChange={(e) =>
                     updateAttributes({ language: e.target.value || null })
@@ -299,6 +300,7 @@ export function MarkdownEditor({
             // but Tiptap's Storage type is an empty interface that doesn't
             // include third-party extension shapes.
             // @ts-expect-error — tiptap-markdown runtime extension storage
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             const md = ed.storage.markdown.getMarkdown() as string;
             onUpdate(md);
         },

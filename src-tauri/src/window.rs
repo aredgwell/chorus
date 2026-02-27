@@ -1,4 +1,5 @@
 #![allow(unexpected_cfgs)]
+#![allow(clippy::unused_unit)]
 
 #[cfg(target_os = "macos")]
 use tauri_nspanel::{

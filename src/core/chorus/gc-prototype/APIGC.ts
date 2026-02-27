@@ -720,8 +720,6 @@ async function getRespondingModels(text: string): Promise<{
     // Extract multiplier
     const multiplier = extractMultiplier(text);
 
-    let models: Array<{ id: string; name: string }> = [];
-
     // Check for @none - no models should respond
     if (text.toLowerCase().includes("@none")) {
         return { models: [], multiplier };
@@ -742,6 +740,7 @@ async function getRespondingModels(text: string): Promise<{
         }
     }
 
+    let models: Array<{ id: string; name: string }>;
     if (mentionedModelIds.length > 0) {
         // Fetch model configs to get display names
         const allConfigs = await ModelsAPI.fetchModelConfigs();

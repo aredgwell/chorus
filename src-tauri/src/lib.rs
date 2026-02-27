@@ -122,6 +122,7 @@ fn parse_shortcut(shortcut_str: &str) -> Option<Shortcut> {
 pub fn run() {
     // Register sqlite-vec as an auto-extension so every rusqlite connection loads it
     unsafe {
+        #[allow(clippy::missing_transmute_annotations)]
         rusqlite::ffi::sqlite3_auto_extension(Some(std::mem::transmute(
             sqlite_vec::sqlite3_vec_init as *const (),
         )));
@@ -413,19 +414,14 @@ pub fn run() {
                 _ => {}
             }
         })
-        .on_window_event(|window: &tauri::Window, event: &tauri::WindowEvent| match event {
-            &tauri::WindowEvent::CloseRequested { ref api, .. } => {
-                // #[cfg(not(target_os = "macos"))] {
-                //   event.window().hide().unwrap();
-                // }
-
+        .on_window_event(|window: &tauri::Window, event: &tauri::WindowEvent| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 #[cfg(target_os = "macos")]
                 {
-                    tauri::AppHandle::hide(&window.app_handle()).unwrap();
+                    tauri::AppHandle::hide(window.app_handle()).unwrap();
                 }
                 api.prevent_close();
             }
-            _ => {}
         })
         .invoke_handler(tauri::generate_handler![
             command::show,

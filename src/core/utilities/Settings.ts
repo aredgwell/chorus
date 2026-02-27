@@ -67,9 +67,7 @@ export class SettingsManager {
 
         try {
             const store = await getStore(this.storeName);
-            const settings = (await store.get("settings")) as
-                | Settings
-                | undefined;
+            const settings = await store.get<Settings>("settings");
             const storeApiKeys = settings?.apiKeys;
 
             if (!storeApiKeys || Object.keys(storeApiKeys).length === 0) {

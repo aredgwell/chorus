@@ -5,24 +5,28 @@ import { useEffect } from "react";
 
 export default function Home() {
     const { isQuickChatWindow } = useAppContext();
-    const getOrCreateNewChat = ChatAPI.useGetOrCreateNewChat();
     const getOrCreateNewQuickChat = ChatAPI.useGetOrCreateNewQuickChat();
 
+    // Quick chat windows still auto-create a chat
     useEffect(() => {
         if (isQuickChatWindow && getOrCreateNewQuickChat.isIdle) {
             getOrCreateNewQuickChat.mutate();
-        } else if (!isQuickChatWindow && getOrCreateNewChat.isIdle) {
-            // Automatically create a new chat and redirect
-            getOrCreateNewChat.mutate({ projectId: "default" });
         }
-        // We need to disable hooks so this doesn't run on re-renders
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Show spinner while creating/redirecting
+    if (isQuickChatWindow) {
+        return (
+            <div className="flex h-full items-center justify-center">
+                <RetroSpinner />
+            </div>
+        );
+    }
+
+    // In the three-pane layout, Home shows an empty state
     return (
-        <div className="flex h-full items-center justify-center">
-            <RetroSpinner />
+        <div className="flex h-full items-center justify-center text-muted-foreground">
+            <p>Select a note or chat</p>
         </div>
     );
 }

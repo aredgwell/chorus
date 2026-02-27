@@ -13,9 +13,9 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
     const [isSaving, setIsSaving] = useState(false);
     const queryClient = useQueryClient();
 
-    const handleNextStep = () => {
+    const handleNextStep = useCallback(() => {
         setOnboardingStep.mutate({ step: 1 });
-    };
+    }, [setOnboardingStep]);
 
     const handleSaveAndComplete = useCallback(async () => {
         if (openRouterKey.trim()) {

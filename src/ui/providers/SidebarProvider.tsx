@@ -7,7 +7,9 @@ import { SidebarContext, SidebarContexts } from "@ui/context/SidebarContext";
 
 export const SIDEBAR_COOKIE_NAME = "sidebar:state";
 export const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
-export const SIDEBAR_WIDTH = "16rem";
+export const SIDEBAR_DEFAULT_WIDTH = 192; // 12rem in px
+export const SIDEBAR_MIN_WIDTH = 140;
+export const SIDEBAR_MAX_WIDTH = 320;
 export const SIDEBAR_WIDTH_MOBILE = "18rem";
 export const SIDEBAR_WIDTH_ICON = "3rem";
 
@@ -54,6 +56,21 @@ export const SidebarProvider = React.forwardRef<
             [setOpenProp, open],
         );
 
+        // Dynamic sidebar width
+        const [sidebarWidth, setSidebarWidth] = React.useState(() => {
+            const saved = localStorage.getItem("sidebar-width");
+            return saved ? Number(saved) : SIDEBAR_DEFAULT_WIDTH;
+        });
+
+        const handleSetSidebarWidth = React.useCallback((width: number) => {
+            const clamped = Math.max(
+                SIDEBAR_MIN_WIDTH,
+                Math.min(SIDEBAR_MAX_WIDTH, width),
+            );
+            setSidebarWidth(clamped);
+            localStorage.setItem("sidebar-width", String(clamped));
+        }, []);
+
         // Helper to toggle the sidebar.
         const toggleSidebar = React.useCallback(() => {
             return isMobile
@@ -77,6 +94,8 @@ export const SidebarProvider = React.forwardRef<
                 openMobile,
                 setOpenMobile,
                 toggleSidebar,
+                sidebarWidth,
+                setSidebarWidth: handleSetSidebarWidth,
             }),
             [
                 state,
@@ -86,6 +105,8 @@ export const SidebarProvider = React.forwardRef<
                 openMobile,
                 setOpenMobile,
                 toggleSidebar,
+                sidebarWidth,
+                handleSetSidebarWidth,
             ],
         );
 
@@ -95,7 +116,7 @@ export const SidebarProvider = React.forwardRef<
                     <div
                         style={
                             {
-                                "--sidebar-width": SIDEBAR_WIDTH,
+                                "--sidebar-width": `${sidebarWidth}px`,
                                 "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
                                 ...style,
                             } as React.CSSProperties

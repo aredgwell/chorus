@@ -8,6 +8,8 @@ export type SidebarContexts = {
     setOpenMobile: (open: boolean) => void;
     isMobile: boolean;
     toggleSidebar: () => void;
+    sidebarWidth: number;
+    setSidebarWidth: (width: number) => void;
 };
 
 export const SidebarContext = React.createContext<SidebarContexts | null>(null);

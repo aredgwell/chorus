@@ -10,8 +10,8 @@ import { fetchGCMainMessages } from "./GroupChatAPI";
 import { simpleLLM } from "../simpleLLM";
 import { SimpleCompletionMode } from "../ModelProviders/simple/ISimpleCompletionProvider";
 import _ from "lodash";
-import { useNavigate } from "react-router-dom";
 import { db } from "../DB";
+import { useSetSelectedCollectionId } from "./AppMetadataAPI";
 import { invoke } from "@tauri-apps/api/core";
 import { Attachment, AttachmentDBRow, readAttachment } from "./AttachmentsAPI";
 
@@ -571,7 +571,7 @@ export function useDeleteAttachmentFromProject() {
 
 export function useCreateProject() {
     const queryClient = useQueryClient();
-    const navigate = useNavigate();
+    const setSelectedCollectionId = useSetSelectedCollectionId();
 
     return useMutation({
         mutationKey: ["createProject"] as const,
@@ -587,7 +587,7 @@ export function useCreateProject() {
         },
         onSuccess: async (projectId) => {
             await queryClient.invalidateQueries(projectQueries.list());
-            navigate(`/projects/${projectId}`);
+            setSelectedCollectionId.mutate(projectId);
         },
     });
 }

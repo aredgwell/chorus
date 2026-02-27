@@ -10,6 +10,7 @@ beforeEach(() => {
     // Make setTimeout resolve immediately so processStream loops don't stall
     vi.spyOn(globalThis, "setTimeout").mockImplementation(
         (fn: TimerHandler) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             if (typeof fn === "function") fn();
             return 0 as unknown as ReturnType<typeof setTimeout>;
         },
@@ -24,7 +25,7 @@ afterEach(() => {
 // Access the singleton by resetting it between tests
 function freshQueue(): UpdateQueue {
     // Force a fresh instance by clearing the private static field
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (UpdateQueue as any).instance = undefined;
     return UpdateQueue.getInstance();
 }
