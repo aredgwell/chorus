@@ -1,5 +1,4 @@
 import {
-    ArchiveIcon,
     ChevronDownIcon,
     Settings,
     PlusIcon,
@@ -10,7 +9,6 @@ import {
     ArrowBigUpIcon,
     EllipsisIcon,
     SearchIcon,
-    SparklesIcon,
     NetworkIcon,
     FileTextIcon,
     FilePlusIcon,
@@ -99,7 +97,7 @@ import {
     type SidebarSortMode,
 } from "@core/chorus/api/AppMetadataAPI";
 import { useToggleProjectIsCollapsed } from "@core/chorus/api/ProjectAPI";
-import { SIMILAR_CHATS_DIALOG_ID } from "./SimilarChatsDialog";
+
 
 function isToday(date: Date) {
     const today = new Date();
@@ -563,10 +561,6 @@ export function AppSidebarInner() {
         sortMode === "date"
             ? groupItemsByDate(chatItems)
             : [{ label: "", items: chatItems }];
-    const quickChats = filterChatsForDisplay(
-        chatsByProject["quick-chat"] || [],
-        currentChatId,
-    );
     const projectsToDisplay = (projectsQuery.data ?? [])
         .filter(
             (project) => !["default", "quick-chat"].includes(project.id),
@@ -650,99 +644,6 @@ export function AppSidebarInner() {
                     <SidebarGroup className="min-h-0">
                         <SidebarGroupContent>
                             <SidebarMenu className="truncate">
-                                {/* Search input + sort */}
-                                <div className="px-2 mb-2 flex items-center gap-1">
-                                    <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-sidebar-accent/50 border border-border/50 flex-1">
-                                        <SearchIcon className="size-3.5 text-muted-foreground shrink-0" />
-                                        <input
-                                            type="text"
-                                            value={sidebarFilter}
-                                            onChange={(e) =>
-                                                setSidebarFilter(
-                                                    e.target.value,
-                                                )
-                                            }
-                                            onKeyDown={(e) => {
-                                                if (
-                                                    e.key === "Enter" &&
-                                                    sidebarFilter.trim()
-                                                ) {
-                                                    navigate(
-                                                        `/search?q=${encodeURIComponent(sidebarFilter)}`,
-                                                    );
-                                                }
-                                            }}
-                                            placeholder="Filter..."
-                                            className="bg-transparent border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-hidden w-full"
-                                        />
-                                        {sidebarFilter && (
-                                            <button
-                                                className="text-muted-foreground hover:text-foreground"
-                                                onClick={() =>
-                                                    setSidebarFilter("")
-                                                }
-                                            >
-                                                <span className="text-xs">
-                                                    ✕
-                                                </span>
-                                            </button>
-                                        )}
-                                    </div>
-                                    <DropdownMenu>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <DropdownMenuTrigger asChild>
-                                                    <button className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors shrink-0">
-                                                        <ArrowUpDownIcon
-                                                            className="size-3.5"
-                                                            strokeWidth={
-                                                                1.5
-                                                            }
-                                                        />
-                                                    </button>
-                                                </DropdownMenuTrigger>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="bottom">
-                                                Sort
-                                            </TooltipContent>
-                                        </Tooltip>
-                                        <DropdownMenuContent align="end">
-                                            {(
-                                                [
-                                                    {
-                                                        value: "date",
-                                                        label: "Date",
-                                                    },
-                                                    {
-                                                        value: "name",
-                                                        label: "Name",
-                                                    },
-                                                    {
-                                                        value: "type",
-                                                        label: "Type",
-                                                    },
-                                                ] as const
-                                            ).map((option) => (
-                                                <DropdownMenuItem
-                                                    key={option.value}
-                                                    onSelect={() =>
-                                                        setSortMode.mutate(
-                                                            option.value as SidebarSortMode,
-                                                        )
-                                                    }
-                                                    className="flex items-center justify-between"
-                                                >
-                                                    {option.label}
-                                                    {sortMode ===
-                                                        option.value && (
-                                                        <CheckIcon className="size-3.5 ml-2" />
-                                                    )}
-                                                </DropdownMenuItem>
-                                            ))}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-
                                 {/* Collections section */}
                                 {hasNonQuickItems && (
                                     <>
@@ -883,8 +784,8 @@ export function AppSidebarInner() {
                                             </button>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            New Chat{" "}
-                                            <span className="text-xs text-muted-foreground">
+                                            New Chat
+                                            <span className="ml-1 text-xs text-muted-foreground">
                                                 ⌘N
                                             </span>
                                         </TooltipContent>
@@ -946,106 +847,103 @@ export function AppSidebarInner() {
                 </div>
             </DndContext>
 
-            {/* Ambient chats positioned fixed relative to the sidebar */}
-            <QuickChats chats={quickChats} />
+            {/* Footer: filter/sort + icon row */}
+            <SidebarFooter
+                sidebarFilter={sidebarFilter}
+                setSidebarFilter={setSidebarFilter}
+                sortMode={sortMode}
+                setSortMode={setSortMode}
+                navigate={navigate}
+            />
         </SidebarContent>
     );
 }
 
-function QuickChats({ chats }: { chats: Chat[] }) {
-    const navigate = useNavigate();
-    const settings = useSettings();
-    const [isAmbientOpen, setIsAmbientOpen] = useState(false);
-    const convertQuickChatToRegularChat =
-        ChatAPI.useConvertQuickChatToRegularChat();
-
-    const handleQuickChatConversion = async (
-        e: React.MouseEvent,
-        chat: Chat,
-    ) => {
-        e.preventDefault();
-        await convertQuickChatToRegularChat.mutateAsync({
-            chatId: chat.id,
-        });
-        navigate(`/chat/${chat.id}`);
-    };
-
+function SidebarFooter({
+    sidebarFilter,
+    setSidebarFilter,
+    sortMode,
+    setSortMode,
+    navigate,
+}: {
+    sidebarFilter: string;
+    setSidebarFilter: (v: string) => void;
+    sortMode: SidebarSortMode;
+    setSortMode: ReturnType<typeof useSetSidebarSortMode>;
+    navigate: NavigateFunction;
+}) {
     return (
         <div className="relative bg-sidebar z-10">
-            {/* Ambient chats collapsible panel */}
-            <Collapsible
-                open={isAmbientOpen}
-                onOpenChange={setIsAmbientOpen}
-            >
-                <CollapsibleContent className="max-h-[400px] overflow-y-auto no-scrollbar border-t">
-                    <div className="px-3 py-2 flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
-                            Ambient Chats
-                        </span>
-                        <CollapsibleTrigger asChild>
-                            <button className="text-muted-foreground/75 hover:text-foreground p-1 rounded-full">
-                                <ChevronDownIcon
-                                    className="w-4 h-4"
-                                    strokeWidth={1.5}
-                                />
-                            </button>
-                        </CollapsibleTrigger>
-                    </div>
-                    <SidebarGroup className="min-h-0 pt-0">
-                        <SidebarGroupContent>
-                            {chats.map((chat) => (
-                                <SidebarMenuItem key={chat.id}>
-                                    <SidebarMenuButton
-                                        onClick={(e) =>
-                                            void handleQuickChatConversion(
-                                                e,
-                                                chat,
-                                            )
-                                        }
-                                        className="text-sidebar-accent-foreground truncate group/chat-button flex justify-between"
-                                    >
-                                        <span className="truncate pr-3 text-sm">
-                                            {chat.title || "Untitled Chat"}
-                                        </span>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            ))}
-                        </SidebarGroupContent>
-                    </SidebarGroup>
-                    {!chats.length && (
-                        <div className="px-3 py-2 text-sm text-muted-foreground">
-                            Start an Ambient Chat with{" "}
-                            <span className="text-sm">
-                                {settings?.quickChat?.shortcut || "⌥Space"}
-                            </span>
-                        </div>
+            {/* Filter + sort row */}
+            <div className="px-2 py-1.5 flex items-center gap-1 border-t">
+                <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-sidebar-accent/50 border border-border/50 flex-1">
+                    <SearchIcon className="size-3.5 text-muted-foreground shrink-0" />
+                    <input
+                        type="text"
+                        value={sidebarFilter}
+                        onChange={(e) => setSidebarFilter(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && sidebarFilter.trim()) {
+                                navigate(
+                                    `/search?q=${encodeURIComponent(sidebarFilter)}`,
+                                );
+                            }
+                        }}
+                        placeholder="Filter..."
+                        className="bg-transparent border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-hidden w-full"
+                    />
+                    {sidebarFilter && (
+                        <button
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={() => setSidebarFilter("")}
+                        >
+                            <span className="text-xs">✕</span>
+                        </button>
                     )}
-                </CollapsibleContent>
-            </Collapsible>
+                </div>
+                <DropdownMenu>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                                <button className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors shrink-0">
+                                    <ArrowUpDownIcon
+                                        className="size-3.5"
+                                        strokeWidth={1.5}
+                                    />
+                                </button>
+                            </DropdownMenuTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">Sort</TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent align="end">
+                        {(
+                            [
+                                { value: "date", label: "Date" },
+                                { value: "name", label: "Name" },
+                                { value: "type", label: "Type" },
+                            ] as const
+                        ).map((option) => (
+                            <DropdownMenuItem
+                                key={option.value}
+                                onSelect={() =>
+                                    setSortMode.mutate(
+                                        option.value as SidebarSortMode,
+                                    )
+                                }
+                                className="flex items-center justify-between"
+                            >
+                                {option.label}
+                                {sortMode === option.value && (
+                                    <CheckIcon className="size-3.5 ml-2" />
+                                )}
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
 
             {/* Footer icon row */}
             <div className="flex items-center justify-center gap-1 py-2 px-2 border-t">
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <button
-                            onClick={() => setIsAmbientOpen((prev) => !prev)}
-                            className={`p-2 rounded-md transition-colors ${
-                                isAmbientOpen
-                                    ? "text-foreground bg-muted"
-                                    : "text-muted-foreground/75 hover:text-foreground hover:bg-muted/50"
-                            }`}
-                        >
-                            <ArchiveIcon
-                                className="w-4 h-4"
-                                strokeWidth={1.5}
-                            />
-                        </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                        Ambient Chats
-                    </TooltipContent>
-                </Tooltip>
-
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <button
@@ -1328,15 +1226,6 @@ function ChatListItem({ chat, isActive }: { chat: Chat; isActive: boolean }) {
     );
     const showCost = settings?.showCost ?? false;
 
-    const handleFindSimilar = useCallback(() => {
-        window.dispatchEvent(
-            new CustomEvent("find-similar-chats", {
-                detail: { chatId: chat.id },
-            }),
-        );
-        dialogActions.openDialog(SIMILAR_CHATS_DIALOG_ID);
-    }, [chat.id]);
-
     const handleTogglePin = useCallback(() => {
         togglePinChat({ chatId: chat.id, pinned: !chat.pinned });
     }, [chat.id, chat.pinned, togglePinChat]);
@@ -1357,7 +1246,6 @@ function ChatListItem({ chat, isActive }: { chat: Chat; isActive: boolean }) {
             onSubmitEdit={handleSubmitEdit}
             onDelete={handleOpenDeleteDialog}
             onTogglePin={handleTogglePin}
-            onFindSimilar={handleFindSimilar}
             onConfirmDelete={handleConfirmDelete}
             deleteIsPending={deleteChatIsPending}
             navigate={navigate}
@@ -1383,7 +1271,6 @@ type ChatListItemViewProps = {
     onSubmitEdit: (newTitle: string) => Promise<void>;
     onDelete: () => void;
     onTogglePin: () => void;
-    onFindSimilar: () => void;
     onConfirmDelete: () => void;
     deleteIsPending: boolean;
     navigate: MutableRefObject<NavigateFunction>;
@@ -1408,7 +1295,6 @@ const ChatListItemView = React.memo(
         onSubmitEdit,
         onDelete,
         onTogglePin,
-        onFindSimilar,
         onConfirmDelete,
         deleteIsPending,
         navigate,
@@ -1547,22 +1433,6 @@ const ChatListItemView = React.memo(
                                 </TooltipTrigger>
                                 <TooltipContent side="bottom">
                                     Rename chat
-                                </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <div
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            onFindSimilar();
-                                        }}
-                                    >
-                                        <SparklesIcon className="h-[13px] w-[13px] opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground" />
-                                    </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom">
-                                    Find similar
                                 </TooltipContent>
                             </Tooltip>
                             <Tooltip>
