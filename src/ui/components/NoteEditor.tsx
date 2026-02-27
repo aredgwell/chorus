@@ -1,5 +1,6 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import type { Editor } from "@tiptap/core";
 import { FileTextIcon, TrashIcon } from "lucide-react";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
@@ -17,7 +18,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import RetroSpinner from "./ui/retro-spinner";
 import * as NoteAPI from "@core/chorus/api/NoteAPI";
-import { MarkdownEditor } from "./MarkdownEditor";
+import { MarkdownEditor, EditorToolbar } from "./MarkdownEditor";
 import _ from "lodash";
 
 const deleteNoteDialogId = (noteId: string) =>
@@ -26,6 +27,7 @@ const deleteNoteDialogId = (noteId: string) =>
 export default function NoteEditor() {
     const { noteId } = useParams<{ noteId: string }>();
     const navigate = useNavigate();
+    const [editor, setEditor] = useState<Editor | null>(null);
     const noteQuery = NoteAPI.useNote(noteId);
     const updateNote = NoteAPI.useUpdateNote();
     const deleteNote = NoteAPI.useDeleteNote();
@@ -90,6 +92,7 @@ export default function NoteEditor() {
                 positioning="fixed"
                 actions={
                     <div className="flex items-center gap-2 mr-2">
+                        {editor && <EditorToolbar editor={editor} />}
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
@@ -139,6 +142,7 @@ export default function NoteEditor() {
                 key={noteId}
                 content={note.content}
                 onUpdate={debouncedSave}
+                onEditorReady={setEditor}
             />
 
             {/* Delete confirmation dialog */}

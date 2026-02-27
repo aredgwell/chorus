@@ -5,8 +5,7 @@ import {
     NodeViewContent,
     ReactNodeViewRenderer,
 } from "@tiptap/react";
-import type { NodeViewProps } from "@tiptap/core";
-import { BubbleMenu } from "@tiptap/react/menus";
+import type { Editor, NodeViewProps } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
@@ -42,10 +41,7 @@ const lowlight = createLowlight(common);
 const languages = lowlight.listLanguages().sort();
 
 // Custom code block node view with language selector
-function CodeBlockView({
-    node,
-    updateAttributes,
-}: NodeViewProps) {
+function CodeBlockView({ node, updateAttributes }: NodeViewProps) {
     return (
         <NodeViewWrapper className="code-block-wrapper">
             <select
@@ -75,11 +71,184 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
     },
 });
 
+/** Toolbar button for the editor formatting bar */
+function ToolbarButton({
+    action,
+    isActive,
+    title,
+    children,
+}: {
+    action: () => void;
+    isActive: boolean;
+    title: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <button
+            type="button"
+            onMouseDown={(e) => {
+                // Prevent stealing focus from editor
+                e.preventDefault();
+                action();
+            }}
+            className={`editor-toolbar-btn ${isActive ? "is-active" : ""}`}
+            title={title}
+        >
+            {children}
+        </button>
+    );
+}
+
+/** Fixed formatting toolbar — rendered in the header bar by NoteEditor */
+export function EditorToolbar({ editor }: { editor: Editor }) {
+    return (
+        <div className="editor-toolbar">
+            <ToolbarButton
+
+                action={() =>
+                    editor.chain().focus().toggleBold().run()
+                }
+                isActive={editor.isActive("bold")}
+                title="Bold"
+            >
+                <BoldIcon size={14} />
+            </ToolbarButton>
+            <ToolbarButton
+
+                action={() =>
+                    editor.chain().focus().toggleItalic().run()
+                }
+                isActive={editor.isActive("italic")}
+                title="Italic"
+            >
+                <ItalicIcon size={14} />
+            </ToolbarButton>
+            <ToolbarButton
+
+                action={() =>
+                    editor.chain().focus().toggleStrike().run()
+                }
+                isActive={editor.isActive("strike")}
+                title="Strikethrough"
+            >
+                <StrikethroughIcon size={14} />
+            </ToolbarButton>
+            <ToolbarButton
+
+                action={() =>
+                    editor.chain().focus().toggleCode().run()
+                }
+                isActive={editor.isActive("code")}
+                title="Inline code"
+            >
+                <CodeIcon size={14} />
+            </ToolbarButton>
+
+            <div className="editor-toolbar-separator" />
+
+            <ToolbarButton
+
+                action={() =>
+                    editor
+                        .chain()
+                        .focus()
+                        .toggleHeading({ level: 1 })
+                        .run()
+                }
+                isActive={editor.isActive("heading", { level: 1 })}
+                title="Heading 1"
+            >
+                <Heading1Icon size={14} />
+            </ToolbarButton>
+            <ToolbarButton
+
+                action={() =>
+                    editor
+                        .chain()
+                        .focus()
+                        .toggleHeading({ level: 2 })
+                        .run()
+                }
+                isActive={editor.isActive("heading", { level: 2 })}
+                title="Heading 2"
+            >
+                <Heading2Icon size={14} />
+            </ToolbarButton>
+            <ToolbarButton
+
+                action={() =>
+                    editor
+                        .chain()
+                        .focus()
+                        .toggleHeading({ level: 3 })
+                        .run()
+                }
+                isActive={editor.isActive("heading", { level: 3 })}
+                title="Heading 3"
+            >
+                <Heading3Icon size={14} />
+            </ToolbarButton>
+
+            <div className="editor-toolbar-separator" />
+
+            <ToolbarButton
+
+                action={() =>
+                    editor.chain().focus().toggleBulletList().run()
+                }
+                isActive={editor.isActive("bulletList")}
+                title="Bullet list"
+            >
+                <ListIcon size={14} />
+            </ToolbarButton>
+            <ToolbarButton
+
+                action={() =>
+                    editor.chain().focus().toggleOrderedList().run()
+                }
+                isActive={editor.isActive("orderedList")}
+                title="Ordered list"
+            >
+                <ListOrderedIcon size={14} />
+            </ToolbarButton>
+            <ToolbarButton
+
+                action={() =>
+                    editor.chain().focus().toggleBlockquote().run()
+                }
+                isActive={editor.isActive("blockquote")}
+                title="Blockquote"
+            >
+                <QuoteIcon size={14} />
+            </ToolbarButton>
+            <ToolbarButton
+
+                action={() => {
+                    const url = window.prompt("URL:");
+                    if (url) {
+                        editor
+                            .chain()
+                            .focus()
+                            .setLink({ href: url })
+                            .run();
+                    }
+                }}
+                isActive={editor.isActive("link")}
+                title="Link"
+            >
+                <LinkIcon size={14} />
+            </ToolbarButton>
+        </div>
+    );
+}
+
 interface MarkdownEditorProps {
     /** Markdown string to initialize the editor with */
     content: string;
     /** Called with the updated markdown string on each edit */
     onUpdate: (markdown: string) => void;
+    /** Called when the editor instance is ready (or destroyed) */
+    onEditorReady?: (editor: Editor | null) => void;
     /** Placeholder text shown when the editor is empty */
     placeholder?: string;
     /** Additional CSS class names for the editor container */
@@ -89,6 +258,7 @@ interface MarkdownEditorProps {
 export function MarkdownEditor({
     content,
     onUpdate,
+    onEditorReady,
     placeholder = "Start writing...",
     className,
 }: MarkdownEditorProps) {
@@ -118,6 +288,12 @@ export function MarkdownEditor({
             Typography,
         ],
         content,
+        onCreate: ({ editor: ed }) => {
+            onEditorReady?.(ed);
+        },
+        onDestroy: () => {
+            onEditorReady?.(null);
+        },
         onUpdate: ({ editor: ed }) => {
             // tiptap-markdown adds getMarkdown() to editor.storage.markdown,
             // but Tiptap's Storage type is an empty interface that doesn't
@@ -140,215 +316,5 @@ export function MarkdownEditor({
         },
     });
 
-    return (
-        <>
-            {editor && (
-                <BubbleMenu
-                    editor={editor}
-                    options={{ placement: "top" }}
-                >
-                    <div className="bubble-menu">
-                        <button
-                            type="button"
-                            onClick={() =>
-                                editor
-                                    .chain()
-                                    .focus()
-                                    .toggleBold()
-                                    .run()
-                            }
-                            className={
-                                editor.isActive("bold") ? "is-active" : ""
-                            }
-                            title="Bold"
-                        >
-                            <BoldIcon size={14} />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() =>
-                                editor
-                                    .chain()
-                                    .focus()
-                                    .toggleItalic()
-                                    .run()
-                            }
-                            className={
-                                editor.isActive("italic") ? "is-active" : ""
-                            }
-                            title="Italic"
-                        >
-                            <ItalicIcon size={14} />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() =>
-                                editor
-                                    .chain()
-                                    .focus()
-                                    .toggleStrike()
-                                    .run()
-                            }
-                            className={
-                                editor.isActive("strike") ? "is-active" : ""
-                            }
-                            title="Strikethrough"
-                        >
-                            <StrikethroughIcon size={14} />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() =>
-                                editor
-                                    .chain()
-                                    .focus()
-                                    .toggleCode()
-                                    .run()
-                            }
-                            className={
-                                editor.isActive("code") ? "is-active" : ""
-                            }
-                            title="Inline code"
-                        >
-                            <CodeIcon size={14} />
-                        </button>
-
-                        <div className="separator" />
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                editor
-                                    .chain()
-                                    .focus()
-                                    .toggleHeading({ level: 1 })
-                                    .run()
-                            }
-                            className={
-                                editor.isActive("heading", { level: 1 })
-                                    ? "is-active"
-                                    : ""
-                            }
-                            title="Heading 1"
-                        >
-                            <Heading1Icon size={14} />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() =>
-                                editor
-                                    .chain()
-                                    .focus()
-                                    .toggleHeading({ level: 2 })
-                                    .run()
-                            }
-                            className={
-                                editor.isActive("heading", { level: 2 })
-                                    ? "is-active"
-                                    : ""
-                            }
-                            title="Heading 2"
-                        >
-                            <Heading2Icon size={14} />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() =>
-                                editor
-                                    .chain()
-                                    .focus()
-                                    .toggleHeading({ level: 3 })
-                                    .run()
-                            }
-                            className={
-                                editor.isActive("heading", { level: 3 })
-                                    ? "is-active"
-                                    : ""
-                            }
-                            title="Heading 3"
-                        >
-                            <Heading3Icon size={14} />
-                        </button>
-
-                        <div className="separator" />
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                editor
-                                    .chain()
-                                    .focus()
-                                    .toggleBulletList()
-                                    .run()
-                            }
-                            className={
-                                editor.isActive("bulletList")
-                                    ? "is-active"
-                                    : ""
-                            }
-                            title="Bullet list"
-                        >
-                            <ListIcon size={14} />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() =>
-                                editor
-                                    .chain()
-                                    .focus()
-                                    .toggleOrderedList()
-                                    .run()
-                            }
-                            className={
-                                editor.isActive("orderedList")
-                                    ? "is-active"
-                                    : ""
-                            }
-                            title="Ordered list"
-                        >
-                            <ListOrderedIcon size={14} />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() =>
-                                editor
-                                    .chain()
-                                    .focus()
-                                    .toggleBlockquote()
-                                    .run()
-                            }
-                            className={
-                                editor.isActive("blockquote")
-                                    ? "is-active"
-                                    : ""
-                            }
-                            title="Blockquote"
-                        >
-                            <QuoteIcon size={14} />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                const url = window.prompt("URL:");
-                                if (url) {
-                                    editor
-                                        .chain()
-                                        .focus()
-                                        .setLink({ href: url })
-                                        .run();
-                                }
-                            }}
-                            className={
-                                editor.isActive("link") ? "is-active" : ""
-                            }
-                            title="Link"
-                        >
-                            <LinkIcon size={14} />
-                        </button>
-                    </div>
-                </BubbleMenu>
-            )}
-            <EditorContent editor={editor} />
-        </>
-    );
+    return <EditorContent editor={editor} />;
 }
