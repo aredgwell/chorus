@@ -1,8 +1,6 @@
 import { scan } from "react-scan"; // must import before react
 import {
     BrowserRouter as Router,
-    Route,
-    Routes,
     useNavigate,
     useLocation,
 } from "react-router-dom";
@@ -24,14 +22,7 @@ import { SidebarProvider } from "./providers/SidebarProvider";
 import { AppSidebar } from "./components/AppSidebar";
 import { ThemeProvider } from "@ui/themes/theme-provider";
 import { COMMAND_MENU_DIALOG_ID, CommandMenu } from "./components/CommandMenu";
-import Home from "./components/Home";
-import MultiChat from "./components/MultiChat";
-import NewPrompt from "./components/NewPrompt";
-import ListPrompts from "./components/ListPrompts";
 import Onboarding from "./components/Onboarding";
-import ProjectView from "./components/ProjectView";
-import NoteEditor from "./components/NoteEditor";
-import SearchView from "./components/SearchView";
 import {
     onOpenUrl,
     getCurrent as getCurrentDeepLink,
@@ -80,8 +71,26 @@ import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
 import * as ToolsetsAPI from "@core/chorus/api/ToolsetsAPI";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
+import { cleanupExpiredUngroupedItems } from "@core/chorus/api/CleanupAPI";
 import { SettingsManager } from "@core/utilities/Settings";
 import { SimilarChatsDialog } from "./components/SimilarChatsDialog";
+import { ContextPane } from "./components/ContextPane";
+import { ContentPane } from "./components/ContentPane";
+import { useAutoSyncCollection } from "./hooks/useAutoSyncCollection";
+import {
+    ResizablePanelGroup,
+    ResizablePanel,
+    ResizableHandle,
+} from "./components/ui/resizable";
+import { useSelectedCollectionId } from "@core/chorus/api/AppMetadataAPI";
+import {
+    DndContext,
+    type DragEndEvent,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from "@dnd-kit/core";
+import * as NoteAPI from "@core/chorus/api/NoteAPI";
 
 scan({
     enabled: import.meta.env.DEV,
@@ -163,6 +172,11 @@ function AppContent() {
         void ToolsetsAPI.migrateToolsetCredentialsToKeychain();
     }, []);
 
+    // Clean up ungrouped items older than 7 days (runs once per session)
+    useEffect(() => {
+        void cleanupExpiredUngroupedItems();
+    }, []);
+
     // Get all chats to determine if user is new
     const { data: chats } = useQuery(ChatAPI.chatQueries.list());
 
@@ -202,6 +216,8 @@ function AppContent() {
     const { db } = useDatabase();
 
     const { isQuickChatWindow, zoomLevel, setZoomLevel } = useAppContext();
+    const selectedCollectionId = useSelectedCollectionId();
+    useAutoSyncCollection();
     const isSettingsDialogOpen = useDialogStore(
         (state) => state.activeDialogId === SETTINGS_DIALOG_ID,
     );
@@ -213,6 +229,33 @@ function AppContent() {
     );
 
     const updateToolsetsConfig = ToolsetsAPI.useUpdateToolsetsConfig();
+
+    // DnD: move items between collections — require 8px movement before drag starts so clicks pass through
+    const pointerSensor = useSensor(PointerSensor, {
+        activationConstraint: { distance: 8 },
+    });
+    const dndSensors = useSensors(pointerSensor);
+    const setChatProject = ProjectAPI.useSetChatProject();
+    const setNoteProject = NoteAPI.useSetNoteProject();
+
+    const handleDragEnd = useCallback(
+        (event: DragEndEvent) => {
+            const { active, over } = event;
+            if (!over) return;
+
+            const dragId = String(active.id);
+            const targetProjectId = String(over.id);
+
+            if (dragId.startsWith("chat:")) {
+                const chatId = dragId.slice(5);
+                setChatProject.mutate({ chatId, projectId: targetProjectId });
+            } else if (dragId.startsWith("note:")) {
+                const noteId = dragId.slice(5);
+                setNoteProject.mutate({ noteId, projectId: targetProjectId });
+            }
+        },
+        [setChatProject, setNoteProject],
+    );
 
     // Get current chat info for cmd+n shortcut logic. note that this is all hacky, we're doing it in AppSidebar too
     const currentChatId = location.pathname.match(/^\/chat\/(.+)$/)?.[1];
@@ -609,9 +652,9 @@ function AppContent() {
                 if (isQuickChatWindow) {
                     getOrCreateNewQuickChat.mutate();
                 } else {
-                    // Always create a default (non-project) chat when using Cmd+N
+                    // Create chat in the selected collection, or "default" if none
                     getOrCreateNewChat.mutate({
-                        projectId: "default",
+                        projectId: selectedCollectionId ?? "default",
                     });
                 }
             })();
@@ -729,6 +772,7 @@ function AppContent() {
         isDialogOpen,
         isQuickChatWindow,
         isSettingsDialogOpen,
+        selectedCollectionId,
     ]);
 
     const convertQuickChatToRegularChat =
@@ -912,26 +956,32 @@ function AppContent() {
                 className={`select-none ${isQuickChatWindow ? "bg-transparent" : "bg-background"}`}
             >
                 <SidebarProvider>
+                <DndContext sensors={dndSensors} onDragEnd={handleDragEnd}>
                     {!isQuickChatWindow && <AppSidebar />}
-
                     {!isQuickChatWindow && <CommandMenu />}
-                    <main className="flex flex-col flex-1 min-h-svh min-w-0">
+                    <main className="flex flex-col flex-1 h-svh min-w-0 overflow-hidden">
                         <div className="flex-1 min-h-0 relative">
-                            <Routes>
-                                <Route path="/" element={<Home />} />
-                                <Route path="/new-prompt" element={<NewPrompt />} />
-                                <Route path="/prompts" element={<ListPrompts />} />
-                                <Route path="/search" element={<SearchView />} />
-                                <Route path="/chat/:chatId" element={<MultiChat />} />
-                                <Route
-                                    path="/note/:noteId"
-                                    element={<NoteEditor />}
-                                />
-                                <Route
-                                    path="/projects/:projectId"
-                                    element={<ProjectView />}
-                                />
-                            </Routes>
+                            {isQuickChatWindow ? (
+                                <ContentPane />
+                            ) : (
+                                <ResizablePanelGroup
+                                    autoSaveId="three-pane-layout"
+                                    direction="horizontal"
+                                    className="h-full"
+                                >
+                                    <ResizablePanel
+                                        defaultSize={25}
+                                        minSize={15}
+                                        maxSize={40}
+                                    >
+                                        <ContextPane />
+                                    </ResizablePanel>
+                                    <ResizableHandle />
+                                    <ResizablePanel defaultSize={75}>
+                                        <ContentPane />
+                                    </ResizablePanel>
+                                </ResizablePanelGroup>
+                            )}
                         </div>
                     </main>
                     {!isQuickChatWindow && (
@@ -954,6 +1004,7 @@ function AppContent() {
                         position="bottom-right"
                         closeButton
                     />
+                </DndContext>
                 </SidebarProvider>
             </div>
         </>

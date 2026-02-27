@@ -8,7 +8,6 @@ import {
 } from "@core/chorus/prompts/prompts";
 import {
     AtSignIcon,
-    FolderOpenIcon,
     SquarePlusIcon,
     TrashIcon,
 } from "lucide-react";
@@ -37,7 +36,7 @@ import {
     handleInputPasteWithAttachments,
     projectDisplayName,
 } from "@ui/lib/utils";
-import { EditableTitle } from "./EditableTitle";
+
 import { HeaderBar } from "./HeaderBar";
 import { useQuery } from "@tanstack/react-query";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
@@ -145,9 +144,8 @@ export default function ProjectView() {
     };
 
     return (
-        <div className="container py-28 px-16 mx-auto max-w-5xl relative">
+        <div className="flex flex-col h-full">
             <HeaderBar
-                positioning="fixed"
                 actions={
                     <div className="flex items-center gap-2 mr-2">
                         <Tooltip>
@@ -196,27 +194,9 @@ export default function ProjectView() {
                         </Tooltip>
                     </div>
                 }
-            >
-                {/* Project name */}
-                <div className="flex items-center gap-2 text-sm text-muted-foreground ml-4">
-                    <FolderOpenIcon className="w-4 h-4" />
-                    <EditableTitle
-                        title={project?.name || ""}
-                        onUpdate={async (newName) => {
-                            await renameProject.mutateAsync({
-                                projectId,
-                                newName,
-                            });
-                        }}
-                        className="font-normal"
-                        editClassName="h-6 text-sm px-1 py-0 border-none"
-                        placeholder="New Collection"
-                        showEditIcon={false}
-                        disabled={false}
-                    />
-                </div>
-            </HeaderBar>
+            />
 
+            <div className="container py-8 px-16 mx-auto max-w-5xl flex-1 overflow-y-auto">
             {/*  header */}
             <div className="mb-8">
                 <div className="flex-1 ml-2">
@@ -410,6 +390,7 @@ export default function ProjectView() {
                         )}
                     </div>
                 </div>
+            </div>
             </div>
 
             {/* Delete confirmation dialog */}

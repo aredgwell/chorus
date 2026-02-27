@@ -50,7 +50,7 @@ class EmbeddingQueue {
         void this.drain();
     }
 
-    private async drain(): Promise<void> {
+    private drain(): void {
         while (this.running < this.MAX_CONCURRENT && this.pending.size > 0) {
             const entry = this.pending.entries().next().value;
             if (!entry) break;

@@ -86,7 +86,6 @@ export class UpdateQueue {
      * Runs until the stream is marked inactive and has no pending work.
      */
     private async processStream(key: string): Promise<void> {
-        // eslint-disable-next-line no-constant-condition
         while (true) {
             const stream = this.streams.get(key);
             if (!stream) return;

@@ -149,7 +149,7 @@ export class ProviderOpenRouter implements IProvider {
                 if (onError) {
                     onError(errorMessage);
                 } else {
-                    throw new Error(errorMessage);
+                    throw Object.assign(new Error(errorMessage), { cause: error });
                 }
             } else {
                 if (onError) {

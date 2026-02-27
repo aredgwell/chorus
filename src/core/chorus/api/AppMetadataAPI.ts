@@ -258,6 +258,65 @@ export function useSetZoomLevel() {
     });
 }
 
+export function useSelectedCollectionId(): string | undefined {
+    const { data: appMetadata } = useAppMetadata();
+    return appMetadata?.["selected_collection_id"] || undefined;
+}
+
+export function useSetSelectedCollectionId() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ["setSelectedCollectionId"] as const,
+        mutationFn: async (collectionId: string | undefined) => {
+            if (collectionId) {
+                await db.execute(
+                    "INSERT OR REPLACE INTO app_metadata (key, value) VALUES (?, ?)",
+                    ["selected_collection_id", collectionId],
+                );
+            } else {
+                await db.execute(
+                    "DELETE FROM app_metadata WHERE key = 'selected_collection_id'",
+                );
+            }
+        },
+        onMutate: async (collectionId) => {
+            // Optimistic update for instant UI feedback
+            await queryClient.cancelQueries({
+                queryKey: appMetadataKeys.appMetadata(),
+            });
+            const previous = queryClient.getQueryData<
+                Record<string, string>
+            >(appMetadataKeys.appMetadata());
+            queryClient.setQueryData<Record<string, string>>(
+                appMetadataKeys.appMetadata(),
+                (old) => {
+                    const updated = { ...old };
+                    if (collectionId) {
+                        updated["selected_collection_id"] = collectionId;
+                    } else {
+                        delete updated["selected_collection_id"];
+                    }
+                    return updated;
+                },
+            );
+            return { previous };
+        },
+        onError: (_err, _variables, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(
+                    appMetadataKeys.appMetadata(),
+                    context.previous,
+                );
+            }
+        },
+        onSettled: async () => {
+            await queryClient.invalidateQueries({
+                queryKey: appMetadataKeys.appMetadata(),
+            });
+        },
+    });
+}
+
 export type SidebarSortMode = "date" | "name" | "type";
 
 export function useSidebarSortMode(): SidebarSortMode {

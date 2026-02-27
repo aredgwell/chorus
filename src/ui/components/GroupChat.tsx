@@ -12,7 +12,7 @@ import {
     WrenchIcon,
     MessageSquareIcon,
 } from "lucide-react";
-import { HeaderBar } from "@ui/components/HeaderBar";
+
 import { MessageMarkdown } from "@ui/components/renderers/MessageMarkdown";
 import { ProviderLogo } from "@ui/components/ui/provider-logo";
 import SimpleCopyButton from "@ui/components/unused/CopyButton";
@@ -507,7 +507,7 @@ function GCMessageView({
 
 export default function GroupChat() {
     const { chatId } = useParams<{ chatId: string }>();
-    const { data: chat } = useChat(chatId ?? "");
+    useChat(chatId ?? "");
     const { data: messages } = useGCMainMessages(chatId ?? "");
     const { data: threadCounts } = useGCThreadCounts(chatId ?? "");
     const sendMessage = useSendGCMessage();
@@ -656,13 +656,7 @@ export default function GroupChat() {
     if (!messages || messages.length === 0) {
         return (
             <div className="flex flex-col h-screen w-full">
-                <HeaderBar positioning="absolute">
-                    <span className="text-sm font-medium ml-2">
-                        {chat?.title ?? "New Chat"}
-                    </span>
-                </HeaderBar>
-
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center pt-[52px]">
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                     <div className="bg-secondary rounded-full p-6 mb-6">
                         <Users className="w-12 h-12 text-secondary-foreground" />
                     </div>
@@ -687,15 +681,9 @@ export default function GroupChat() {
         <div className="flex h-screen w-full">
             {/* Main chat column */}
             <div className="flex-1 flex flex-col min-w-0">
-                <HeaderBar positioning="absolute">
-                    <span className="text-sm font-medium ml-2">
-                        {chat?.title ?? "New Chat"}
-                    </span>
-                </HeaderBar>
-
                 {/* Conductor banner */}
                 {conductor && (
-                    <div className="pt-[52px] px-4 pb-0">
+                    <div className="px-4 pb-0">
                         <div className="max-w-3xl mx-auto">
                             <div className="flex items-center justify-between rounded-md bg-secondary px-4 py-2 text-sm">
                                 <div className="flex items-center gap-2">

@@ -11,10 +11,6 @@ import { SplitIcon } from "lucide-react";
 import { useAppContext } from "@ui/hooks/useAppContext";
 import { VirtualizedMessageSet } from "./VirtualizedMessageSet";
 import { invoke } from "@tauri-apps/api/core";
-import {
-    exportChatAsMarkdown,
-    exportChatAsJSON,
-} from "@core/chorus/ExportService";
 import { catchAsyncErrors } from "@core/chorus/utilities";
 import GroupChat from "./GroupChat";
 import { MouseTrackingEyeRef } from "./MouseTrackingEye";
@@ -23,9 +19,7 @@ import { useShareChat } from "@ui/hooks/useShareChat";
 import { Skeleton } from "./ui/skeleton";
 import { ChatInput } from "./ChatInput";
 import { useWaitForAppMetadata } from "@ui/hooks/useWaitForAppMetadata";
-import { SUMMARY_DIALOG_ID, SummaryDialog } from "./SummaryDialog";
 import { FindInPage } from "./FindInPage";
-import { HeaderBar } from "./HeaderBar";
 import { useShortcut } from "@ui/hooks/useShortcut";
 import { useQuery } from "@tanstack/react-query";
 import RepliesDrawer from "./RepliesDrawer";
@@ -36,20 +30,16 @@ import {
     ResizablePanel,
     ResizableHandle,
 } from "@ui/components/ui/resizable";
-import { writeTextFile } from "@tauri-apps/plugin-fs";
-import { save } from "@tauri-apps/plugin-dialog";
 import * as MessageAPI from "@core/chorus/api/MessageAPI";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
 import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
-import * as SearchAPI from "@core/chorus/api/SearchAPI";
-import { ProjectSwitcher, MessageSetView } from "./ChatMessageViews";
+import { MessageSetView } from "./ChatMessageViews";
 import {
     ShareChatDialog,
     SHARE_CHAT_DIALOG_ID,
 } from "./ShareChatDialog";
 import { QuickChatHeaderBar } from "./QuickChatHeaderBar";
-import { ChatHeaderActions } from "./ChatHeaderActions";
 
 // Re-export sub-components that other files (e.g. ReplyChat.tsx) import from MultiChat
 export { UserMessageView, ToolsMessageView } from "./ChatMessageViews";
@@ -67,10 +57,6 @@ export default function MultiChat() {
     const location = useLocation();
     const appMetadata = useWaitForAppMetadata();
     const messageSetsQuery = MessageAPI.useMessageSets(chatId!);
-    const { data: relatedChats } = SearchAPI.useRelatedChats(
-        chatId,
-        chatQuery.data?.summary ?? undefined,
-    );
     const [searchParams] = useSearchParams();
 
     // Extract replyId from query parameters
@@ -79,9 +65,6 @@ export default function MultiChat() {
     const { isQuickChatWindow } = useAppContext();
 
     const createQuickChat = ChatAPI.useGetOrCreateNewQuickChat();
-    const projectsQuery = useQuery(ProjectAPI.projectQueries.list());
-    const setChatProject = ProjectAPI.useSetChatProject();
-    const createProject = ProjectAPI.useCreateProject();
 
     const regenerateProjectContextSummaries =
         ProjectAPI.useRegenerateProjectContextSummaries();
@@ -214,7 +197,6 @@ export default function MultiChat() {
     const eyeRef = useRef<MouseTrackingEyeRef>(null);
 
     const {
-        isGeneratingShareLink,
         shareUrl,
         copiedUrl,
         doShareChat,
@@ -260,10 +242,6 @@ export default function MultiChat() {
         },
     );
 
-    const summarizeChat = MessageAPI.useSummarizeChat();
-    const [summary, setSummary] = useState<string | null>(null);
-    const [isSummarizing, setIsSummarizing] = useState(false);
-
     useEffect(() => {
         if (!shareUrl) {
             dialogActions.closeDialog();
@@ -271,31 +249,6 @@ export default function MultiChat() {
             dialogActions.openDialog(SHARE_CHAT_DIALOG_ID);
         }
     }, [shareUrl]);
-
-    const handleSummarizeChat = useCallback(async () => {
-        setIsSummarizing(true);
-        const result = await summarizeChat.mutateAsync({
-            chatId: chatId!,
-            forceRefresh: false,
-            source: "user",
-        });
-        if (result.summary) {
-            setSummary(result.summary);
-            dialogActions.openDialog(SUMMARY_DIALOG_ID);
-        }
-        setIsSummarizing(false);
-    }, [chatId, summarizeChat]);
-
-    const handleRefreshSummary = useCallback(async () => {
-        const result = await summarizeChat.mutateAsync({
-            chatId: chatId!,
-            forceRefresh: true,
-            source: "user",
-        });
-        if (result.summary) {
-            setSummary(result.summary);
-        }
-    }, [chatId, summarizeChat]);
 
     const handleShareChat = useCallback(async () => {
         // Get the main chat container's HTML
@@ -307,50 +260,6 @@ export default function MultiChat() {
 
         await doShareChat(chatContainer.outerHTML);
     }, [doShareChat]);
-
-    const handleExportChat = useCallback(
-        async (format: "markdown" | "json") => {
-            if (!chatId) return;
-            try {
-                const extension = format === "markdown" ? "md" : "json";
-                const title = chatQuery.data?.title || "chat";
-                const safeName = title
-                    .replace(/[^a-zA-Z0-9 _-]/g, "")
-                    .slice(0, 50);
-                const defaultName = `${safeName}.${extension}`;
-
-                const filePath = await save({
-                    defaultPath: defaultName,
-                    filters: [
-                        {
-                            name:
-                                format === "markdown"
-                                    ? "Markdown"
-                                    : "JSON",
-                            extensions: [extension],
-                        },
-                    ],
-                });
-
-                if (!filePath) return; // user cancelled
-
-                const content =
-                    format === "markdown"
-                        ? await exportChatAsMarkdown(chatId)
-                        : await exportChatAsJSON(chatId);
-
-                await writeTextFile(filePath, content);
-                toast.success(`Exported as ${extension.toUpperCase()}`);
-            } catch (error) {
-                console.error("Export failed:", error);
-                toast.error("Export failed", {
-                    description:
-                        error instanceof Error ? error.message : "Unknown error",
-                });
-            }
-        },
-        [chatId, chatQuery.data?.title],
-    );
 
     const selectMessage = MessageAPI.useSelectMessage();
     const selectSynthesis = MessageAPI.useSelectSynthesis();
@@ -495,20 +404,6 @@ export default function MultiChat() {
         }
     }, [chatContainerRef, lastMessageSetRef]);
 
-    const onNewProject = () => {
-        createProject
-            .mutateAsync()
-            .then((projectId) => {
-                setChatProject.mutate({
-                    chatId: chatId!,
-                    projectId,
-                });
-            })
-            .catch((error) => {
-                console.error("Error creating project:", error);
-            });
-    };
-
     // Check if this is a group chat
     if (chatQuery.data && chatQuery.data.gcPrototype) {
         return <GroupChat />;
@@ -519,8 +414,8 @@ export default function MultiChat() {
             className={`flex flex-col ${isQuickChatWindow ? "h-screen" : "h-full"} w-full min-w-0 mx-auto @container group relative
         ${isQuickChatWindow && (windowIsFocused ? "rounded-xl" : "bg-foreground/5 rounded-xl")}`}
         >
-            {/* header bar */}
-            {isQuickChatWindow ? (
+            {/* header bar — only for quick chat windows */}
+            {isQuickChatWindow && (
                 <QuickChatHeaderBar
                     visionModeEnabled={appMetadata["vision_mode_enabled"] === "true"}
                     eyeRef={eyeRef}
@@ -529,39 +424,6 @@ export default function MultiChat() {
                     onOpenInMainWindow={() => void handleOpenQuickChatInMainWindow()}
                     onNewAmbientChat={() => createQuickChat.mutate()}
                 />
-            ) : (
-                <HeaderBar
-                    positioning="absolute"
-                    actions={
-                        <ChatHeaderActions
-                            hasMessages={!!messageSetsQuery.data && messageSetsQuery.data.length > 1}
-                            isSummarizing={isSummarizing}
-                            isGeneratingShareLink={isGeneratingShareLink}
-                            chatId={chatId!}
-                            currentProjectId={chatQuery.data?.projectId}
-                            projects={projectsQuery.data ?? []}
-                            relatedChats={relatedChats}
-                            onSearch={() => {
-                                document.dispatchEvent(
-                                    new KeyboardEvent("keydown", {
-                                        key: "f",
-                                        metaKey: true,
-                                        bubbles: true,
-                                    }),
-                                );
-                            }}
-                            onSummarize={() => void handleSummarizeChat()}
-                            onShare={handleShareChat}
-                            onExport={handleExportChat}
-                            onMoveToProject={(chatId, projectId) =>
-                                setChatProject.mutate({ chatId, projectId })
-                            }
-                            onNewProject={onNewProject}
-                        />
-                    }
-                >
-                    <ProjectSwitcher />
-                </HeaderBar>
             )}
 
             {/* Main container that handles both layouts */}
@@ -639,13 +501,6 @@ export default function MultiChat() {
                 onOpenShareUrl={() => void handleOpenShareUrl()}
                 onDeleteShare={() => void handleDeleteShare()}
                 onClose={() => setShareUrl(null)}
-            />
-
-            <SummaryDialog
-                summary={summary || ""}
-                title={chatQuery.data?.title || ""}
-                date={chatQuery.data?.createdAt || ""}
-                onRefresh={handleRefreshSummary}
             />
 
             {/* Find in page UI */}

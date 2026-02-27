@@ -117,8 +117,9 @@ export class ProviderGrok implements IProvider {
                 const errorDetails: ProviderError = JSON5.parse(
                     error.error?.metadata?.raw || error.metadata?.raw || "{}",
                 );
-                throw new Error(
-                    `Provider returned error: ${errorDetails.error?.message || error.message}`,
+                throw Object.assign(
+                    new Error(`Provider returned error: ${errorDetails.error?.message || error.message}`),
+                    { cause: error },
                 );
             }
             throw error;

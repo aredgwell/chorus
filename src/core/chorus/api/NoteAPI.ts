@@ -102,7 +102,27 @@ export function useCreateNote() {
 
             return result[0].id;
         },
-        onSuccess: async (noteId: string) => {
+        onSuccess: async (
+            noteId: string,
+            variables: { projectId?: string },
+        ) => {
+            // Optimistically add the note to the cache so it appears immediately
+            const now = new Date().toISOString();
+            queryClient.setQueryData<Note[]>(
+                noteQueries.list().queryKey,
+                (old) => [
+                    {
+                        id: noteId,
+                        title: "",
+                        content: "",
+                        projectId: variables.projectId ?? "default",
+                        createdAt: now,
+                        updatedAt: now,
+                    },
+                    ...(old ?? []),
+                ],
+            );
+            // Also refetch to ensure consistency
             await queryClient.invalidateQueries(noteQueries.list());
             navigate(`/note/${noteId}`);
         },

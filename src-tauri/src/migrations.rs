@@ -4,7 +4,7 @@ use tauri_plugin_sql::{Migration, MigrationKind};
 // — NEVER EVER MAKE A CHANGE TO A PREVIOUS MIGRATION!!!
 
 pub fn migrations() -> Vec<Migration> {
-    return vec![
+    vec![
         Migration {
             version: 1,
             description: "create initial tables",
@@ -2932,5 +2932,5 @@ You have full access to bash commands on the user''''s computer. If you write a 
                 END;
             "#,
         },
-    ];
+    ]
 }
