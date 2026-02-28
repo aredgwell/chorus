@@ -1,8 +1,77 @@
-import { useState, useDeferredValue } from "react";
+import { useState, useDeferredValue, useEffect } from "react";
 import { NodeViewWrapper, NodeViewContent } from "@tiptap/react";
 import type { NodeViewProps } from "@tiptap/core";
-import { MermaidPreview } from "@ui/components/renderers/Mermaid";
 import { CodeIcon, EyeIcon } from "lucide-react";
+import mermaid from "mermaid";
+
+let mermaidIdCounter = 0;
+
+/**
+ * Renders a Mermaid diagram from source text using the mermaid API directly.
+ * Avoids react-mermaid2 because its hooks conflict with Tiptap's NodeView
+ * React rendering context.
+ */
+function MermaidDiagram({ source }: { source: string }) {
+    const [svg, setSvg] = useState("");
+    const [error, setError] = useState<string | undefined>();
+
+    useEffect(() => {
+        let cancelled = false;
+        const id = `mermaid-nodeview-${++mermaidIdCounter}`;
+
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: document.documentElement.classList.contains("dark")
+                ? "dark"
+                : "default",
+            securityLevel: "strict",
+        });
+
+        mermaid
+            .render(id, source)
+            .then(({ svg: rendered }) => {
+                if (!cancelled) {
+                    setSvg(rendered);
+                    setError(undefined);
+                }
+            })
+            .catch((err: unknown) => {
+                if (!cancelled) {
+                    setError(
+                        err instanceof Error ? err.message : "Render error",
+                    );
+                    setSvg("");
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [source]);
+
+    if (error) {
+        return (
+            <div className="text-sm text-destructive p-2">
+                Mermaid error: {error}
+            </div>
+        );
+    }
+
+    if (!svg) {
+        return (
+            <div className="text-sm text-muted-foreground p-2">
+                Rendering...
+            </div>
+        );
+    }
+
+    return (
+        <div
+            className="bg-background overflow-x-auto"
+            dangerouslySetInnerHTML={{ __html: svg }}
+        />
+    );
+}
 
 /**
  * Tiptap NodeView for ```mermaid code blocks.
@@ -49,7 +118,7 @@ export function MermaidBlockView({ node }: NodeViewProps) {
                         onClick={() => setShowSource(true)}
                     >
                         {deferredContent ? (
-                            <MermaidPreview content={deferredContent} />
+                            <MermaidDiagram source={deferredContent} />
                         ) : (
                             <span className="block-view-empty">
                                 Click to add Mermaid diagram

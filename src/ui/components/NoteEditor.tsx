@@ -84,7 +84,7 @@ export default function NoteEditor() {
     }
 
     return (
-        <div className="note-editor-container">
+        <div className="flex flex-col h-full">
             <HeaderBar
                 actions={
                     <div className="flex items-center gap-1">
