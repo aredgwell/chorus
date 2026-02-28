@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -10,10 +10,15 @@ import {
     DialogTitle,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
+import { TrashIcon } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import type { Editor } from "@tiptap/core";
 
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import RetroSpinner from "./ui/retro-spinner";
 import * as NoteAPI from "@core/chorus/api/NoteAPI";
+import { MarkdownEditor, EditorToolbar } from "./MarkdownEditor";
+import { HeaderBar } from "./HeaderBar";
 import _ from "lodash";
 
 const deleteNoteDialogId = (noteId: string) =>
@@ -25,8 +30,7 @@ export default function NoteEditor() {
     const noteQuery = NoteAPI.useNote(noteId);
     const updateNote = NoteAPI.useUpdateNote();
     const deleteNote = NoteAPI.useDeleteNote();
-    const [content, setContent] = useState("");
-    const [isInitialized, setIsInitialized] = useState(false);
+    const [editor, setEditor] = useState<Editor | null>(null);
 
     const isDeleteDialogOpen = useDialogStore((state) =>
         noteId
@@ -34,37 +38,23 @@ export default function NoteEditor() {
             : false,
     );
 
-    // Initialize content from query data
-    useEffect(() => {
-        if (noteQuery.data && !isInitialized) {
-            setContent(noteQuery.data.content);
-            setIsInitialized(true);
-        }
-    }, [noteQuery.data, isInitialized]);
-
-    // Reset initialization when noteId changes
-    useEffect(() => {
-        setIsInitialized(false);
-    }, [noteId]);
-
-    // Debounced save
+    // Debounced save — called by MarkdownEditor on each edit
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const debouncedSave = useCallback(
-        _.debounce((noteId: string, content: string) => {
-            void updateNote.mutateAsync({ noteId, content });
+        _.debounce((id: string, markdown: string) => {
+            void updateNote.mutateAsync({ noteId: id, content: markdown });
         }, 500),
         [updateNote],
     );
 
-    const handleContentChange = (
-        e: React.ChangeEvent<HTMLTextAreaElement>,
-    ) => {
-        const newContent = e.target.value;
-        setContent(newContent);
-        if (noteId) {
-            debouncedSave(noteId, newContent);
-        }
-    };
+    const handleUpdate = useCallback(
+        (markdown: string) => {
+            if (noteId) {
+                debouncedSave(noteId, markdown);
+            }
+        },
+        [noteId, debouncedSave],
+    );
 
     const handleConfirmDelete = async () => {
         if (!noteId) return;
@@ -94,13 +84,44 @@ export default function NoteEditor() {
     }
 
     return (
-        <div className="flex flex-col h-full">
-            <div className="container py-8 px-16 mx-auto max-w-5xl flex-1 overflow-y-auto">
-                <textarea
-                    value={content}
-                    onChange={handleContentChange}
+        <div className="note-editor-container">
+            <HeaderBar
+                actions={
+                    <div className="flex items-center gap-1">
+                        {editor && <EditorToolbar editor={editor} />}
+
+                        <div className="editor-toolbar-separator" />
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="iconSm"
+                                    onClick={() =>
+                                        dialogActions.openDialog(
+                                            deleteNoteDialogId(noteId),
+                                        )
+                                    }
+                                >
+                                    <TrashIcon
+                                        strokeWidth={1.5}
+                                        className="size-3.5!"
+                                    />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete note</TooltipContent>
+                        </Tooltip>
+                    </div>
+                }
+            />
+
+            <div className="note-editor-content">
+                <MarkdownEditor
+                    key={noteId}
+                    content={note.content}
+                    onUpdate={handleUpdate}
+                    onEditorReady={setEditor}
                     placeholder="Start writing..."
-                    className="w-full min-h-[calc(100vh-200px)] bg-transparent border-none ring-0 outline-hidden resize-none text-base leading-relaxed placeholder:text-muted-foreground/50"
                 />
             </div>
 
