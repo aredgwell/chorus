@@ -10,13 +10,15 @@ import {
     DialogTitle,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
-import { TrashIcon } from "lucide-react";
+import { TrashIcon, MessageSquareIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import type { Editor } from "@tiptap/core";
 
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import RetroSpinner from "./ui/retro-spinner";
 import * as NoteAPI from "@core/chorus/api/NoteAPI";
+import * as ChatAPI from "@core/chorus/api/ChatAPI";
+import { useCreateLink } from "@core/chorus/api/NoteChatLinkAPI";
 import { MarkdownEditor, EditorToolbar } from "./MarkdownEditor";
 import { HeaderBar } from "./HeaderBar";
 import { TagInput } from "./TagInput";
@@ -32,6 +34,8 @@ export default function NoteEditor() {
     const noteQuery = NoteAPI.useNote(noteId);
     const updateNote = NoteAPI.useUpdateNote();
     const deleteNote = NoteAPI.useDeleteNote();
+    const createChat = ChatAPI.useCreateNewChat();
+    const createLink = useCreateLink();
     const [editor, setEditor] = useState<Editor | null>(null);
 
     const isDeleteDialogOpen = useDialogStore((state) =>
@@ -57,6 +61,18 @@ export default function NoteEditor() {
         },
         [noteId, debouncedSave],
     );
+
+    const handleAskAboutNote = useCallback(async () => {
+        if (!noteId || !noteQuery.data) return;
+        const projectId = noteQuery.data.projectId ?? "ungrouped";
+        const chatId = await createChat.mutateAsync({ projectId });
+        await createLink.mutateAsync({
+            noteId,
+            chatId,
+            linkType: "context",
+        });
+        navigate(`/chat/${chatId}?noteContext=${noteId}`);
+    }, [noteId, noteQuery.data, createChat, createLink, navigate]);
 
     const handleConfirmDelete = async () => {
         if (!noteId) return;
@@ -93,6 +109,22 @@ export default function NoteEditor() {
                         {editor && <EditorToolbar editor={editor} />}
 
                         <div className="editor-toolbar-separator" />
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="iconSm"
+                                    onClick={() => void handleAskAboutNote()}
+                                >
+                                    <MessageSquareIcon
+                                        strokeWidth={1.5}
+                                        className="size-3.5!"
+                                    />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Ask about this note</TooltipContent>
+                        </Tooltip>
 
                         <Tooltip>
                             <TooltipTrigger asChild>

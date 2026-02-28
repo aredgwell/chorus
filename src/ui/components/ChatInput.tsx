@@ -41,6 +41,7 @@ import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
 import * as DraftAPI from "@core/chorus/api/DraftAPI";
 import * as ModelConfigChatAPI from "@core/chorus/api/ModelConfigChatAPI";
 import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
+import { fetchNote } from "@core/chorus/api/NoteAPI";
 
 const DEFAULT_CHAT_INPUT_ID = "default-chat-input";
 const REPLY_CHAT_INPUT_ID = "reply-chat-input";
@@ -262,7 +263,18 @@ export function ChatInput({
                 });
             });
 
-            const userMessageText = draft.trim();
+            let userMessageText = draft.trim();
+
+            // If noteContext param is present, prepend note content to first message
+            const noteContextId = searchParams.get("noteContext");
+            if (noteContextId) {
+                const note = await fetchNote(noteContextId);
+                userMessageText = `[Note: ${note.title}]\n${note.content}\n\n---\n\n${userMessageText}`;
+                setSearchParams((prev) => {
+                    prev.delete("noteContext");
+                    return prev;
+                });
+            }
 
             // create message sets
             const { userMessageSetId, aiMessageSetId } =
@@ -478,7 +490,7 @@ export function ChatInput({
         },
     );
 
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
 
     const isNextFocus = (() => {
         const isReplyDrawerOpen = searchParams.get("replyId");
