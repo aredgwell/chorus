@@ -9,6 +9,7 @@ import {
     TagIcon,
     FilePlusIcon,
     SquarePlusIcon,
+    SparklesIcon,
 } from "lucide-react";
 import {
     Sidebar,
@@ -54,6 +55,7 @@ import {
 import { chatQueries, useGetOrCreateNewChat } from "@core/chorus/api/ChatAPI";
 import { noteQueries, useCreateNote } from "@core/chorus/api/NoteAPI";
 import { useTags, useDeleteTag } from "@core/chorus/api/TagAPI";
+import { useCreateSmartCollection } from "@core/chorus/api/ProjectAPI";
 import {
     useSelectedCollectionId,
     useSetSelectedCollectionId,
@@ -82,7 +84,15 @@ function DevModeIndicator() {
 function SidebarTagsSection() {
     const tagsQuery = useTags();
     const deleteTag = useDeleteTag();
+    const createSmartCollection = useCreateSmartCollection();
     const tags = tagsQuery.data ?? [];
+
+    const handleCreateSmartCollection = (tagId: string, tagName: string) => {
+        void createSmartCollection.mutateAsync({
+            name: tagName,
+            rules: { match: "any", tagIds: [tagId] },
+        });
+    };
 
     return (
         <>
@@ -111,6 +121,28 @@ function SidebarTagsSection() {
                                 }}
                             />
                             <span className="truncate flex-1">{tag.name}</span>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        type="button"
+                                        className="opacity-0 group-hover/tag:opacity-100 p-0.5 rounded hover:bg-accent transition-all"
+                                        onClick={() =>
+                                            handleCreateSmartCollection(
+                                                tag.id,
+                                                tag.name,
+                                            )
+                                        }
+                                    >
+                                        <SparklesIcon
+                                            className="size-3"
+                                            strokeWidth={1.5}
+                                        />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Create smart collection
+                                </TooltipContent>
+                            </Tooltip>
                             <button
                                 type="button"
                                 className="opacity-0 group-hover/tag:opacity-100 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-all"
@@ -249,6 +281,10 @@ function CollectionsNavigator() {
                                                     showCost
                                                         ? project.totalCostUsd
                                                         : undefined
+                                                }
+                                                isSmart={
+                                                    project.collectionType ===
+                                                    "smart"
                                                 }
                                             />
                                         </Droppable>
@@ -390,6 +426,7 @@ function CollectionItem({
     isSelected,
     onSelect,
     cost,
+    isSmart,
 }: {
     projectId: string;
     name: string;
@@ -397,6 +434,7 @@ function CollectionItem({
     isSelected: boolean;
     onSelect: () => void;
     cost?: number;
+    isSmart?: boolean;
 }) {
     const [isRenaming, setIsRenaming] = useState(false);
     const [renameValue, setRenameValue] = useState(name);
@@ -493,7 +531,12 @@ function CollectionItem({
                 className="flex items-center justify-between mb-0.5 group/collection"
             >
                 <span className="flex items-center gap-2 flex-1 min-w-0">
-                    {isSelected ? (
+                    {isSmart ? (
+                        <SparklesIcon
+                            strokeWidth={1.5}
+                            className="size-4 text-muted-foreground shrink-0"
+                        />
+                    ) : isSelected ? (
                         <FolderOpenIcon
                             strokeWidth={1.5}
                             className="size-4 text-muted-foreground shrink-0"

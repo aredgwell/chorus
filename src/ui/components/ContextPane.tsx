@@ -6,6 +6,7 @@ import {
     PinOffIcon,
     ArrowUpDownIcon,
     CheckIcon,
+    SparklesIcon,
 } from "lucide-react";
 import { SidebarMenuButton } from "@ui/components/ui/sidebar";
 
@@ -40,6 +41,10 @@ import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import * as NoteAPI from "@core/chorus/api/NoteAPI";
 import { type Note } from "@core/chorus/api/NoteAPI";
 import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
+import {
+    fetchSmartCollectionItems,
+    type SmartCollectionItem,
+} from "@core/chorus/api/ProjectAPI";
 import { formatCost } from "@core/chorus/api/CostAPI";
 import RetroSpinner from "./ui/retro-spinner";
 import { projectDisplayName } from "@ui/lib/utils";
@@ -84,6 +89,7 @@ type ContextTab = "all" | "notes" | "chats";
 function CollectionView({ collectionId }: { collectionId: string }) {
     const chatsQuery = useQuery(chatQueries.list());
     const notesQuery = useQuery(noteQueries.list());
+    const projectsQuery = useQuery(ProjectAPI.projectQueries.list());
     const location = useLocation();
     const currentChatId = location.pathname.startsWith("/chat/")
         ? location.pathname.split("/").pop()!
@@ -97,6 +103,20 @@ function CollectionView({ collectionId }: { collectionId: string }) {
     const [activeTab, setActiveTab] = useState<ContextTab>("all");
     const sortMode = useSidebarSortMode();
     const setSortMode = useSetSidebarSortMode();
+
+    // Detect smart collection
+    const project = (projectsQuery.data ?? []).find(
+        (p) => p.id === collectionId,
+    );
+    const isSmart = project?.collectionType === "smart";
+    const smartRules = project?.smartCollectionRules;
+
+    // Fetch smart collection items when applicable
+    const smartItemsQuery = useQuery({
+        queryKey: ["smartCollectionItems", collectionId, smartRules] as const,
+        queryFn: () => fetchSmartCollectionItems(smartRules!),
+        enabled: isSmart && !!smartRules,
+    });
 
     if (chatsQuery.isPending || notesQuery.isPending) {
         return (
@@ -117,13 +137,36 @@ function CollectionView({ collectionId }: { collectionId: string }) {
     const allChats = chatsQuery.data ?? [];
     const allNotes = notesQuery.data ?? [];
 
-    // Filter items for this collection (show all chats including new/empty ones)
-    const collectionChats = allChats.filter(
-        (c) => c.projectId === collectionId,
-    );
-    const collectionNotes = allNotes.filter(
-        (n) => n.projectId === collectionId,
-    );
+    // For smart collections, filter by matching item IDs; for manual, by projectId
+    let collectionChats: Chat[];
+    let collectionNotes: Note[];
+
+    if (isSmart && smartItemsQuery.data) {
+        const smartItems = smartItemsQuery.data;
+        const smartChatIds = new Set(
+            smartItems
+                .filter((i: SmartCollectionItem) => i.itemType === "chat")
+                .map((i: SmartCollectionItem) => i.itemId),
+        );
+        const smartNoteIds = new Set(
+            smartItems
+                .filter((i: SmartCollectionItem) => i.itemType === "note")
+                .map((i: SmartCollectionItem) => i.itemId),
+        );
+        collectionChats = allChats.filter((c) => smartChatIds.has(c.id));
+        collectionNotes = allNotes.filter((n) => smartNoteIds.has(n.id));
+    } else if (isSmart) {
+        // Smart but still loading
+        collectionChats = [];
+        collectionNotes = [];
+    } else {
+        collectionChats = allChats.filter(
+            (c) => c.projectId === collectionId,
+        );
+        collectionNotes = allNotes.filter(
+            (n) => n.projectId === collectionId,
+        );
+    }
 
     // Build sidebar items
     const noteItems: SidebarItem[] = collectionNotes.map((note) => ({
@@ -141,6 +184,7 @@ function CollectionView({ collectionId }: { collectionId: string }) {
 
     const isDefault = collectionId === "default";
     const headerTitle = isDefault ? "Ungrouped" : undefined;
+    const showCreateButtons = !isSmart;
 
     return (
         <div className="flex flex-col h-full bg-sidebar">
@@ -223,24 +267,26 @@ function CollectionView({ collectionId }: { collectionId: string }) {
                             <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
                                 Notes
                             </div>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        className="text-muted-foreground hover:text-foreground p-1 pr-3 rounded"
-                                        onClick={() =>
-                                            createNote.mutate({
-                                                projectId: collectionId,
-                                            })
-                                        }
-                                    >
-                                        <FilePlusIcon
-                                            className="size-3.5"
-                                            strokeWidth={1.5}
-                                        />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent>New Note</TooltipContent>
-                            </Tooltip>
+                            {showCreateButtons && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            className="text-muted-foreground hover:text-foreground p-1 pr-3 rounded"
+                                            onClick={() =>
+                                                createNote.mutate({
+                                                    projectId: collectionId,
+                                                })
+                                            }
+                                        >
+                                            <FilePlusIcon
+                                                className="size-3.5"
+                                                strokeWidth={1.5}
+                                            />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>New Note</TooltipContent>
+                                </Tooltip>
+                            )}
                         </div>
                         {sortedNotes.length > 0 ? (
                             sortedNotes.map((item) => (
@@ -267,24 +313,26 @@ function CollectionView({ collectionId }: { collectionId: string }) {
                             <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
                                 Chats
                             </div>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        className="text-muted-foreground hover:text-foreground p-1 pr-3 rounded"
-                                        onClick={() =>
-                                            getOrCreateNewChat.mutate({
-                                                projectId: collectionId,
-                                            })
-                                        }
-                                    >
-                                        <SquarePlusIcon
-                                            className="size-3.5"
-                                            strokeWidth={1.5}
-                                        />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent>New Chat</TooltipContent>
-                            </Tooltip>
+                            {showCreateButtons && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            className="text-muted-foreground hover:text-foreground p-1 pr-3 rounded"
+                                            onClick={() =>
+                                                getOrCreateNewChat.mutate({
+                                                    projectId: collectionId,
+                                                })
+                                            }
+                                        >
+                                            <SquarePlusIcon
+                                                className="size-3.5"
+                                                strokeWidth={1.5}
+                                            />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>New Chat</TooltipContent>
+                                </Tooltip>
+                            )}
                         </div>
                         {sortedChats.length > 0 ? (
                             sortedChats.map((item) => (
@@ -320,6 +368,7 @@ function CollectionHeader({
     const project = (projectsQuery.data ?? []).find(
         (p) => p.id === collectionId,
     );
+    const isSmart = project?.collectionType === "smart";
     const displayTitle =
         title ?? projectDisplayName(project?.name ?? "Collection");
 
@@ -328,7 +377,13 @@ function CollectionHeader({
             data-tauri-drag-region
             className="h-[44px] flex items-center justify-end px-3 border-b shrink-0"
         >
-            <span className="text-sm font-medium truncate">
+            <span className="text-sm font-medium truncate flex items-center gap-1.5">
+                {isSmart && (
+                    <SparklesIcon
+                        className="size-3.5 text-muted-foreground shrink-0"
+                        strokeWidth={1.5}
+                    />
+                )}
                 {displayTitle}
             </span>
         </div>
