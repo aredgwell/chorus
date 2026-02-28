@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
     useEditor,
     EditorContent,
@@ -304,12 +305,6 @@ export function MarkdownEditor({
             Typography,
         ],
         content,
-        onCreate: ({ editor: ed }) => {
-            onEditorReady?.(ed);
-        },
-        onDestroy: () => {
-            onEditorReady?.(null);
-        },
         onUpdate: ({ editor: ed }) => {
             // tiptap-markdown adds getMarkdown() to editor.storage.markdown,
             // but Tiptap's Storage type is an empty interface that doesn't
@@ -332,6 +327,14 @@ export function MarkdownEditor({
             },
         },
     });
+
+    // Notify parent when the editor instance becomes available (or is destroyed).
+    // Using useEffect instead of onCreate/onDestroy because onCreate fires
+    // synchronously inside the useEditor hook's useState initializer, before
+    // React can process the parent's state update.
+    useEffect(() => {
+        onEditorReady?.(editor ?? null);
+    }, [editor, onEditorReady]);
 
     return <EditorContent editor={editor} />;
 }

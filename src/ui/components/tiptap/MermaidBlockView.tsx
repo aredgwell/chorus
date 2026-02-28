@@ -7,7 +7,8 @@ import mermaid from "mermaid";
 let mermaidIdCounter = 0;
 
 /**
- * Renders a Mermaid diagram from source text using the mermaid API directly.
+ * Renders a Mermaid diagram from source text using the mermaid v8 API directly.
+ * v8's render() is synchronous and returns the SVG string.
  * Avoids react-mermaid2 because its hooks conflict with Tiptap's NodeView
  * React rendering context.
  */
@@ -27,22 +28,21 @@ function MermaidDiagram({ source }: { source: string }) {
             securityLevel: "strict",
         });
 
-        mermaid
-            .render(id, source)
-            .then(({ svg: rendered }) => {
-                if (!cancelled) {
-                    setSvg(rendered);
-                    setError(undefined);
-                }
-            })
-            .catch((err: unknown) => {
-                if (!cancelled) {
-                    setError(
-                        err instanceof Error ? err.message : "Render error",
-                    );
-                    setSvg("");
-                }
-            });
+        try {
+            // mermaid v8 render() is synchronous — returns SVG string directly
+            const rendered = mermaid.render(id, source);
+            if (!cancelled) {
+                setSvg(rendered);
+                setError(undefined);
+            }
+        } catch (err: unknown) {
+            if (!cancelled) {
+                setError(
+                    err instanceof Error ? err.message : "Render error",
+                );
+                setSvg("");
+            }
+        }
 
         return () => {
             cancelled = true;
