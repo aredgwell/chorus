@@ -40,7 +40,10 @@ import "@ui/styles/tiptap.css";
 const lowlight = createLowlight(common);
 const languages = lowlight.listLanguages().sort();
 
-// Custom code block node view with language selector
+import { KatexBlockView } from "./tiptap/KatexBlockView";
+import { MermaidBlockView } from "./tiptap/MermaidBlockView";
+
+// Standard code block node view with language selector
 function CodeBlockView({ node, updateAttributes }: NodeViewProps) {
     return (
         <NodeViewWrapper className="code-block-wrapper">
@@ -66,9 +69,21 @@ function CodeBlockView({ node, updateAttributes }: NodeViewProps) {
     );
 }
 
+/** Dispatches to specialised NodeViews based on the code block language */
+function CodeBlockNodeView(props: NodeViewProps) {
+    const language = (props.node.attrs.language ?? "") as string;
+    if (language === "latex" || language === "math") {
+        return <KatexBlockView {...props} />;
+    }
+    if (language === "mermaid") {
+        return <MermaidBlockView {...props} />;
+    }
+    return <CodeBlockView {...props} />;
+}
+
 const CustomCodeBlock = CodeBlockLowlight.extend({
     addNodeView() {
-        return ReactNodeViewRenderer(CodeBlockView);
+        return ReactNodeViewRenderer(CodeBlockNodeView);
     },
 });
 
