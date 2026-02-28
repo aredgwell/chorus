@@ -53,6 +53,7 @@ import {
 } from "@core/chorus/api/ProjectAPI";
 import { chatQueries, useGetOrCreateNewChat } from "@core/chorus/api/ChatAPI";
 import { noteQueries, useCreateNote } from "@core/chorus/api/NoteAPI";
+import { useTags, useDeleteTag } from "@core/chorus/api/TagAPI";
 import {
     useSelectedCollectionId,
     useSetSelectedCollectionId,
@@ -75,6 +76,57 @@ function DevModeIndicator() {
         <div className="px-2 py-1 text-[10px] font-medium bg-yellow-500/10 text-yellow-500">
             {instanceName ? `Instance ${instanceName}` : "DEV MODE"}
         </div>
+    );
+}
+
+function SidebarTagsSection() {
+    const tagsQuery = useTags();
+    const deleteTag = useDeleteTag();
+    const tags = tagsQuery.data ?? [];
+
+    return (
+        <>
+            <div className="pt-4 flex items-center justify-between">
+                <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
+                    Tags
+                </div>
+            </div>
+            {tags.length === 0 ? (
+                <div className="px-3 py-2 text-sm text-muted-foreground/60 flex items-center gap-2">
+                    <TagIcon className="size-3.5" strokeWidth={1.5} />
+                    Add tags to notes to organize them
+                </div>
+            ) : (
+                <div className="px-1 py-1 space-y-0.5">
+                    {tags.map((tag) => (
+                        <div
+                            key={tag.id}
+                            className="group/tag flex items-center gap-2 px-2 py-1 rounded-md text-sm hover:bg-accent transition-colors"
+                        >
+                            <span
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{
+                                    backgroundColor:
+                                        tag.color ?? "hsl(var(--muted-foreground))",
+                                }}
+                            />
+                            <span className="truncate flex-1">{tag.name}</span>
+                            <button
+                                type="button"
+                                className="opacity-0 group-hover/tag:opacity-100 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-all"
+                                onClick={() =>
+                                    void deleteTag.mutateAsync({
+                                        tagId: tag.id,
+                                    })
+                                }
+                            >
+                                <TrashIcon className="size-3" strokeWidth={1.5} />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </>
     );
 }
 
@@ -291,19 +343,8 @@ function CollectionsNavigator() {
                                 </SidebarMenuItem>
                             </Droppable>
 
-                            {/* Tags section (placeholder) */}
-                            <div className="pt-4 flex items-center justify-between">
-                                <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
-                                    Tags
-                                </div>
-                            </div>
-                            <div className="px-3 py-2 text-sm text-muted-foreground/60 flex items-center gap-2">
-                                <TagIcon
-                                    className="size-3.5"
-                                    strokeWidth={1.5}
-                                />
-                                Coming soon
-                            </div>
+                            {/* Tags section */}
+                            <SidebarTagsSection />
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
