@@ -7,7 +7,7 @@ import {
     useSearchParams,
 } from "react-router-dom";
 import { toast } from "sonner";
-import { SplitIcon } from "lucide-react";
+import { SplitIcon, FileTextIcon, Loader2 } from "lucide-react";
 import { useAppContext } from "@ui/hooks/useAppContext";
 import { VirtualizedMessageSet } from "./VirtualizedMessageSet";
 import { invoke } from "@tauri-apps/api/core";
@@ -40,6 +40,10 @@ import {
     SHARE_CHAT_DIALOG_ID,
 } from "./ShareChatDialog";
 import { QuickChatHeaderBar } from "./QuickChatHeaderBar";
+import { useSummarizeChatToNote } from "@core/chorus/api/NoteChatLinkAPI";
+import { LinkedItems } from "./LinkedItems";
+import { Button } from "./ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 // Re-export sub-components that other files (e.g. ReplyChat.tsx) import from MultiChat
 export { UserMessageView, ToolsMessageView } from "./ChatMessageViews";
@@ -441,6 +445,12 @@ export default function MultiChat() {
                             defaultSize={repliesDrawerOpen ? 70 : 100}
                         >
                             <div className="relative flex-1 min-h-0 overflow-hidden h-full">
+                                {!isQuickChatWindow && (
+                                    <ChatTopBar
+                                        chatId={chatId!}
+                                        hasMessages={!!messageSetsQuery.data?.length}
+                                    />
+                                )}
                                 <MainScrollableContentView
                                     chatContainerRef={chatContainerRef}
                                     lastMessageSetRef={lastMessageSetRef}
@@ -543,6 +553,66 @@ function ChatMessageSkeleton() {
                     </div>
                 </div>
             </div>
+        </div>
+    );
+}
+
+/** Thin header bar for non-quick-chat views — sits in the top-10 gap */
+function ChatTopBar({ chatId, hasMessages }: { chatId: string; hasMessages: boolean }) {
+    const navigate = useNavigate();
+    const summarize = useSummarizeChatToNote();
+
+    const handleSummarize = useCallback(() => {
+        summarize.mutate(
+            { chatId },
+            {
+                onSuccess: (data) => {
+                    toast.success("Note created from chat summary");
+                    navigate(`/note/${data.noteId}`);
+                },
+                onError: (err) => {
+                    toast.error("Failed to summarize", {
+                        description: err instanceof Error ? err.message : "Unknown error",
+                    });
+                },
+            },
+        );
+    }, [chatId, summarize, navigate]);
+
+    return (
+        <div
+            data-tauri-drag-region
+            className="absolute top-0 left-0 right-0 h-10 z-10 flex items-center justify-between px-4"
+        >
+            <div className="flex items-center gap-1 min-w-0">
+                <LinkedItems chatId={chatId} />
+            </div>
+            {hasMessages && (
+                <div className="flex items-center gap-1 shrink-0">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="iconSm"
+                                className="px-2 text-accent-foreground hover:text-foreground"
+                                tabIndex={-1}
+                                onClick={handleSummarize}
+                                disabled={summarize.isPending}
+                            >
+                                {summarize.isPending ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                    <FileTextIcon
+                                        strokeWidth={1.5}
+                                        className="size-3.5!"
+                                    />
+                                )}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Summarize to note</TooltipContent>
+                    </Tooltip>
+                </div>
+            )}
         </div>
     );
 }
