@@ -20,6 +20,7 @@ import * as NoteAPI from "@core/chorus/api/NoteAPI";
 import { MarkdownEditor, EditorToolbar } from "./MarkdownEditor";
 import { HeaderBar } from "./HeaderBar";
 import { TagInput } from "./TagInput";
+import { LinkedItems } from "./LinkedItems";
 import _ from "lodash";
 
 const deleteNoteDialogId = (noteId: string) =>
@@ -118,6 +119,7 @@ export default function NoteEditor() {
 
             <div className="note-editor-tags">
                 <TagInput itemType="note" itemId={noteId} />
+                <LinkedItems noteId={noteId} />
             </div>
 
             <div className="note-editor-content">

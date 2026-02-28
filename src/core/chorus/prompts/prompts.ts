@@ -242,6 +242,23 @@ ${conversation}
 </conversation>
 `;
 
+export const CHAT_SUMMARY_TO_NOTE_PROMPT = (
+    conversation: string,
+) => `Summarize the following conversation into concise, well-structured notes in Markdown format.
+
+Focus on:
+- Key decisions and conclusions
+- Action items and next steps
+- Important facts, code snippets, or references shared
+- Questions that were answered
+
+Use headings, bullet points, and code blocks where appropriate. Keep it concise but comprehensive. Do not include any preamble — start with the content directly.
+
+<conversation>
+${conversation}
+</conversation>
+`;
+
 export const CHORUS_SYSTEM_PROMPT = `You are running inside Chorus, an AI chat app on the user's Mac.
 
 The current date is ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.

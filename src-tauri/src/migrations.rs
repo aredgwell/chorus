@@ -2932,5 +2932,21 @@ You have full access to bash commands on the user''''s computer. If you write a 
                 END;
             "#,
         },
+        Migration {
+            version: 154,
+            description: "create note_chat_links table for bidirectional chat-note integration",
+            kind: MigrationKind::Up,
+            sql: r#"
+                CREATE TABLE note_chat_links (
+                    note_id TEXT NOT NULL,
+                    chat_id TEXT NOT NULL,
+                    link_type TEXT NOT NULL DEFAULT 'manual',
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE UNIQUE INDEX idx_note_chat_links_unique ON note_chat_links(note_id, chat_id);
+                CREATE INDEX idx_note_chat_links_note ON note_chat_links(note_id);
+                CREATE INDEX idx_note_chat_links_chat ON note_chat_links(chat_id);
+            "#,
+        },
     ]
 }

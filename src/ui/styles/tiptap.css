@@ -474,3 +474,72 @@
     font-size: 11px;
     color: hsl(var(--muted-foreground));
 }
+
+/* ── Linked items (chat-note links) ── */
+
+.linked-items-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.linked-item-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: var(--radius);
+    background: hsl(var(--muted));
+    font-size: 11px;
+    color: hsl(var(--muted-foreground));
+    user-select: none;
+    white-space: nowrap;
+}
+
+.linked-item-name {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-size: inherit;
+    cursor: pointer;
+    padding: 0;
+}
+
+.linked-item-name:hover {
+    color: hsl(var(--foreground));
+    text-decoration: underline;
+}
+
+.linked-item-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    border: none;
+    background: transparent;
+    color: hsl(var(--muted-foreground));
+    cursor: pointer;
+    padding: 0;
+    margin-left: 1px;
+    transition: background-color 0.1s, color 0.1s;
+}
+
+.linked-item-remove:hover {
+    background: hsl(var(--destructive) / 0.15);
+    color: hsl(var(--destructive));
+}
+
+/* Linked items row in note editor */
+.note-editor-links {
+    padding: 4px 24px;
+    border-bottom: 1px solid hsl(var(--border));
+    background: hsl(var(--background));
+    flex-shrink: 0;
+}
