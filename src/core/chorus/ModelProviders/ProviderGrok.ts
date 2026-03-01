@@ -119,7 +119,9 @@ export class ProviderGrok implements IProvider {
                     error.error?.metadata?.raw || error.metadata?.raw || "{}",
                 );
                 throw Object.assign(
-                    new Error(`Provider returned error: ${errorDetails.error?.message || error.message}`),
+                    new Error(
+                        `Provider returned error: ${errorDetails.error?.message || error.message}`,
+                    ),
                     { cause: error },
                 );
             }

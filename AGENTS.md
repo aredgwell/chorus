@@ -2,14 +2,14 @@
 
 ## Project Structure
 
-- **UI:** React components in `src/ui/components/`
-- **Core:** Business logic in `src/core/chorus/`
-- **Tauri:** Rust backend in `src-tauri/src/`
+-   **UI:** React components in `src/ui/components/`
+-   **Core:** Business logic in `src/core/chorus/`
+-   **Tauri:** Rust backend in `src-tauri/src/`
 
 See component-specific guides:
 
-- [`src/AGENTS.md`](src/AGENTS.md) — TypeScript/React frontend (lint, format, test)
-- [`src-tauri/AGENTS.md`](src-tauri/AGENTS.md) — Rust/Tauri backend (lint, format, test)
+-   [`src/AGENTS.md`](src/AGENTS.md) — TypeScript/React frontend (lint, format, test)
+-   [`src-tauri/AGENTS.md`](src-tauri/AGENTS.md) — Rust/Tauri backend (lint, format, test)
 
 ## Development Workflow
 
@@ -21,8 +21,8 @@ After every change, run the relevant checks for the component you modified:
 
 ## Commands
 
-- **Dev:** `pnpm vite:dev` (Vite), `pnpm tauri:dev` (Tauri dev)
-- **Build:** `pnpm build` (TypeScript check + Vite production build)
-- **Validate:** `pnpm validate` (tsc + lint + format + test), `pnpm validate:fix` (auto-fix)
-- **Coverage:** `pnpm test -- --run --coverage`
-- **QA/Prod:** `pnpm tauri:qa`, `pnpm tauri:prod`
+-   **Dev:** `pnpm vite:dev` (Vite), `pnpm tauri:dev` (Tauri dev)
+-   **Build:** `pnpm build` (TypeScript check + Vite production build)
+-   **Validate:** `pnpm validate` (tsc + lint + format + test), `pnpm validate:fix` (auto-fix)
+-   **Coverage:** `pnpm test -- --run --coverage`
+-   **QA/Prod:** `pnpm tauri:qa`, `pnpm tauri:prod`

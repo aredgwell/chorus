@@ -15,7 +15,8 @@
 
 /* Apple Notes-like typography for the note editor */
 .note-editor-content .ProseMirror {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 16px;
     line-height: 1.5;
     letter-spacing: -0.01em;
@@ -212,7 +213,9 @@
     background: transparent;
     color: hsl(var(--muted-foreground));
     cursor: pointer;
-    transition: background-color 0.1s, color 0.1s;
+    transition:
+        background-color 0.1s,
+        color 0.1s;
 }
 
 .editor-toolbar-btn:hover {
@@ -264,7 +267,9 @@
     background: transparent;
     color: hsl(var(--muted-foreground));
     cursor: pointer;
-    transition: background-color 0.1s, color 0.1s;
+    transition:
+        background-color 0.1s,
+        color 0.1s;
 }
 
 .block-view-toggle:hover {
@@ -392,7 +397,9 @@
     cursor: pointer;
     padding: 0;
     margin-left: 1px;
-    transition: background-color 0.1s, color 0.1s;
+    transition:
+        background-color 0.1s,
+        color 0.1s;
 }
 
 .tag-chip-remove:hover {
@@ -412,7 +419,10 @@
     color: hsl(var(--muted-foreground));
     cursor: pointer;
     padding: 0;
-    transition: background-color 0.1s, color 0.1s, border-color 0.1s;
+    transition:
+        background-color 0.1s,
+        color 0.1s,
+        border-color 0.1s;
 }
 
 .tag-add-btn:hover {
@@ -528,7 +538,9 @@
     cursor: pointer;
     padding: 0;
     margin-left: 1px;
-    transition: background-color 0.1s, color 0.1s;
+    transition:
+        background-color 0.1s,
+        color 0.1s;
 }
 
 .linked-item-remove:hover {

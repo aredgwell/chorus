@@ -1,8 +1,8 @@
 import type { NodeViewProps } from "@tiptap/core";
-import { NodeViewContent,NodeViewWrapper } from "@tiptap/react";
+import { NodeViewContent, NodeViewWrapper } from "@tiptap/react";
 import { CodeIcon, EyeIcon } from "lucide-react";
 import mermaid from "mermaid";
-import { useDeferredValue, useEffect,useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 
 let mermaidIdCounter = 0;
 
@@ -37,9 +37,7 @@ function MermaidDiagram({ source }: { source: string }) {
             }
         } catch (err: unknown) {
             if (!cancelled) {
-                setError(
-                    err instanceof Error ? err.message : "Render error",
-                );
+                setError(err instanceof Error ? err.message : "Render error");
                 setSvg("");
             }
         }

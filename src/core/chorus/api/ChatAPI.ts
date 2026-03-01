@@ -180,8 +180,7 @@ export function useChat(chatId: string) {
 export function useBranchCount(chatId: string): number {
     const { data: chats } = useQuery(chatQueries.list());
     return useMemo(
-        () =>
-            (chats ?? []).filter((c) => c.parentChatId === chatId).length,
+        () => (chats ?? []).filter((c) => c.parentChatId === chatId).length,
         [chats, chatId],
     );
 }
@@ -230,11 +229,7 @@ export function useCreateNewChat() {
                 `INSERT INTO chats (id, created_at, updated_at, is_new_chat, project_id, quick_chat, gc_prototype_chat)
                  VALUES (lower(hex(randomblob(16))), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1, ?, ?, ?)
                  RETURNING id`,
-                [
-                    projectId,
-                    projectId === "quick-chat" ? 1 : 0,
-                    gcChat ? 1 : 0,
-                ],
+                [projectId, projectId === "quick-chat" ? 1 : 0, gcChat ? 1 : 0],
             );
 
             if (!result.length) {

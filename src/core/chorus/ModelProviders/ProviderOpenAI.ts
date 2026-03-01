@@ -1,5 +1,5 @@
 import { O3_DEEP_RESEARCH_SYSTEM_PROMPT } from "@core/chorus/prompts/prompts";
-import { getUserToolNamespacedName,UserToolCall } from "@core/chorus/Toolsets";
+import { getUserToolNamespacedName, UserToolCall } from "@core/chorus/Toolsets";
 import { canProceedWithProvider } from "@core/utilities/ProxyUtils";
 import OpenAI from "openai";
 
@@ -54,20 +54,14 @@ function isStrictModeCompatible(
 
     // Check array item schemas
     if (schema.type === "array" && schema.items) {
-        if (
-            !isStrictModeCompatible(
-                schema.items as Record<string, unknown>,
-            )
-        ) {
+        if (!isStrictModeCompatible(schema.items as Record<string, unknown>)) {
             return false;
         }
     }
 
     // Check anyOf/oneOf/allOf variants
     for (const key of ["anyOf", "oneOf", "allOf"] as const) {
-        const variants = schema[key] as
-            | Record<string, unknown>[]
-            | undefined;
+        const variants = schema[key] as Record<string, unknown>[] | undefined;
         if (variants) {
             for (const variant of variants) {
                 if (!isStrictModeCompatible(variant)) return false;
@@ -134,9 +128,13 @@ export class ProviderOpenAI implements IProvider {
             }
 
             // Add extra system prompt if specified via model_flags
-            if (extraSystemPromptKey && EXTRA_SYSTEM_PROMPTS[extraSystemPromptKey]) {
+            if (
+                extraSystemPromptKey &&
+                EXTRA_SYSTEM_PROMPTS[extraSystemPromptKey]
+            ) {
                 if (systemContent) {
-                    systemContent += "\n" + EXTRA_SYSTEM_PROMPTS[extraSystemPromptKey];
+                    systemContent +=
+                        "\n" + EXTRA_SYSTEM_PROMPTS[extraSystemPromptKey];
                 } else {
                     systemContent = EXTRA_SYSTEM_PROMPTS[extraSystemPromptKey];
                 }
@@ -160,7 +158,9 @@ export class ProviderOpenAI implements IProvider {
         // Convert tools to OpenAI format, filtering out excluded toolsets
         const filteredTools =
             excludeToolsets.length > 0
-                ? tools?.filter((tool) => !excludeToolsets.includes(tool.toolsetName))
+                ? tools?.filter(
+                      (tool) => !excludeToolsets.includes(tool.toolsetName),
+                  )
                 : tools;
 
         const openaiTools: Array<OpenAI.Responses.FunctionTool> | undefined =

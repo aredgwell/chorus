@@ -17,8 +17,8 @@ import { useAppContext } from "@ui/hooks/useAppContext";
 import { useShareChat } from "@ui/hooks/useShareChat";
 import { useShortcut } from "@ui/hooks/useShortcut";
 import { useWaitForAppMetadata } from "@ui/hooks/useWaitForAppMetadata";
-import { FileTextIcon, Loader2,SplitIcon } from "lucide-react";
-import { useCallback,useEffect, useRef, useState } from "react";
+import { FileTextIcon, Loader2, SplitIcon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import React from "react";
 import {
     useLocation,
@@ -37,17 +37,14 @@ import { LinkedItems } from "./LinkedItems";
 import { MouseTrackingEyeRef } from "./MouseTrackingEye";
 import { QuickChatHeaderBar } from "./QuickChatHeaderBar";
 import RepliesDrawer from "./RepliesDrawer";
-import {
-    SHARE_CHAT_DIALOG_ID,
-    ShareChatDialog,
-} from "./ShareChatDialog";
+import { SHARE_CHAT_DIALOG_ID, ShareChatDialog } from "./ShareChatDialog";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { VirtualizedMessageSet } from "./VirtualizedMessageSet";
 
 // Re-export sub-components that other files (e.g. ReplyChat.tsx) import from MultiChat
-export { ToolsMessageView,UserMessageView } from "./ChatMessageViews";
+export { ToolsMessageView, UserMessageView } from "./ChatMessageViews";
 export { SHARE_CHAT_DIALOG_ID } from "./ShareChatDialog";
 
 // Module-level scroll position cache: saves scroll position per chat
@@ -422,11 +419,15 @@ export default function MultiChat() {
             {/* header bar — only for quick chat windows */}
             {isQuickChatWindow && (
                 <QuickChatHeaderBar
-                    visionModeEnabled={appMetadata["vision_mode_enabled"] === "true"}
+                    visionModeEnabled={
+                        appMetadata["vision_mode_enabled"] === "true"
+                    }
                     eyeRef={eyeRef}
                     onClose={closeQuickChat}
                     onToggleVisionMode={() => void handleToggleVisionMode()}
-                    onOpenInMainWindow={() => void handleOpenQuickChatInMainWindow()}
+                    onOpenInMainWindow={() =>
+                        void handleOpenQuickChatInMainWindow()
+                    }
                     onNewAmbientChat={() => createQuickChat.mutate()}
                 />
             )}
@@ -449,7 +450,9 @@ export default function MultiChat() {
                                 {!isQuickChatWindow && (
                                     <ChatTopBar
                                         chatId={chatId!}
-                                        hasMessages={!!messageSetsQuery.data?.length}
+                                        hasMessages={
+                                            !!messageSetsQuery.data?.length
+                                        }
                                     />
                                 )}
                                 <MainScrollableContentView
@@ -559,7 +562,13 @@ function ChatMessageSkeleton() {
 }
 
 /** Thin header bar for non-quick-chat views — sits in the top-10 gap */
-function ChatTopBar({ chatId, hasMessages }: { chatId: string; hasMessages: boolean }) {
+function ChatTopBar({
+    chatId,
+    hasMessages,
+}: {
+    chatId: string;
+    hasMessages: boolean;
+}) {
     const navigate = useNavigate();
     const summarize = useSummarizeChatToNote();
 
@@ -573,7 +582,10 @@ function ChatTopBar({ chatId, hasMessages }: { chatId: string; hasMessages: bool
                 },
                 onError: (err) => {
                     toast.error("Failed to summarize", {
-                        description: err instanceof Error ? err.message : "Unknown error",
+                        description:
+                            err instanceof Error
+                                ? err.message
+                                : "Unknown error",
                     });
                 },
             },
@@ -702,7 +714,12 @@ function MainScrollableContentView({
                 handleScrollToBottom(false);
             }
         }, 50);
-    }, [chatId, messageSetsQuery.isSuccess, handleScrollToBottom, chatContainerRef]);
+    }, [
+        chatId,
+        messageSetsQuery.isSuccess,
+        handleScrollToBottom,
+        chatContainerRef,
+    ]);
 
     // --------------------------------------------------------------------------
     // Spacers
@@ -776,7 +793,9 @@ function MainScrollableContentView({
 
     function renderMessageSet(
         ms: MessageSetDetail,
-        messageSetRef: React.RefObject<HTMLDivElement | null> | undefined = undefined,
+        messageSetRef:
+            | React.RefObject<HTMLDivElement | null>
+            | undefined = undefined,
     ) {
         const isLastRow = ms.level === messageSets.length - 1;
         return (
@@ -839,8 +858,7 @@ function MainScrollableContentView({
                         <span>
                             Branched from{" "}
                             <span className="font-medium">
-                                {parentChatQuery.data?.title ||
-                                    "Untitled Chat"}
+                                {parentChatQuery.data?.title || "Untitled Chat"}
                             </span>
                         </span>
                     </button>
@@ -849,7 +867,10 @@ function MainScrollableContentView({
                 {messageSets.length > 0 && (
                     <>
                         {otherMessageSets.map((ms) => (
-                            <VirtualizedMessageSet key={ms.id} messageSetId={ms.id}>
+                            <VirtualizedMessageSet
+                                key={ms.id}
+                                messageSetId={ms.id}
+                            >
                                 {renderMessageSet(ms)}
                             </VirtualizedMessageSet>
                         ))}

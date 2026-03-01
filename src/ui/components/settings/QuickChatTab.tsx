@@ -73,8 +73,7 @@ export default function QuickChatTab({
                             onClick={() => {
                                 if (!quickChatShortcut.trim()) {
                                     toast.error("Invalid shortcut", {
-                                        description:
-                                            "Shortcut cannot be empty",
+                                        description: "Shortcut cannot be empty",
                                     });
                                     return;
                                 }

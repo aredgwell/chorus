@@ -36,8 +36,8 @@ export function EmptyState() {
     const settings = useSettings();
 
     // get the tipindex separately so that it doesn't change if the tip text changes
-    const [tipIndex] = useState(
-        () => Math.floor(Math.random() * getTips("").length),
+    const [tipIndex] = useState(() =>
+        Math.floor(Math.random() * getTips("").length),
     );
     const randomTip = getTips(
         formatQuickChatShortcut(settings?.quickChat?.shortcut),

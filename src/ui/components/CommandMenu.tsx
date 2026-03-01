@@ -24,7 +24,7 @@ import {
     Settings,
     SparklesIcon,
 } from "lucide-react";
-import { ReactNode,useMemo, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useSettings } from "./hooks/useSettings";
@@ -84,9 +84,7 @@ export function CommandMenu() {
             id: "ambient-chat",
             label: "Ambient chat",
             icon: ScanTextIcon,
-            shortcut: formatQuickChatShortcut(
-                settings?.quickChat?.shortcut,
-            ),
+            shortcut: formatQuickChatShortcut(settings?.quickChat?.shortcut),
             action: () => {
                 void invoke("show");
             },
@@ -157,8 +155,7 @@ export function CommandMenu() {
     };
 
     const getTruncatedContext = (text: string) => {
-        if (!debouncedSearchTerm)
-            return text.slice(0, SEARCH_CONTEXT_LENGTH);
+        if (!debouncedSearchTerm) return text.slice(0, SEARCH_CONTEXT_LENGTH);
 
         const index = text
             .toLowerCase()
@@ -395,37 +392,35 @@ export function CommandMenu() {
                             {/* Semantic search results */}
                             {filteredSemanticResults.length > 0 && (
                                 <CommandGroup heading="Similar">
-                                    {filteredSemanticResults.map(
-                                        (result) => (
-                                            <CommandItem
-                                                key={result.chatId}
-                                                value={`semantic-${result.chatId}`}
-                                                onSelect={() => {
-                                                    navigate(
-                                                        `/chat/${encodeURIComponent(result.chatId)}`,
-                                                    );
-                                                    dialogActions.closeDialog();
-                                                }}
-                                            >
-                                                <SparklesIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                                                <div className="flex flex-col flex-1 overflow-hidden">
-                                                    <div className="font-medium truncate">
-                                                        {result.title ??
-                                                            "Untitled Chat"}
-                                                    </div>
-                                                    {result.updatedAt && (
-                                                        <div className="text-xs text-muted-foreground">
-                                                            {displayDate(
-                                                                convertDate(
-                                                                    result.updatedAt,
-                                                                ),
-                                                            )}
-                                                        </div>
-                                                    )}
+                                    {filteredSemanticResults.map((result) => (
+                                        <CommandItem
+                                            key={result.chatId}
+                                            value={`semantic-${result.chatId}`}
+                                            onSelect={() => {
+                                                navigate(
+                                                    `/chat/${encodeURIComponent(result.chatId)}`,
+                                                );
+                                                dialogActions.closeDialog();
+                                            }}
+                                        >
+                                            <SparklesIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                                            <div className="flex flex-col flex-1 overflow-hidden">
+                                                <div className="font-medium truncate">
+                                                    {result.title ??
+                                                        "Untitled Chat"}
                                                 </div>
-                                            </CommandItem>
-                                        ),
-                                    )}
+                                                {result.updatedAt && (
+                                                    <div className="text-xs text-muted-foreground">
+                                                        {displayDate(
+                                                            convertDate(
+                                                                result.updatedAt,
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </CommandItem>
+                                    ))}
                                 </CommandGroup>
                             )}
                         </>

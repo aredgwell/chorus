@@ -19,7 +19,10 @@ export function sidebarItemIsPinned(item: SidebarItem): boolean {
 
 export type SortMode = "date" | "name" | "type";
 
-export function sortItems(items: SidebarItem[], sortMode: SortMode): SidebarItem[] {
+export function sortItems(
+    items: SidebarItem[],
+    sortMode: SortMode,
+): SidebarItem[] {
     const sorted = [...items];
     if (sortMode === "name") {
         sorted.sort((a, b) => {

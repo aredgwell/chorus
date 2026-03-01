@@ -56,10 +56,10 @@ import {
     SplitIcon,
     StopCircleIcon,
 } from "lucide-react";
-import { CheckIcon, ChevronDownIcon, CopyIcon,XIcon } from "lucide-react";
-import { memo, useCallback, useEffect, useMemo,useRef, useState } from "react";
+import { CheckIcon, ChevronDownIcon, CopyIcon, XIcon } from "lucide-react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import React from "react";
-import { useNavigate,useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useEditable } from "use-editable";
 
@@ -612,9 +612,7 @@ function ToolCallView({
         toolCallWithResult.namespacedToolName?.startsWith(
             ANTHROPIC_IMPORT_PREFIX,
         ) ||
-        toolCallWithResult.namespacedToolName?.startsWith(
-            OPENAI_IMPORT_PREFIX,
-        );
+        toolCallWithResult.namespacedToolName?.startsWith(OPENAI_IMPORT_PREFIX);
 
     const formattedArgs = (() => {
         const argsList = toolCallWithResult.args as {

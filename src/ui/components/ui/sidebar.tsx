@@ -11,7 +11,7 @@ import {
 } from "@ui/components/ui/tooltip";
 import { useSidebar } from "@ui/hooks/useSidebar";
 import { cn } from "@ui/lib/utils";
-import { cva,VariantProps } from "class-variance-authority";
+import { cva, VariantProps } from "class-variance-authority";
 import { PanelLeft } from "lucide-react";
 import * as React from "react";
 

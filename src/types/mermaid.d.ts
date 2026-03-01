@@ -9,7 +9,10 @@ declare module "mermaid" {
         render: (
             id: string,
             text: string,
-            cb?: (svgCode: string, bindFunctions?: (element: Element) => void) => void,
+            cb?: (
+                svgCode: string,
+                bindFunctions?: (element: Element) => void,
+            ) => void,
             container?: Element,
         ) => string;
         contentLoaded: () => void;

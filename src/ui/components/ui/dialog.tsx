@@ -1,4 +1,4 @@
-import { dialogActions,useDialogStore } from "@core/infra/DialogStore";
+import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as React from "react";
 

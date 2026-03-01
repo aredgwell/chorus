@@ -42,7 +42,10 @@ export function readAttachment(row: AttachmentDBRow): Attachment {
 
 export function useAttachmentContents(attachment: Attachment) {
     return useQuery({
-        queryKey: attachmentKeys.attachmentContents(attachment.id, attachment.type),
+        queryKey: attachmentKeys.attachmentContents(
+            attachment.id,
+            attachment.type,
+        ),
         queryFn: () => {
             switch (attachment.type) {
                 case "text": {

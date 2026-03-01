@@ -4,14 +4,14 @@ import { useCreateLink } from "@core/chorus/api/NoteChatLinkAPI";
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import type { Editor } from "@tiptap/core";
 import _ from "lodash";
-import { MessageSquareIcon,TrashIcon } from "lucide-react";
-import { useCallback,useState } from "react";
-import { useNavigate,useParams } from "react-router-dom";
+import { MessageSquareIcon, TrashIcon } from "lucide-react";
+import { useCallback, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { HeaderBar } from "./HeaderBar";
 import { LinkedItems } from "./LinkedItems";
-import { EditorToolbar,MarkdownEditor } from "./MarkdownEditor";
+import { EditorToolbar, MarkdownEditor } from "./MarkdownEditor";
 import { TagInput } from "./TagInput";
 import { Button } from "./ui/button";
 import {
@@ -25,8 +25,7 @@ import {
 import RetroSpinner from "./ui/retro-spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
-const deleteNoteDialogId = (noteId: string) =>
-    `delete-note-dialog-${noteId}`;
+const deleteNoteDialogId = (noteId: string) => `delete-note-dialog-${noteId}`;
 
 export default function NoteEditor() {
     const { noteId } = useParams<{ noteId: string }>();
@@ -39,9 +38,7 @@ export default function NoteEditor() {
     const [editor, setEditor] = useState<Editor | null>(null);
 
     const isDeleteDialogOpen = useDialogStore((state) =>
-        noteId
-            ? state.activeDialogId === deleteNoteDialogId(noteId)
-            : false,
+        noteId ? state.activeDialogId === deleteNoteDialogId(noteId) : false,
     );
 
     // Debounced save — called by MarkdownEditor on each edit
@@ -91,9 +88,7 @@ export default function NoteEditor() {
     }
 
     if (noteQuery.isError) {
-        return (
-            <div>Error loading note: {JSON.stringify(noteQuery.error)}</div>
-        );
+        return <div>Error loading note: {JSON.stringify(noteQuery.error)}</div>;
     }
 
     const note = noteQuery.data;
@@ -165,10 +160,7 @@ export default function NoteEditor() {
             </div>
 
             {/* Delete confirmation dialog */}
-            <Dialog
-                id={deleteNoteDialogId(noteId)}
-                open={isDeleteDialogOpen}
-            >
+            <Dialog id={deleteNoteDialogId(noteId)} open={isDeleteDialogOpen}>
                 <DialogContent className="sm:max-w-md p-5">
                     <DialogHeader>
                         <DialogTitle>
@@ -200,8 +192,7 @@ export default function NoteEditor() {
                             onClick={() => void handleConfirmDelete()}
                             tabIndex={1}
                         >
-                            Delete{" "}
-                            <span className="ml-1 text-sm">↵</span>
+                            Delete <span className="ml-1 text-sm">↵</span>
                         </Button>
                     </DialogFooter>
                 </DialogContent>

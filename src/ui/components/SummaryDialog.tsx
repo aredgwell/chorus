@@ -1,4 +1,4 @@
-import { Check, Copy, Loader2,RefreshCcw } from "lucide-react";
+import { Check, Copy, Loader2, RefreshCcw } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 

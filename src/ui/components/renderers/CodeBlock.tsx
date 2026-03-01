@@ -2,7 +2,7 @@ import "react-lowlight/all";
 
 import { Command } from "@tauri-apps/plugin-shell";
 import { CheckIcon, Copy, Play, Terminal, X } from "lucide-react";
-import React, { useRef,useState } from "react";
+import React, { useRef, useState } from "react";
 import Lowlight from "react-lowlight";
 import { useCopyToClipboard } from "usehooks-ts";
 

@@ -51,10 +51,7 @@ export function CostDashboard() {
             .reduce((sum, d) => sum + d.total_cost, 0);
     })();
 
-    const last30DaysCost = costByDay.reduce(
-        (sum, d) => sum + d.total_cost,
-        0,
-    );
+    const last30DaysCost = costByDay.reduce((sum, d) => sum + d.total_cost, 0);
 
     if (totalCost === undefined) {
         return (

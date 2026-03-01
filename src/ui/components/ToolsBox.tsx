@@ -1,6 +1,6 @@
 import * as ToolsetsAPI from "@core/chorus/api/ToolsetsAPI";
 import { getToolsetIcon } from "@core/chorus/Toolsets";
-import { Toolset,ToolsetConfig } from "@core/chorus/Toolsets";
+import { Toolset, ToolsetConfig } from "@core/chorus/Toolsets";
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import { DotFilledIcon } from "@radix-ui/react-icons";
 import { emit } from "@tauri-apps/api/event";

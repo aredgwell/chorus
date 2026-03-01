@@ -863,7 +863,9 @@ export function ManageModelsBox({
                                     e.preventDefault();
                                     void handleRefreshProviders("ollama");
                                     void handleRefreshProviders("lmstudio");
-                                    void handleRefreshProviders("custom-openai");
+                                    void handleRefreshProviders(
+                                        "custom-openai",
+                                    );
                                 }}
                                 className="p-1.5 hover:bg-accent text-muted-foreground/50 rounded-md flex items-center gap-2"
                                 title="Refresh local models"

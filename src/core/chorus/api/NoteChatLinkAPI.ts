@@ -40,10 +40,8 @@ function readLink(row: NoteChatLinkDBRow): NoteChatLink {
 
 const linkKeys = {
     all: () => ["noteChatLinks"] as const,
-    forNote: (noteId: string) =>
-        ["noteChatLinks", "note", noteId] as const,
-    forChat: (chatId: string) =>
-        ["noteChatLinks", "chat", chatId] as const,
+    forNote: (noteId: string) => ["noteChatLinks", "note", noteId] as const,
+    forChat: (chatId: string) => ["noteChatLinks", "chat", chatId] as const,
 };
 
 // ── Query definitions ──────────────────────────────────────────────────

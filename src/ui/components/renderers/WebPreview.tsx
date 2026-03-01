@@ -1,4 +1,4 @@
-import { openPath,openUrl } from "@tauri-apps/plugin-opener";
+import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import { Button } from "@ui/components/ui/button";
 import {
     HoverCard,

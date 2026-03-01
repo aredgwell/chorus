@@ -1,10 +1,6 @@
 import * as MessageAPI from "@core/chorus/api/MessageAPI";
 import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
-import {
-    PictureInPicture2Icon,
-    SquarePen,
-    XIcon,
-} from "lucide-react";
+import { PictureInPicture2Icon, SquarePen, XIcon } from "lucide-react";
 import React from "react";
 import { useCallback } from "react";
 
@@ -93,9 +89,7 @@ export function QuickChatHeaderBar({
                                         : "text-foreground/75"
                                 }`}
                             >
-                                <span className="text-sm font-mono">
-                                    ⌘I
-                                </span>{" "}
+                                <span className="text-sm font-mono">⌘I</span>{" "}
                                 {visionModeEnabled && (
                                     <span className="ml-1">
                                         Vision Mode Enabled
@@ -113,10 +107,7 @@ export function QuickChatHeaderBar({
                         {visionModeEnabled ? (
                             <>Chorus can see your screen</>
                         ) : (
-                            <>
-                                Enable vision mode to show Chorus your
-                                screen
-                            </>
+                            <>Enable vision mode to show Chorus your screen</>
                         )}
                     </TooltipContent>
                 </Tooltip>

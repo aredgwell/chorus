@@ -86,9 +86,7 @@ export class SettingsManager {
             await store.set("settings", settingsWithoutKeys);
             await store.save();
 
-            console.log(
-                "Migrated API keys from store to keychain",
-            );
+            console.log("Migrated API keys from store to keychain");
 
             // Also migrate the auth token if present
             try {
@@ -125,10 +123,7 @@ export class SettingsManager {
     /**
      * Set a single API key in the OS keychain.
      */
-    public async setApiKey(
-        provider: string,
-        value: string,
-    ): Promise<void> {
+    public async setApiKey(provider: string, value: string): Promise<void> {
         if (value) {
             await setCredential(`apikey:${provider}`, value);
         } else {

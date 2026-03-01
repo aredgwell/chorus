@@ -1,4 +1,4 @@
-import { afterEach,beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { parseReview } from "./reviews";
 
@@ -55,9 +55,7 @@ describe("parseReview", () => {
             "<explanation>Fix it</explanation>" +
             "<revision>Started the revision but no end tag";
         const result = parseReview(text, true);
-        expect(result.revision).toBe(
-            "Started the revision but no end tag",
-        );
+        expect(result.revision).toBe("Started the revision but no end tag");
     });
 
     it("does not extract unclosed revision when isComplete is false", () => {

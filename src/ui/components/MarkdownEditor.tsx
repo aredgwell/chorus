@@ -22,7 +22,7 @@ import {
     useEditor,
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { common,createLowlight } from "lowlight";
+import { common, createLowlight } from "lowlight";
 import {
     BoldIcon,
     CodeIcon,
@@ -122,40 +122,28 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
     return (
         <div className="editor-toolbar">
             <ToolbarButton
-
-                action={() =>
-                    editor.chain().focus().toggleBold().run()
-                }
+                action={() => editor.chain().focus().toggleBold().run()}
                 isActive={editor.isActive("bold")}
                 title="Bold"
             >
                 <BoldIcon size={14} />
             </ToolbarButton>
             <ToolbarButton
-
-                action={() =>
-                    editor.chain().focus().toggleItalic().run()
-                }
+                action={() => editor.chain().focus().toggleItalic().run()}
                 isActive={editor.isActive("italic")}
                 title="Italic"
             >
                 <ItalicIcon size={14} />
             </ToolbarButton>
             <ToolbarButton
-
-                action={() =>
-                    editor.chain().focus().toggleStrike().run()
-                }
+                action={() => editor.chain().focus().toggleStrike().run()}
                 isActive={editor.isActive("strike")}
                 title="Strikethrough"
             >
                 <StrikethroughIcon size={14} />
             </ToolbarButton>
             <ToolbarButton
-
-                action={() =>
-                    editor.chain().focus().toggleCode().run()
-                }
+                action={() => editor.chain().focus().toggleCode().run()}
                 isActive={editor.isActive("code")}
                 title="Inline code"
             >
@@ -165,13 +153,8 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
             <div className="editor-toolbar-separator" />
 
             <ToolbarButton
-
                 action={() =>
-                    editor
-                        .chain()
-                        .focus()
-                        .toggleHeading({ level: 1 })
-                        .run()
+                    editor.chain().focus().toggleHeading({ level: 1 }).run()
                 }
                 isActive={editor.isActive("heading", { level: 1 })}
                 title="Heading 1"
@@ -179,13 +162,8 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
                 <Heading1Icon size={14} />
             </ToolbarButton>
             <ToolbarButton
-
                 action={() =>
-                    editor
-                        .chain()
-                        .focus()
-                        .toggleHeading({ level: 2 })
-                        .run()
+                    editor.chain().focus().toggleHeading({ level: 2 }).run()
                 }
                 isActive={editor.isActive("heading", { level: 2 })}
                 title="Heading 2"
@@ -193,13 +171,8 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
                 <Heading2Icon size={14} />
             </ToolbarButton>
             <ToolbarButton
-
                 action={() =>
-                    editor
-                        .chain()
-                        .focus()
-                        .toggleHeading({ level: 3 })
-                        .run()
+                    editor.chain().focus().toggleHeading({ level: 3 }).run()
                 }
                 isActive={editor.isActive("heading", { level: 3 })}
                 title="Heading 3"
@@ -210,45 +183,31 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
             <div className="editor-toolbar-separator" />
 
             <ToolbarButton
-
-                action={() =>
-                    editor.chain().focus().toggleBulletList().run()
-                }
+                action={() => editor.chain().focus().toggleBulletList().run()}
                 isActive={editor.isActive("bulletList")}
                 title="Bullet list"
             >
                 <ListIcon size={14} />
             </ToolbarButton>
             <ToolbarButton
-
-                action={() =>
-                    editor.chain().focus().toggleOrderedList().run()
-                }
+                action={() => editor.chain().focus().toggleOrderedList().run()}
                 isActive={editor.isActive("orderedList")}
                 title="Ordered list"
             >
                 <ListOrderedIcon size={14} />
             </ToolbarButton>
             <ToolbarButton
-
-                action={() =>
-                    editor.chain().focus().toggleBlockquote().run()
-                }
+                action={() => editor.chain().focus().toggleBlockquote().run()}
                 isActive={editor.isActive("blockquote")}
                 title="Blockquote"
             >
                 <QuoteIcon size={14} />
             </ToolbarButton>
             <ToolbarButton
-
                 action={() => {
                     const url = window.prompt("URL:");
                     if (url) {
-                        editor
-                            .chain()
-                            .focus()
-                            .setLink({ href: url })
-                            .run();
+                        editor.chain().focus().setLink({ href: url }).run();
                     }
                 }}
                 isActive={editor.isActive("link")}

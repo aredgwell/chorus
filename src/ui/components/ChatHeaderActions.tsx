@@ -20,11 +20,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "./ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 export function ChatHeaderActions({
@@ -76,9 +72,7 @@ export function ChatHeaderActions({
                                 />
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                            Find (⌘F)
-                        </TooltipContent>
+                        <TooltipContent>Find (⌘F)</TooltipContent>
                     </Tooltip>
 
                     <Tooltip>
@@ -101,9 +95,7 @@ export function ChatHeaderActions({
                                 )}
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                            Summarize
-                        </TooltipContent>
+                        <TooltipContent>Summarize</TooltipContent>
                     </Tooltip>
 
                     <Tooltip>
@@ -114,9 +106,7 @@ export function ChatHeaderActions({
                                 className="px-2 text-accent-foreground hover:text-foreground"
                                 tabIndex={-1}
                                 onClick={onShare}
-                                disabled={
-                                    isGeneratingShareLink
-                                }
+                                disabled={isGeneratingShareLink}
                             >
                                 {isGeneratingShareLink ? (
                                     <Loader2 className="w-3 h-3 animate-spin" />
@@ -128,17 +118,13 @@ export function ChatHeaderActions({
                                 )}
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                            Share (⌘⇧S)
-                        </TooltipContent>
+                        <TooltipContent>Share (⌘⇧S)</TooltipContent>
                     </Tooltip>
 
                     <DropdownMenu>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <DropdownMenuTrigger
-                                    asChild
-                                >
+                                <DropdownMenuTrigger asChild>
                                     <Button
                                         variant="ghost"
                                         size="iconSm"
@@ -146,35 +132,25 @@ export function ChatHeaderActions({
                                         tabIndex={-1}
                                     >
                                         <DownloadIcon
-                                            strokeWidth={
-                                                1.5
-                                            }
+                                            strokeWidth={1.5}
                                             className="size-3.5!"
                                         />
                                     </Button>
                                 </DropdownMenuTrigger>
                             </TooltipTrigger>
-                            <TooltipContent>
-                                Export
-                            </TooltipContent>
+                            <TooltipContent>Export</TooltipContent>
                         </Tooltip>
                         <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                                onClick={catchAsyncErrors(
-                                    () =>
-                                        onExport(
-                                            "markdown",
-                                        ),
+                                onClick={catchAsyncErrors(() =>
+                                    onExport("markdown"),
                                 )}
                             >
                                 Export as Markdown
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                                onClick={catchAsyncErrors(
-                                    () =>
-                                        onExport(
-                                            "json",
-                                        ),
+                                onClick={catchAsyncErrors(() =>
+                                    onExport("json"),
                                 )}
                             >
                                 Export as JSON
@@ -200,14 +176,9 @@ export function ChatHeaderActions({
                                         </Button>
                                     </PopoverTrigger>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                    Related chats
-                                </TooltipContent>
+                                <TooltipContent>Related chats</TooltipContent>
                             </Tooltip>
-                            <PopoverContent
-                                align="end"
-                                className="w-64 p-2"
-                            >
+                            <PopoverContent align="end" className="w-64 p-2">
                                 <p className="text-xs font-medium text-muted-foreground px-2 pb-1">
                                     Similar conversations
                                 </p>
@@ -223,8 +194,7 @@ export function ChatHeaderActions({
                                                 }
                                             >
                                                 <div className="text-sm truncate">
-                                                    {r.title ??
-                                                        "Untitled Chat"}
+                                                    {r.title ?? "Untitled Chat"}
                                                 </div>
                                                 {r.updatedAt && (
                                                     <div className="text-xs text-muted-foreground">

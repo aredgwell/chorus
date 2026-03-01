@@ -99,7 +99,6 @@ export const allowedExtensions: Record<AttachmentType, string[]> = {
     webpage: [],
 };
 
-
 export type LLMMessageUser = {
     role: "user";
     content: string;
@@ -559,9 +558,7 @@ export async function downloadLMStudioModels(db: Database): Promise<void> {
 /**
  * Downloads models from a custom OpenAI-compatible endpoint to refresh the database.
  */
-export async function downloadCustomOpenAIModels(
-    db: Database,
-): Promise<void> {
+export async function downloadCustomOpenAIModels(db: Database): Promise<void> {
     const settings = await SettingsManager.getInstance().get();
     const baseUrl = settings.customOpenAIBaseUrl;
 

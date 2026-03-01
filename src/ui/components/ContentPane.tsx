@@ -17,14 +17,8 @@ export function ContentPane() {
                     <Route path="/new-prompt" element={<NewPrompt />} />
                     <Route path="/prompts" element={<ListPrompts />} />
                     <Route path="/search" element={<SearchView />} />
-                    <Route
-                        path="/chat/:chatId"
-                        element={<MultiChat />}
-                    />
-                    <Route
-                        path="/note/:noteId"
-                        element={<NoteEditor />}
-                    />
+                    <Route path="/chat/:chatId" element={<MultiChat />} />
+                    <Route path="/note/:noteId" element={<NoteEditor />} />
                     <Route
                         path="/projects/:projectId"
                         element={<ProjectView />}

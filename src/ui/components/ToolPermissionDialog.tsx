@@ -19,7 +19,7 @@ import { Checkbox } from "@ui/components/ui/checkbox";
 import { Label } from "@ui/components/ui/label";
 import { useShortcut } from "@ui/hooks/useShortcut";
 import { BanIcon, CheckIcon, ShieldCheckIcon } from "lucide-react";
-import React, { useEffect,useState } from "react";
+import React, { useEffect, useState } from "react";
 import Lowlight from "react-lowlight";
 
 export const ToolPermissionDialog: React.FC = () => {

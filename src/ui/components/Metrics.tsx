@@ -1,5 +1,5 @@
 import { encodingForModel } from "js-tiktoken";
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
 
 // Initialize the tokenizer - using gpt-4 encoding as a default since it's commonly used
 const tokenizer = encodingForModel("gpt-4o");

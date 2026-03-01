@@ -30,17 +30,13 @@ export function useAutoSyncCollection() {
 
         if (chatMatch) {
             const chatId = chatMatch[1];
-            const chat = (chatsQuery.data ?? []).find(
-                (c) => c.id === chatId,
-            );
+            const chat = (chatsQuery.data ?? []).find((c) => c.id === chatId);
             if (chat) {
                 setSelectedCollectionId.mutate(chat.projectId);
             }
         } else if (noteMatch) {
             const noteId = noteMatch[1];
-            const note = (notesQuery.data ?? []).find(
-                (n) => n.id === noteId,
-            );
+            const note = (notesQuery.data ?? []).find((n) => n.id === noteId);
             if (note) {
                 setSelectedCollectionId.mutate(note.projectId);
             }

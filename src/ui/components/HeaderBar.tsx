@@ -22,9 +22,7 @@ export function HeaderBar({ actions }: HeaderBarProps) {
             active:border-border!"
         >
             <div className="flex items-center gap-1">
-                {!isSidebarOpen && (
-                    <SidebarTrigger className="size-4! ml-2" />
-                )}
+                {!isSidebarOpen && <SidebarTrigger className="size-4! ml-2" />}
             </div>
 
             {actions && (

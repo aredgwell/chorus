@@ -8,8 +8,8 @@ Codebase cleanup items discovered from inline `TODO` comments. Grouped by area.
 
 Done — cleaned up stale TODO-GC markers. The GC (Group Chat) system runs in parallel with legacy MultiChat.
 
-- **`useGenerateChatTitle`** — still uses `getUserMessageSets` for the legacy path. Comment updated to explain it will be removed when legacy MultiChat is fully deprecated (GroupChat has `useGenerateGCChatTitle()`).
-- **`useAddModelToCompareConfigs`**, **`useUpdateSelectedModelConfigsCompare`**, **`useUpdateSelectedModelConfigQuickChat`**, **`useGetSelectedModelConfigs`** — these use `app_metadata`, not `getUserMessageSets`. Shared between both paths. TODO-GC markers removed.
+-   **`useGenerateChatTitle`** — still uses `getUserMessageSets` for the legacy path. Comment updated to explain it will be removed when legacy MultiChat is fully deprecated (GroupChat has `useGenerateGCChatTitle()`).
+-   **`useAddModelToCompareConfigs`**, **`useUpdateSelectedModelConfigsCompare`**, **`useUpdateSelectedModelConfigQuickChat`**, **`useGetSelectedModelConfigs`** — these use `app_metadata`, not `getUserMessageSets`. Shared between both paths. TODO-GC markers removed.
 
 ---
 
@@ -58,15 +58,19 @@ Done — extracted shared `HeaderBar` component (`src/ui/components/HeaderBar.ts
 ## UI Polish
 
 ### ~~Tabs Color Token~~
+
 Done — replaced hardcoded `bg-gray-100 dark:bg-gray-900` with `bg-muted text-muted-foreground`.
 
 ### ~~LMStudio Logo~~
+
 Done — added `public/lmstudio.svg` (atom-style icon) and replaced generic `BoxIcon` placeholder.
 
 ### ~~Markdown Indented Code Blocks~~
+
 Done — the `preBlocks` extraction was already implemented correctly. Removed stale TODO comment.
 
 ### ~~`sentAttachmentTypes` Unused Prop~~
+
 Done — removed unused prop from `ChatInput.tsx`, its `useMemo` computation in `MultiChat.tsx`, and call sites in `MultiChat.tsx` and `ReplyChat.tsx`.
 
 ---

@@ -392,9 +392,7 @@ export function ChatInput({
     /**
      * Ensures a model config is selected
      */
-    const ensureCompareModelConfigSelected = async (
-        modelConfigId: string,
-    ) => {
+    const ensureCompareModelConfigSelected = async (modelConfigId: string) => {
         await addModelToCompareConfigs.mutateAsync({
             newSelectedModelConfigId: modelConfigId,
         });

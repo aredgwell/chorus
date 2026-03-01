@@ -440,9 +440,7 @@ export async function migrateToolsetCredentialsToKeychain(): Promise<void> {
         }
 
         // 2. Migrate custom toolset env
-        const customToolsets = await db.select<
-            { name: string; env: string }[]
-        >(
+        const customToolsets = await db.select<{ name: string; env: string }[]>(
             "SELECT name, env FROM custom_toolsets WHERE env IS NOT NULL AND env != '{}'",
         );
 

@@ -1,9 +1,5 @@
-import {
-    CircleAlertIcon,
-    ExternalLinkIcon,
-    Trash2Icon,
-} from "lucide-react";
-import { CheckIcon,CopyIcon } from "lucide-react";
+import { CircleAlertIcon, ExternalLinkIcon, Trash2Icon } from "lucide-react";
+import { CheckIcon, CopyIcon } from "lucide-react";
 
 import { Button } from "./ui/button";
 import {

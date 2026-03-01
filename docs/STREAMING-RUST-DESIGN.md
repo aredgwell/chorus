@@ -15,17 +15,17 @@ JS Provider.streamResponse(params)
 
 9 providers, all implementing `IProvider.streamResponse()`:
 
-| Provider | SDK | Transport | Tool Calls |
-|---|---|---|---|
-| Anthropic | `@anthropic-ai/sdk` | `client.messages.stream()` + `.on("text")` events | Extracted from `stream.finalMessage()` at end |
-| OpenAI | `openai` | Responses API, `stream: true`, async iterable | Streamed incrementally via `function_call_arguments.delta` |
-| Google | `openai` | Chat Completions via OpenAI compat endpoint | Accumulated from chunks, parsed at end |
-| OpenRouter | `openai` | Chat Completions, `openrouter.ai/api/v1` | Same as Google, plus `generation_id` for cost |
-| Perplexity | `openai` | Chat Completions, `api.perplexity.ai` | No tools; appends citations |
-| Grok | `openai` | Chat Completions, `api.x.ai/v1` | No tools |
-| Ollama | Custom | `ollamaClient.streamChat()` async generator | No tools |
-| LM Studio | `openai` | Chat Completions, `localhost:1234/v1` | No tools |
-| Custom OpenAI | `openai` | Chat Completions, configurable URL | Optional |
+| Provider      | SDK                 | Transport                                         | Tool Calls                                                 |
+| ------------- | ------------------- | ------------------------------------------------- | ---------------------------------------------------------- |
+| Anthropic     | `@anthropic-ai/sdk` | `client.messages.stream()` + `.on("text")` events | Extracted from `stream.finalMessage()` at end              |
+| OpenAI        | `openai`            | Responses API, `stream: true`, async iterable     | Streamed incrementally via `function_call_arguments.delta` |
+| Google        | `openai`            | Chat Completions via OpenAI compat endpoint       | Accumulated from chunks, parsed at end                     |
+| OpenRouter    | `openai`            | Chat Completions, `openrouter.ai/api/v1`          | Same as Google, plus `generation_id` for cost              |
+| Perplexity    | `openai`            | Chat Completions, `api.perplexity.ai`             | No tools; appends citations                                |
+| Grok          | `openai`            | Chat Completions, `api.x.ai/v1`                   | No tools                                                   |
+| Ollama        | Custom              | `ollamaClient.streamChat()` async generator       | No tools                                                   |
+| LM Studio     | `openai`            | Chat Completions, `localhost:1234/v1`             | No tools                                                   |
+| Custom OpenAI | `openai`            | Chat Completions, configurable URL                | Optional                                                   |
 
 **Key observation:** 7 of 9 providers use the OpenAI Chat Completions API format. Only Anthropic and Ollama are different.
 
@@ -33,10 +33,10 @@ JS Provider.streamResponse(params)
 
 One processing loop **per stream** (UUID key), so concurrent streams (compare mode) don't serialize.
 
-- `addUpdate(key, priority, fn)` replaces pending update if priority is strictly higher
-- 50ms idle sleep prevents hot spin
-- Each chunk: cache updated immediately (React Query `setQueryData`), DB write deferred via queue
-- `closeUpdateStream(key)` called from both `onComplete` and `onError`
+-   `addUpdate(key, priority, fn)` replaces pending update if priority is strictly higher
+-   50ms idle sleep prevents hot spin
+-   Each chunk: cache updated immediately (React Query `setQueryData`), DB write deferred via queue
+-   `closeUpdateStream(key)` called from both `onComplete` and `onError`
 
 ### Tauri Events (Current)
 
@@ -49,6 +49,7 @@ Events are used for **UI coordination only** — menu actions, navigation, setti
 ### Tool Call Agentic Loop
 
 `useStreamToolsMessage` runs `while (level < MAX_AI_TURNS = 40)`:
+
 1. Create `message_part`, stream response
 2. If tool calls returned → execute in parallel, store results, increment level, loop
 3. If no tool calls → break
@@ -76,9 +77,10 @@ JS listen("stream-error") → classify, display
 1. **Raw HTTP/SSE parsing** instead of reimplementing SDK wrappers. All providers speak HTTP; the SDKs just wrap fetch + SSE parsing. Rust can do this directly with `reqwest` (already in `Cargo.toml`) and `eventsource-stream`.
 
 2. **Tauri events for chunk delivery.** Already used for settings/menus/navigation. Each stream gets a unique event channel keyed by `messageId`:
-   - `stream-chunk:{messageId}` — `{ text: string, accumulated: string }`
-   - `stream-complete:{messageId}` — `{ toolCalls?: [...], usage?: {...} }`
-   - `stream-error:{messageId}` — `{ message: string }`
+
+    - `stream-chunk:{messageId}` — `{ text: string, accumulated: string }`
+    - `stream-complete:{messageId}` — `{ toolCalls?: [...], usage?: {...} }`
+    - `stream-error:{messageId}` — `{ message: string }`
 
 3. **DB writes stay in Rust.** Final message content, tool calls, usage/cost data written directly to SQLite via existing `rusqlite` + WAL pattern. Eliminates the JS → Rust → SQLite IPC hop for the final write.
 
@@ -149,6 +151,7 @@ Both use `reqwest::Response::bytes_stream()` piped through an SSE parser (e.g., 
 The biggest complexity. Two approaches:
 
 **Option A: Hybrid (recommended for v1).** Rust handles streaming only. When tool calls are detected:
+
 1. Rust emits `stream-complete:{messageId}` with `toolCalls`
 2. JS receives tool calls, executes them via `ToolsetsManager` (MCP, etc.)
 3. JS invokes Rust again for the next streaming turn
@@ -227,17 +230,17 @@ Validate the approach with a minimal implementation:
 
 ### POC Deliverables
 
-- `stream_anthropic()` function in `command.rs`
-- SSE parser for Anthropic's event format
-- JS `listen()` integration in `useStreamMessagePart`
-- Benchmark comparing JS vs Rust streaming latency for a 4K token response
+-   `stream_anthropic()` function in `command.rs`
+-   SSE parser for Anthropic's event format
+-   JS `listen()` integration in `useStreamMessagePart`
+-   Benchmark comparing JS vs Rust streaming latency for a 4K token response
 
 ### POC Non-Goals
 
-- OpenAI/Google/other providers
-- Tool call handling
-- Compare mode
-- UpdateQueue replacement (use direct DB writes per-chunk initially)
+-   OpenAI/Google/other providers
+-   Tool call handling
+-   Compare mode
+-   UpdateQueue replacement (use direct DB writes per-chunk initially)
 
 ---
 
@@ -253,9 +256,9 @@ Validate the approach with a minimal implementation:
 
 ## Dependencies
 
-- `reqwest` 0.12 — already in Cargo.toml, unused
-- `eventsource-stream` or `async-sse` — SSE parsing (new dependency, ~50KB)
-- `serde_json` — already used
-- `tauri::Emitter` — already used for menu events
+-   `reqwest` 0.12 — already in Cargo.toml, unused
+-   `eventsource-stream` or `async-sse` — SSE parsing (new dependency, ~50KB)
+-   `serde_json` — already used
+-   `tauri::Emitter` — already used for menu events
 
 No new JS dependencies needed.

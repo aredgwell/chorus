@@ -51,7 +51,7 @@ import {
     WrenchIcon,
     X,
 } from "lucide-react";
-import { useCallback,useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 // NOTE: useRef is used here for auto-scroll (standard DOM pattern).
@@ -288,10 +288,7 @@ function GCToolCallView({ toolCall }: { toolCall: UserToolCall }) {
                                 <span className="text-muted-foreground">
                                     {arg.key}
                                 </span>
-                                ={" "}
-                                <span className="break-all">
-                                    {arg.value}
-                                </span>
+                                = <span className="break-all">{arg.value}</span>
                             </li>
                         ))}
                     </ul>
@@ -342,7 +339,9 @@ function AIMessageView({
 
                     {/* Hover action buttons (hidden while streaming) */}
                     <div className="mr-3 flex items-center h-6 gap-2">
-                        <div className={`gap-2 text-muted-foreground px-2 bg-background ${isStreaming ? "hidden" : "hidden group-hover/message-set-view:flex"}`}>
+                        <div
+                            className={`gap-2 text-muted-foreground px-2 bg-background ${isStreaming ? "hidden" : "hidden group-hover/message-set-view:flex"}`}
+                        >
                             {message.isDeleted ? (
                                 <button
                                     className="hover:text-foreground transition-colors"
@@ -431,25 +430,24 @@ function AIMessageView({
                     {message.toolCalls && message.toolCalls.length > 0 && (
                         <div className="mt-2">
                             {message.toolCalls.map((tc) => (
-                                <GCToolCallView
-                                    key={tc.id}
-                                    toolCall={tc}
-                                />
+                                <GCToolCallView key={tc.id} toolCall={tc} />
                             ))}
                         </div>
                     )}
                 </div>
                 {/* Thread reply count */}
-                {threadReplyCount !== undefined && threadReplyCount > 0 && onOpenThread && (
-                    <button
-                        className="mt-1 px-4 pb-2 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-                        onClick={() => onOpenThread(message.id)}
-                    >
-                        <MessageSquareIcon className="h-3 w-3" />
-                        {threadReplyCount}{" "}
-                        {threadReplyCount === 1 ? "reply" : "replies"}
-                    </button>
-                )}
+                {threadReplyCount !== undefined &&
+                    threadReplyCount > 0 &&
+                    onOpenThread && (
+                        <button
+                            className="mt-1 px-4 pb-2 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                            onClick={() => onOpenThread(message.id)}
+                        >
+                            <MessageSquareIcon className="h-3 w-3" />
+                            {threadReplyCount}{" "}
+                            {threadReplyCount === 1 ? "reply" : "replies"}
+                        </button>
+                    )}
             </div>
         </div>
     );
@@ -615,7 +613,14 @@ export default function GroupChat() {
             // Trigger AI responses
             generateAIResponses.mutate({ chatId, userMessage: text });
         },
-        [chatId, messages, sendMessage, generateTitle, markProjectContextSummaryAsStale, generateAIResponses],
+        [
+            chatId,
+            messages,
+            sendMessage,
+            generateTitle,
+            markProjectContextSummaryAsStale,
+            generateAIResponses,
+        ],
     );
 
     const handleDelete = useCallback(
@@ -717,7 +722,9 @@ export default function GroupChat() {
                 )}
 
                 {/* Message list */}
-                <div className={`flex-1 overflow-y-auto ${conductor ? "" : "pt-13"} pb-4`}>
+                <div
+                    className={`flex-1 overflow-y-auto ${conductor ? "" : "pt-13"} pb-4`}
+                >
                     <div className="max-w-3xl mx-auto">
                         {messages.map((message) => (
                             <GCMessageView
@@ -726,9 +733,7 @@ export default function GroupChat() {
                                 isStreaming={streamingMessageIds.has(
                                     message.id,
                                 )}
-                                threadReplyCount={threadCounts?.get(
-                                    message.id,
-                                )}
+                                threadReplyCount={threadCounts?.get(message.id)}
                                 onDelete={handleDelete}
                                 onRestore={handleRestore}
                                 onRegenerate={handleRegenerate}

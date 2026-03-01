@@ -29,7 +29,7 @@ import {
     Settings2,
     Trash2,
 } from "lucide-react";
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
 import { RiClaudeFill, RiSupabaseFill } from "react-icons/ri";
 import {
     SiAmazonwebservices,
@@ -90,9 +90,7 @@ const RECOMMENDED_TOOLSETS = [
         command: "npx",
         args: "-y @upstash/context7-mcp@latest",
         description: "Gets up-to-date documentation and code examples.",
-        logo: (
-            <img src="/context7.png" className="size-5 rounded" />
-        ),
+        logo: <img src="/context7.png" className="size-5 rounded" />,
         docsUrl: "https://github.com/upstash/context7-mcp",
         needsUserInput: false,
     },
@@ -312,7 +310,11 @@ function RecommendedIntegrationRow({
                         <Button
                             variant="ghost"
                             size="iconSm"
-                            title={isInstalled ? "Edit configuration" : "Configure & add"}
+                            title={
+                                isInstalled
+                                    ? "Edit configuration"
+                                    : "Configure & add"
+                            }
                         >
                             <Settings2 className="size-3.5" />
                         </Button>
@@ -322,85 +324,83 @@ function RecommendedIntegrationRow({
 
             {/* Inline fields */}
             <CollapsibleContent className="space-y-2">
-                    {/* Command (read-only for recommended) */}
-                    <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">
-                            Command
-                        </label>
-                        <Input
-                            value={rec.command}
-                            readOnly
-                            className="text-xs font-mono bg-muted/50 h-8"
-                            spellCheck={false}
-                        />
-                    </div>
+                {/* Command (read-only for recommended) */}
+                <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">
+                        Command
+                    </label>
+                    <Input
+                        value={rec.command}
+                        readOnly
+                        className="text-xs font-mono bg-muted/50 h-8"
+                        spellCheck={false}
+                    />
+                </div>
 
-                    {/* Arguments */}
+                {/* Arguments */}
+                <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">
+                        Arguments
+                    </label>
+                    <Input
+                        value={args}
+                        onChange={(e) => setArgs(e.target.value)}
+                        className="text-xs font-mono h-8"
+                        spellCheck={false}
+                    />
+                </div>
+
+                {/* Environment (only if there are env vars) */}
+                {rec.env && (
                     <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">
-                            Arguments
-                        </label>
+                        <div className="flex items-center justify-between">
+                            <label className="text-xs text-muted-foreground">
+                                Environment (JSON)
+                            </label>
+                            {rec.apiKeyUrl && (
+                                <button
+                                    type="button"
+                                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                                    onClick={() => void openUrl(rec.apiKeyUrl)}
+                                >
+                                    Get API key
+                                    <ExternalLinkIcon className="size-3" />
+                                </button>
+                            )}
+                        </div>
                         <Input
-                            value={args}
-                            onChange={(e) => setArgs(e.target.value)}
+                            value={env}
+                            onChange={(e) => setEnv(e.target.value)}
                             className="text-xs font-mono h-8"
                             spellCheck={false}
                         />
                     </div>
+                )}
 
-                    {/* Environment (only if there are env vars) */}
-                    {rec.env && (
-                        <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                                <label className="text-xs text-muted-foreground">
-                                    Environment (JSON)
-                                </label>
-                                {rec.apiKeyUrl && (
-                                    <button
-                                        type="button"
-                                        className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-                                        onClick={() =>
-                                            void openUrl(rec.apiKeyUrl)
-                                        }
-                                    >
-                                        Get API key
-                                        <ExternalLinkIcon className="size-3" />
-                                    </button>
-                                )}
-                            </div>
-                            <Input
-                                value={env}
-                                onChange={(e) => setEnv(e.target.value)}
-                                className="text-xs font-mono h-8"
-                                spellCheck={false}
-                            />
-                        </div>
-                    )}
-
-                    {/* Action buttons */}
-                    <div className="flex justify-end gap-2 pt-1">
-                        {isInstalled ? (
-                            <>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => onRemove(rec.name)}
-                                >
-                                    <Trash2 className="size-3 mr-1" />
-                                    Remove
-                                </Button>
-                                <Button size="sm" onClick={handleAdd}>
-                                    Save
-                                </Button>
-                            </>
-                        ) : (
-                            <Button size="sm" onClick={handleAdd}>
-                                <Plus className="size-3 mr-1" />
-                                Add
+                {/* Action buttons */}
+                <div className="flex justify-end gap-2 pt-1">
+                    {isInstalled ? (
+                        <>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => onRemove(rec.name)}
+                            >
+                                <Trash2 className="size-3 mr-1" />
+                                Remove
                             </Button>
-                        )}
-                    </div>
-                </CollapsibleContent>
+                            <Button size="sm" onClick={handleAdd}>
+                                Save
+                            </Button>
+                        </>
+                    ) : (
+                        <Button size="sm" onClick={handleAdd}>
+                            <Plus className="size-3 mr-1" />
+                            Add
+                        </Button>
+                    )}
+                </div>
+            </CollapsibleContent>
         </Collapsible>
     );
 }
@@ -541,9 +541,7 @@ function InlineEditForm({
                     spellCheck={false}
                 />
                 {errors.env && (
-                    <div className="text-destructive text-xs">
-                        {errors.env}
-                    </div>
+                    <div className="text-destructive text-xs">{errors.env}</div>
                 )}
             </div>
 
@@ -652,9 +650,7 @@ function RemoteIntegrationForm({
                     placeholder="https://mcp.zapier.com/api/mcp/s/.../sse"
                 />
                 {errors.url && (
-                    <div className="text-destructive text-xs">
-                        {errors.url}
-                    </div>
+                    <div className="text-destructive text-xs">{errors.url}</div>
                 )}
             </div>
 
@@ -841,15 +837,12 @@ export default function ConnectionsTab() {
             ) &&
                 RECOMMENDED_TOOLSETS.some(
                     (rec) =>
-                        !customToolsetConfigs.some(
-                            (t) => t.name === rec.name,
-                        ),
+                        !customToolsetConfigs.some((t) => t.name === rec.name),
                 ) && <Separator />}
 
             {/* Available (not yet enabled) recommended integrations */}
             {RECOMMENDED_TOOLSETS.some(
-                (rec) =>
-                    !customToolsetConfigs.some((t) => t.name === rec.name),
+                (rec) => !customToolsetConfigs.some((t) => t.name === rec.name),
             ) && (
                 <div className="space-y-5">
                     {RECOMMENDED_TOOLSETS.filter(
@@ -1035,10 +1028,7 @@ export default function ConnectionsTab() {
                                 Import from Claude Desktop
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent
-                            side="bottom"
-                            className="max-w-[300px]"
-                        >
+                        <TooltipContent side="bottom" className="max-w-[300px]">
                             Import integrations from Claude Desktop. Click again
                             to refresh.
                         </TooltipContent>

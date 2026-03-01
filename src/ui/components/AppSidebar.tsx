@@ -12,7 +12,7 @@ import {
     useRenameProject,
 } from "@core/chorus/api/ProjectAPI";
 import { useCreateSmartCollection } from "@core/chorus/api/ProjectAPI";
-import { useDeleteTag,useTags } from "@core/chorus/api/TagAPI";
+import { useDeleteTag, useTags } from "@core/chorus/api/TagAPI";
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
@@ -45,7 +45,7 @@ import {
     TagIcon,
     TrashIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useRef,useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import Droppable from "./Droppable";
@@ -117,7 +117,8 @@ function SidebarTagsSection() {
                                 className="w-2 h-2 rounded-full shrink-0"
                                 style={{
                                     backgroundColor:
-                                        tag.color ?? "hsl(var(--muted-foreground))",
+                                        tag.color ??
+                                        "hsl(var(--muted-foreground))",
                                 }}
                             />
                             <span className="truncate flex-1">{tag.name}</span>
@@ -152,7 +153,10 @@ function SidebarTagsSection() {
                                     })
                                 }
                             >
-                                <TrashIcon className="size-3" strokeWidth={1.5} />
+                                <TrashIcon
+                                    className="size-3"
+                                    strokeWidth={1.5}
+                                />
                             </button>
                         </div>
                     ))}
@@ -204,9 +208,7 @@ function CollectionsNavigator() {
     }
 
     const projects = (projectsQuery.data ?? [])
-        .filter(
-            (project) => !["default", "quick-chat"].includes(project.id),
-        )
+        .filter((project) => !["default", "quick-chat"].includes(project.id))
         .sort((a, b) => a.name.localeCompare(b.name));
 
     // Count items per collection for badges
@@ -308,8 +310,7 @@ function CollectionsNavigator() {
                                                 className="text-muted-foreground hover:text-foreground p-1 rounded"
                                                 onClick={() =>
                                                     createNote.mutate({
-                                                        projectId:
-                                                            "default",
+                                                        projectId: "default",
                                                     })
                                                 }
                                             >
@@ -328,12 +329,9 @@ function CollectionsNavigator() {
                                             <button
                                                 className="text-muted-foreground hover:text-foreground p-1 rounded"
                                                 onClick={() =>
-                                                    getOrCreateNewChat.mutate(
-                                                        {
-                                                            projectId:
-                                                                "default",
-                                                        },
-                                                    )
+                                                    getOrCreateNewChat.mutate({
+                                                        projectId: "default",
+                                                    })
                                                 }
                                             >
                                                 <SquarePlusIcon
@@ -441,8 +439,7 @@ function CollectionItem({
     const renameProject = useRenameProject();
     const deleteProject = useDeleteProject();
     const isDeleteDialogOpen = useDialogStore(
-        (state) =>
-            state.activeDialogId === deleteCollectionDialogId(projectId),
+        (state) => state.activeDialogId === deleteCollectionDialogId(projectId),
     );
     const deleteConfirmButtonRef = useRef<HTMLButtonElement>(null);
 

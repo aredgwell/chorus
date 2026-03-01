@@ -1,4 +1,4 @@
-import { describe, expect,it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import type { UserTool } from "./Toolsets";
 import {
@@ -24,9 +24,7 @@ describe("getUserToolNamespacedName", () => {
             displayNameSuffix: "do-something",
             inputSchema: {},
         };
-        expect(getUserToolNamespacedName(tool)).toBe(
-            "my-toolset_do-something",
-        );
+        expect(getUserToolNamespacedName(tool)).toBe("my-toolset_do-something");
     });
 });
 

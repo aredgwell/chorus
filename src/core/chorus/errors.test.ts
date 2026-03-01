@@ -1,4 +1,4 @@
-import { describe, expect,it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { classifyError, detectContextLimitError } from "./errors";
 import type { ProviderName } from "./Models";
@@ -161,21 +161,21 @@ describe("classifyError", () => {
 
 describe("detectContextLimitError", () => {
     it("returns true for matching provider pattern", () => {
-        expect(
-            detectContextLimitError("prompt is too long", "anthropic"),
-        ).toBe(true);
+        expect(detectContextLimitError("prompt is too long", "anthropic")).toBe(
+            true,
+        );
         expect(
             detectContextLimitError("context window exceeded", "openai"),
         ).toBe(true);
-        expect(
-            detectContextLimitError("token count exceeded", "google"),
-        ).toBe(true);
+        expect(detectContextLimitError("token count exceeded", "google")).toBe(
+            true,
+        );
     });
 
     it("returns false for non-matching message", () => {
-        expect(detectContextLimitError("rate limit exceeded", "anthropic")).toBe(
-            false,
-        );
+        expect(
+            detectContextLimitError("rate limit exceeded", "anthropic"),
+        ).toBe(false);
     });
 
     it("returns false for empty string", () => {
@@ -183,8 +183,8 @@ describe("detectContextLimitError", () => {
     });
 
     it("is case-insensitive", () => {
-        expect(
-            detectContextLimitError("PROMPT IS TOO LONG", "anthropic"),
-        ).toBe(true);
+        expect(detectContextLimitError("PROMPT IS TOO LONG", "anthropic")).toBe(
+            true,
+        );
     });
 });

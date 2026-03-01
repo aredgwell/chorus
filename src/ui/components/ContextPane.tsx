@@ -35,23 +35,15 @@ import {
     SparklesIcon,
     SquarePlusIcon,
 } from "lucide-react";
-import React, {
-    forwardRef,
-    useCallback,
-    useEffect,
-    useState,
-} from "react";
+import React, { forwardRef, useCallback, useEffect, useState } from "react";
 import { useRef } from "react";
-import { useLocation,useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import Draggable from "./Draggable";
 import { EditableTitle } from "./EditableTitle";
 import { useSettings } from "./hooks/useSettings";
-import {
-    type SidebarItem,
-    sortItems,
-} from "./sidebar/ItemListHelpers";
+import { type SidebarItem, sortItems } from "./sidebar/ItemListHelpers";
 import { Button } from "./ui/button";
 import {
     Dialog,
@@ -159,12 +151,8 @@ function CollectionView({ collectionId }: { collectionId: string }) {
         collectionChats = [];
         collectionNotes = [];
     } else {
-        collectionChats = allChats.filter(
-            (c) => c.projectId === collectionId,
-        );
-        collectionNotes = allNotes.filter(
-            (n) => n.projectId === collectionId,
-        );
+        collectionChats = allChats.filter((c) => c.projectId === collectionId);
+        collectionNotes = allNotes.filter((n) => n.projectId === collectionId);
     }
 
     // Build sidebar items
@@ -188,10 +176,7 @@ function CollectionView({ collectionId }: { collectionId: string }) {
     return (
         <div className="flex flex-col h-full bg-sidebar">
             {/* Header */}
-            <CollectionHeader
-                collectionId={collectionId}
-                title={headerTitle}
-            />
+            <CollectionHeader collectionId={collectionId} title={headerTitle} />
 
             {/* Tabs + sort */}
             <div className="flex items-center justify-between px-2 pt-1.5 pb-1 border-b">
@@ -292,9 +277,7 @@ function CollectionView({ collectionId }: { collectionId: string }) {
                                 <NoteListItem
                                     key={item.data.id + "-ctx"}
                                     note={item.data as Note}
-                                    isActive={
-                                        currentNoteId === item.data.id
-                                    }
+                                    isActive={currentNoteId === item.data.id}
                                 />
                             ))
                         ) : (
@@ -338,9 +321,7 @@ function CollectionView({ collectionId }: { collectionId: string }) {
                                 <ChatListItem
                                     key={item.data.id + "-ctx"}
                                     chat={item.data as Chat}
-                                    isActive={
-                                        currentChatId === item.data.id
-                                    }
+                                    isActive={currentChatId === item.data.id}
                                 />
                             ))
                         ) : (
@@ -426,16 +407,9 @@ const SplitOptimized = forwardRef<
 
 // ─── NoteListItem ───────────────────────────────────────────────────────────
 
-const deleteNoteDialogId = (noteId: string) =>
-    `delete-note-dialog-${noteId}`;
+const deleteNoteDialogId = (noteId: string) => `delete-note-dialog-${noteId}`;
 
-function NoteListItem({
-    note,
-    isActive,
-}: {
-    note: Note;
-    isActive: boolean;
-}) {
+function NoteListItem({ note, isActive }: { note: Note; isActive: boolean }) {
     const navigate = useNavigate();
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const renameNote = NoteAPI.useRenameNote();
@@ -534,10 +508,7 @@ function NoteListItem({
             </Draggable>
 
             {/* Delete confirmation dialog */}
-            <Dialog
-                id={deleteNoteDialogId(note.id)}
-                open={isDeleteDialogOpen}
-            >
+            <Dialog id={deleteNoteDialogId(note.id)} open={isDeleteDialogOpen}>
                 <DialogContent className="sm:max-w-md p-5">
                     <DialogHeader>
                         <DialogTitle>
@@ -805,8 +776,7 @@ function ChatListItem({ chat, isActive }: { chat: Chat; isActive: boolean }) {
                             tabIndex={1}
                             ref={deleteConfirmButtonRef}
                         >
-                            Delete{" "}
-                            <span className="ml-1 text-xs">⌘↵</span>
+                            Delete <span className="ml-1 text-xs">⌘↵</span>
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -815,11 +785,8 @@ function ChatListItem({ chat, isActive }: { chat: Chat; isActive: boolean }) {
     );
 }
 
-const ChatLoadingIndicator = React.memo(
-    ({ chatId }: { chatId: string }) => {
-        const chatIsLoading =
-            useQuery(ChatAPI.chatIsLoadingQueries.detail(chatId)).data ??
-            false;
-        return chatIsLoading ? <RetroSpinner className="ml-2" /> : null;
-    },
-);
+const ChatLoadingIndicator = React.memo(({ chatId }: { chatId: string }) => {
+    const chatIsLoading =
+        useQuery(ChatAPI.chatIsLoadingQueries.detail(chatId)).data ?? false;
+    return chatIsLoading ? <RetroSpinner className="ml-2" /> : null;
+});

@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@ui/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { BadgeCheck } from "lucide-react";
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
 import { checkScreenRecordingPermission } from "tauri-plugin-macos-permissions-api";
 
 interface AccessibilityStatus {

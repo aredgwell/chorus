@@ -1,6 +1,6 @@
-import { afterEach,describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { Message, MessagePart,MessageSetDetail } from "./ChatState";
+import type { Message, MessagePart, MessageSetDetail } from "./ChatState";
 import {
     blockIsEmpty,
     createAIMessage,
@@ -235,9 +235,7 @@ describe("blockIsEmpty", () => {
 
     it("throws for user block type", () => {
         const ms = makeMessageSet();
-        expect(() => blockIsEmpty(ms, "user")).toThrow(
-            "Unexpected block type",
-        );
+        expect(() => blockIsEmpty(ms, "user")).toThrow("Unexpected block type");
     });
 });
 

@@ -1,4 +1,4 @@
-import { deleteEmbedding,embeddingQueue } from "@core/chorus/EmbeddingService";
+import { deleteEmbedding, embeddingQueue } from "@core/chorus/EmbeddingService";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 

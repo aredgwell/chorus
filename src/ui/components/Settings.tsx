@@ -1,9 +1,7 @@
 import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
 import { UNIVERSAL_SYSTEM_PROMPT_DEFAULT } from "@core/chorus/prompts/prompts";
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
-import {
-    SettingsManager,
-} from "@core/utilities/Settings";
+import { SettingsManager } from "@core/utilities/Settings";
 import { useQueryClient } from "@tanstack/react-query";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import {

@@ -19,10 +19,7 @@ export interface SimilarItem {
     updatedAt: string | undefined;
 }
 
-async function getEmbedding(
-    apiKey: string,
-    text: string,
-): Promise<number[]> {
+async function getEmbedding(apiKey: string, text: string): Promise<number[]> {
     const client = new OpenAI({
         apiKey,
         dangerouslyAllowBrowser: true,

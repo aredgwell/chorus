@@ -49,8 +49,6 @@ export async function setCustomToolsetEnv(
     await setCredential(customToolsetEnvKey(name), envJson);
 }
 
-export async function deleteCustomToolsetEnv(
-    name: string,
-): Promise<void> {
+export async function deleteCustomToolsetEnv(name: string): Promise<void> {
     await deleteCredential(customToolsetEnvKey(name));
 }

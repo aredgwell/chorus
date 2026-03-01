@@ -19,13 +19,9 @@ import {
     projectDisplayName,
 } from "@ui/lib/utils";
 import _ from "lodash";
-import {
-    AtSignIcon,
-    SquarePlusIcon,
-    TrashIcon,
-} from "lucide-react";
-import { forwardRef, useCallback,useEffect, useRef, useState } from "react";
-import { useNavigate,useParams } from "react-router-dom";
+import { AtSignIcon, SquarePlusIcon, TrashIcon } from "lucide-react";
+import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -155,9 +151,11 @@ export default function ProjectView() {
                                     size="iconSm"
                                     onClick={() => {
                                         if (projectId) {
-                                            void getOrCreateNewChat.mutateAsync({
-                                                projectId,
-                                            });
+                                            void getOrCreateNewChat.mutateAsync(
+                                                {
+                                                    projectId,
+                                                },
+                                            );
                                         }
                                     }}
                                 >
@@ -197,200 +195,202 @@ export default function ProjectView() {
             />
 
             <div className="container py-8 px-16 mx-auto max-w-5xl flex-1 overflow-y-auto">
-            {/*  header */}
-            <div className="mb-8">
-                <div className="flex-1 ml-2">
-                    <Input
-                        ref={inputRef}
-                        autoFocus
-                        value={newName}
-                        onChange={(e) => {
-                            setNewName(e.target.value);
-                        }}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                                e.preventDefault();
-                                contextEditorRef.current?.textareaRef.current?.focus();
-                            }
-                        }}
-                        placeholder="New Collection"
-                        className="text-3xl font-medium ring-0 tracking-tight px-0 py-2 border-none rounded-none"
-                    />
-                </div>
-
-                {/* Suggestion buttons and Add files */}
-                <div className="flex gap-2 mt-8 ml-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                            e.preventDefault();
-                            fileSelect.mutate();
-                        }}
-                        className="rounded-full text-foreground border-input! hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
-                    >
-                        <span className="text-base mr-1">+</span>
-                        Add files
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                            contextEditorRef.current?.handleTemplateSelect?.(
-                                PROJECT_TEMPLATE_PAIR_PROGRAMMER,
-                            );
-                        }}
-                        className="rounded-full text-foreground border-input-border! border-dashed hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
-                    >
-                        <AtSignIcon className="size-3" />
-                        Pair Programmer
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                            contextEditorRef.current?.handleTemplateSelect?.(
-                                PROJECT_TEMPLATE_COACH,
-                            );
-                        }}
-                        className="rounded-full text-foreground border-input-border! border-dashed hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
-                    >
-                        <AtSignIcon className="size-3" />
-                        Coach
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                            contextEditorRef.current?.handleTemplateSelect?.(
-                                PROJECT_TEMPLATE_HAMEL_WRITING_GUIDE,
-                            );
-                        }}
-                        className="rounded-full text-foreground border-input-border! border-dashed hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
-                    >
-                        <AtSignIcon className="size-3" />
-                        Writing Assistant
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                            contextEditorRef.current?.handleTemplateSelect?.(
-                                PROJECT_TEMPLATE_DECISION_ADVISOR,
-                            );
-                        }}
-                        className="rounded-full text-foreground border-input-border! border-dashed hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
-                    >
-                        <AtSignIcon className="size-3" />
-                        Decision Advisor
-                    </Button>
-                </div>
-            </div>
-
-            <div className="md:grid grid-cols-12 gap-4 w-full mt-8">
-                {/* User Context Section */}
-                <div className="col-span-8">
-                    <ProjectContextEditor
-                        ref={contextEditorRef}
-                        projectId={projectId}
-                    />
-                </div>
-
-                {/* Magic Project Section */}
-                <div className="p-1 border border-border rounded relative col-span-4 self-start">
-                    <span className="absolute left-2 -top-2.5 bg-background px-2 text-xs font-geist-mono tracking-wider text-muted-foreground">
-                        CHATS
-                    </span>
-                    <div className="flex justify-between gap-1 bg-muted px-3 py-2 rounded">
-                        <div className="flex flex-col gap-1 w-64">
-                            <h2 className="font-medium">
-                                <span
-                                    className={
-                                        project.magicProjectsEnabled
-                                            ? "shimmer"
-                                            : ""
-                                    }
-                                >
-                                    Collection Memory
-                                </span>
-                            </h2>
-                            <p className="text-sm text-muted-foreground font-[350] -mt-0.5">
-                                Add automatic summaries of chats in this
-                                collection to context
-                                {project.isImported && (
-                                    <span className="block text-xs mt-1 text-muted-foreground/70">
-                                        Disabled for imported collections
-                                    </span>
-                                )}
-                            </p>
-                        </div>
-                        <Switch
-                            checked={project.magicProjectsEnabled}
-                            onCheckedChange={() => {
-                                void setMagicProjectsEnabled.mutateAsync({
-                                    projectId,
-                                    enabled: !project.magicProjectsEnabled,
-                                });
+                {/*  header */}
+                <div className="mb-8">
+                    <div className="flex-1 ml-2">
+                        <Input
+                            ref={inputRef}
+                            autoFocus
+                            value={newName}
+                            onChange={(e) => {
+                                setNewName(e.target.value);
                             }}
-                            disabled={project.isImported}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    contextEditorRef.current?.textareaRef.current?.focus();
+                                }
+                            }}
+                            placeholder="New Collection"
+                            className="text-3xl font-medium ring-0 tracking-tight px-0 py-2 border-none rounded-none"
                         />
                     </div>
-                    <div className="">
-                        {/* Magic context details */}
-                        <div className="space-y-2 mt-1 max-h-[400px] overflow-y-auto">
-                            <div className="flex flex-col gap-2">
-                                {chatsInProject.map((chat) => (
-                                    <Link
-                                        key={chat.id}
-                                        to={`/chat/${chat.id}`}
-                                        className="hover:bg-muted rounded px-3 py-2"
-                                    >
-                                        <div className="font-medium">
-                                            {chat.title ?? "Untitled chat"}
-                                        </div>
-                                        <div className="text-sm text-muted-foreground font-[350]">
-                                            {chat.projectContextSummary ?? (
-                                                <span className="italic">
-                                                    No summary yet
-                                                </span>
-                                            )}
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
-                        {chatsInProject.length === 0 && (
-                            <div className="flex w-full">
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="group/new-chat w-full justify-between px-3"
-                                    onClick={() => {
-                                        if (projectId) {
-                                            void getOrCreateNewChat.mutateAsync(
-                                                {
-                                                    projectId,
-                                                },
-                                            );
-                                        }
-                                    }}
-                                >
-                                    <span className="flex items-center gap-2 ">
-                                        <SquarePlusIcon
-                                            strokeWidth={1.5}
-                                            className="size-3 text-muted-foreground"
-                                        />{" "}
-                                        New chat in collection
-                                    </span>
-                                    <span className="text-xs hidden group-hover/new-chat:block text-muted-foreground">
-                                        ⌘N
-                                    </span>
-                                </Button>
-                            </div>
-                        )}
+
+                    {/* Suggestion buttons and Add files */}
+                    <div className="flex gap-2 mt-8 ml-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(
+                                e: React.MouseEvent<HTMLButtonElement>,
+                            ) => {
+                                e.preventDefault();
+                                fileSelect.mutate();
+                            }}
+                            className="rounded-full text-foreground border-input! hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
+                        >
+                            <span className="text-base mr-1">+</span>
+                            Add files
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                contextEditorRef.current?.handleTemplateSelect?.(
+                                    PROJECT_TEMPLATE_PAIR_PROGRAMMER,
+                                );
+                            }}
+                            className="rounded-full text-foreground border-input-border! border-dashed hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
+                        >
+                            <AtSignIcon className="size-3" />
+                            Pair Programmer
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                contextEditorRef.current?.handleTemplateSelect?.(
+                                    PROJECT_TEMPLATE_COACH,
+                                );
+                            }}
+                            className="rounded-full text-foreground border-input-border! border-dashed hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
+                        >
+                            <AtSignIcon className="size-3" />
+                            Coach
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                contextEditorRef.current?.handleTemplateSelect?.(
+                                    PROJECT_TEMPLATE_HAMEL_WRITING_GUIDE,
+                                );
+                            }}
+                            className="rounded-full text-foreground border-input-border! border-dashed hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
+                        >
+                            <AtSignIcon className="size-3" />
+                            Writing Assistant
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                contextEditorRef.current?.handleTemplateSelect?.(
+                                    PROJECT_TEMPLATE_DECISION_ADVISOR,
+                                );
+                            }}
+                            className="rounded-full text-foreground border-input-border! border-dashed hover:bg-foreground/5 whitespace-nowrap h-7 text-sm"
+                        >
+                            <AtSignIcon className="size-3" />
+                            Decision Advisor
+                        </Button>
                     </div>
                 </div>
-            </div>
+
+                <div className="md:grid grid-cols-12 gap-4 w-full mt-8">
+                    {/* User Context Section */}
+                    <div className="col-span-8">
+                        <ProjectContextEditor
+                            ref={contextEditorRef}
+                            projectId={projectId}
+                        />
+                    </div>
+
+                    {/* Magic Project Section */}
+                    <div className="p-1 border border-border rounded relative col-span-4 self-start">
+                        <span className="absolute left-2 -top-2.5 bg-background px-2 text-xs font-geist-mono tracking-wider text-muted-foreground">
+                            CHATS
+                        </span>
+                        <div className="flex justify-between gap-1 bg-muted px-3 py-2 rounded">
+                            <div className="flex flex-col gap-1 w-64">
+                                <h2 className="font-medium">
+                                    <span
+                                        className={
+                                            project.magicProjectsEnabled
+                                                ? "shimmer"
+                                                : ""
+                                        }
+                                    >
+                                        Collection Memory
+                                    </span>
+                                </h2>
+                                <p className="text-sm text-muted-foreground font-[350] -mt-0.5">
+                                    Add automatic summaries of chats in this
+                                    collection to context
+                                    {project.isImported && (
+                                        <span className="block text-xs mt-1 text-muted-foreground/70">
+                                            Disabled for imported collections
+                                        </span>
+                                    )}
+                                </p>
+                            </div>
+                            <Switch
+                                checked={project.magicProjectsEnabled}
+                                onCheckedChange={() => {
+                                    void setMagicProjectsEnabled.mutateAsync({
+                                        projectId,
+                                        enabled: !project.magicProjectsEnabled,
+                                    });
+                                }}
+                                disabled={project.isImported}
+                            />
+                        </div>
+                        <div className="">
+                            {/* Magic context details */}
+                            <div className="space-y-2 mt-1 max-h-[400px] overflow-y-auto">
+                                <div className="flex flex-col gap-2">
+                                    {chatsInProject.map((chat) => (
+                                        <Link
+                                            key={chat.id}
+                                            to={`/chat/${chat.id}`}
+                                            className="hover:bg-muted rounded px-3 py-2"
+                                        >
+                                            <div className="font-medium">
+                                                {chat.title ?? "Untitled chat"}
+                                            </div>
+                                            <div className="text-sm text-muted-foreground font-[350]">
+                                                {chat.projectContextSummary ?? (
+                                                    <span className="italic">
+                                                        No summary yet
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                            {chatsInProject.length === 0 && (
+                                <div className="flex w-full">
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="group/new-chat w-full justify-between px-3"
+                                        onClick={() => {
+                                            if (projectId) {
+                                                void getOrCreateNewChat.mutateAsync(
+                                                    {
+                                                        projectId,
+                                                    },
+                                                );
+                                            }
+                                        }}
+                                    >
+                                        <span className="flex items-center gap-2 ">
+                                            <SquarePlusIcon
+                                                strokeWidth={1.5}
+                                                className="size-3 text-muted-foreground"
+                                            />{" "}
+                                            New chat in collection
+                                        </span>
+                                        <span className="text-xs hidden group-hover/new-chat:block text-muted-foreground">
+                                            ⌘N
+                                        </span>
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Delete confirmation dialog */}

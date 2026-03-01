@@ -285,9 +285,9 @@ export function useSetSelectedCollectionId() {
             await queryClient.cancelQueries({
                 queryKey: appMetadataKeys.appMetadata(),
             });
-            const previous = queryClient.getQueryData<
-                Record<string, string>
-            >(appMetadataKeys.appMetadata());
+            const previous = queryClient.getQueryData<Record<string, string>>(
+                appMetadataKeys.appMetadata(),
+            );
             queryClient.setQueryData<Record<string, string>>(
                 appMetadataKeys.appMetadata(),
                 (old) => {

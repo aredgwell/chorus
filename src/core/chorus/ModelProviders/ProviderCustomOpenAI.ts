@@ -46,7 +46,8 @@ export class ProviderCustomOpenAI implements IProvider {
         }
 
         const streamParams: OpenAI.ChatCompletionCreateParamsStreaming = {
-            model: modelConfig.apiModelName ?? modelConfig.modelId.split("::")[1],
+            model:
+                modelConfig.apiModelName ?? modelConfig.modelId.split("::")[1],
             messages,
             stream: true,
             ...(hasFunctionSupport && {

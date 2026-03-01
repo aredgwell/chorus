@@ -61,10 +61,7 @@ export function QuickChatModelSelector({
         if (
             apiKeys &&
             provider &&
-            hasApiKey(
-                provider.toLowerCase() as keyof typeof apiKeys,
-                apiKeys,
-            )
+            hasApiKey(provider.toLowerCase() as keyof typeof apiKeys, apiKeys)
         ) {
             return true;
         }

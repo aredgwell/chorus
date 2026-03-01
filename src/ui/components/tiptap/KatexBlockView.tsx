@@ -1,7 +1,7 @@
 import "katex/dist/katex.min.css";
 
 import type { NodeViewProps } from "@tiptap/core";
-import { NodeViewContent,NodeViewWrapper } from "@tiptap/react";
+import { NodeViewContent, NodeViewWrapper } from "@tiptap/react";
 import { CodeIcon, EyeIcon } from "lucide-react";
 import { useState } from "react";
 import { BlockMath } from "react-katex";

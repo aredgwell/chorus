@@ -8,7 +8,7 @@ import {
     useLinksForNote,
 } from "@core/chorus/api/NoteChatLinkAPI";
 import { useQuery } from "@tanstack/react-query";
-import { FileTextIcon, LinkIcon,MessageSquareIcon, XIcon } from "lucide-react";
+import { FileTextIcon, LinkIcon, MessageSquareIcon, XIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface LinkedItemsProps {

@@ -643,10 +643,7 @@ export class Toolset {
         const hydratedConfig = { ...config };
         for (const param of Object.values(this.config)) {
             if (param.isSecret && !hydratedConfig[param.id]) {
-                const value = await getToolsetCredential(
-                    this.name,
-                    param.id,
-                );
+                const value = await getToolsetCredential(this.name, param.id);
                 if (value) hydratedConfig[param.id] = value;
             }
         }

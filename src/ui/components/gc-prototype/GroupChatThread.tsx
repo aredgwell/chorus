@@ -12,8 +12,8 @@ import {
     getModelDisplayName,
 } from "@core/chorus/gc-prototype/UtilsGC";
 import { convertDate, displayDate } from "@ui/lib/utils";
-import { ArrowUpToLine, Loader2,MessageSquare, XIcon } from "lucide-react";
-import { useEffect, useMemo,useRef, useState } from "react";
+import { ArrowUpToLine, Loader2, MessageSquare, XIcon } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "../ui/button";
 import { CollapsibleMessage } from "./CollapsibleMessage";

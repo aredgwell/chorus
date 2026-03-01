@@ -15,8 +15,8 @@ export default function ApiKeysTab({
                 <h2 className="text-2xl font-semibold mb-2">API Keys</h2>
                 <p className="text-sm text-muted-foreground">
                     Enter your API keys for the providers you want to use.
-                    Models for each provider will become available once you add a
-                    valid key.
+                    Models for each provider will become available once you add
+                    a valid key.
                 </p>
             </div>
             <div className="space-y-4">

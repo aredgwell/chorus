@@ -12,8 +12,8 @@ import { getModelDisplayName } from "@core/chorus/gc-prototype/UtilsGC";
 import Composer from "@ui/components/Composer";
 import { MessageMarkdown } from "@ui/components/renderers/MessageMarkdown";
 import { ProviderLogo } from "@ui/components/ui/provider-logo";
-import { ArrowUpFromLine, Loader2, MessageSquare,X } from "lucide-react";
-import { useCallback,useEffect, useRef, useState } from "react";
+import { ArrowUpFromLine, Loader2, MessageSquare, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // NOTE: useRef is used here for auto-scroll (standard DOM pattern, same as GroupChat.tsx).
 
@@ -68,10 +68,7 @@ function ThreadMessage({
     return (
         <div className="group/thread-msg mb-4 px-3">
             <div className="flex items-center gap-1.5 mb-1 text-xs text-muted-foreground">
-                <ProviderLogo
-                    size="xs"
-                    modelId={message.modelConfigId}
-                />
+                <ProviderLogo size="xs" modelId={message.modelConfigId} />
                 <span>{displayName}</span>
                 {onPromote && (
                     <button
@@ -184,7 +181,13 @@ export default function GroupChatThread({
                 threadRootMessageId,
             });
         },
-        [chatId, threadRootMessageId, sendMessage, markProjectContextSummaryAsStale, generateAIResponses],
+        [
+            chatId,
+            threadRootMessageId,
+            sendMessage,
+            markProjectContextSummaryAsStale,
+            generateAIResponses,
+        ],
     );
 
     const handlePromote = useCallback(

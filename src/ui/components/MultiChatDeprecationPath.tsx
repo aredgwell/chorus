@@ -30,7 +30,7 @@ import {
     ThumbsUpIcon,
     UndoIcon,
 } from "lucide-react";
-import { PlusIcon,XIcon } from "lucide-react";
+import { PlusIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import { useParams } from "react-router-dom";
@@ -1141,4 +1141,4 @@ function BrainstormBlockView({
     );
 }
 
-export { BrainstormBlockView,ChatBlockView, CompareBlockView };
+export { BrainstormBlockView, ChatBlockView, CompareBlockView };

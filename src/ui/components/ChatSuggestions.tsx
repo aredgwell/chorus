@@ -4,7 +4,7 @@ import * as MessageAPI from "@core/chorus/api/MessageAPI";
 import { llmConversation } from "@core/chorus/ChatState";
 import { llmMessageToString } from "@core/chorus/Models";
 import { simpleLLM } from "@core/chorus/simpleLLM";
-import { useCallback, useEffect, useRef,useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "./ui/button";
 

@@ -5,7 +5,7 @@ import { DialogDescription } from "@radix-ui/react-dialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open } from "@tauri-apps/plugin-dialog";
-import { readFile,readTextFile } from "@tauri-apps/plugin-fs";
+import { readFile, readTextFile } from "@tauri-apps/plugin-fs";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Button } from "@ui/components/ui/button";
 import {
@@ -15,7 +15,7 @@ import {
     DialogTitle,
 } from "@ui/components/ui/dialog";
 import JSZip from "jszip";
-import { Check,ExternalLink, FileJson, Upload } from "lucide-react";
+import { Check, ExternalLink, FileJson, Upload } from "lucide-react";
 import posthog from "posthog-js";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";

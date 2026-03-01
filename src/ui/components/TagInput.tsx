@@ -7,7 +7,7 @@ import {
     useRemoveTagFromItem,
     useTags,
 } from "@core/chorus/api/TagAPI";
-import { TagIcon,XIcon } from "lucide-react";
+import { TagIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";

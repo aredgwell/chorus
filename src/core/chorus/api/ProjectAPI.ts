@@ -446,9 +446,7 @@ function useRegenerateProjectContextSummary() {
                     return { skipped: true };
                 }
                 conversationText = llmConversation(messageSets)
-                    .filter(
-                        (m) => m.role === "user" || m.role === "assistant",
-                    ) // Intentionally excludes tool messages — they add noise without improving summary quality
+                    .filter((m) => m.role === "user" || m.role === "assistant") // Intentionally excludes tool messages — they add noise without improving summary quality
                     .map((m) => `${m.role}: ${m.content}`)
                     .join("\n\n");
             }

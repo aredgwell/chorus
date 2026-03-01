@@ -142,7 +142,9 @@ export class ProviderGoogle implements IProvider {
                 if (onError) {
                     onError(errorMessage);
                 } else {
-                    throw Object.assign(new Error(errorMessage), { cause: error });
+                    throw Object.assign(new Error(errorMessage), {
+                        cause: error,
+                    });
                 }
             } else {
                 if (onError) {

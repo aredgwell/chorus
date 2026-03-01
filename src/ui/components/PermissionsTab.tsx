@@ -16,7 +16,7 @@ import { Label } from "@ui/components/ui/label";
 import { Separator } from "@ui/components/ui/separator";
 import { Switch } from "@ui/components/ui/switch";
 import { cn } from "@ui/lib/utils";
-import { BanIcon, CheckIcon,DoorOpenIcon, Trash2 } from "lucide-react";
+import { BanIcon, CheckIcon, DoorOpenIcon, Trash2 } from "lucide-react";
 import React from "react";
 
 export const PermissionsTab: React.FC = () => {

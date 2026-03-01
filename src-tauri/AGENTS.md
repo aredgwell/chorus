@@ -15,20 +15,21 @@ To auto-fix formatting: `cargo fmt`
 
 ## Code Style
 
-- **Edition:** Rust 2021
-- **Formatting:** Default `rustfmt` settings (no `rustfmt.toml` — uses Rust defaults)
-- **Linting:** Default `cargo clippy` rules, plus `unexpected_cfgs` warn for `cargo-clippy` feature
-- **No foreign keys** in SQLite schema (project convention)
+-   **Edition:** Rust 2021
+-   **Formatting:** Default `rustfmt` settings (no `rustfmt.toml` — uses Rust defaults)
+-   **Linting:** Default `cargo clippy` rules, plus `unexpected_cfgs` warn for `cargo-clippy` feature
+-   **No foreign keys** in SQLite schema (project convention)
 
 ## Migrations
 
 Migration files live in `src-tauri/src/migrations.rs`.
 
 Rules:
-- New migrations must use the **next sequential version number**
-- **Never modify a previous migration** — only append new ones
-- After adding a migration, run `pnpm generate-schema` from the project root to update `SQL_SCHEMA.md`
-- Lint-staged automatically runs schema generation when `migrations.rs` is staged
+
+-   New migrations must use the **next sequential version number**
+-   **Never modify a previous migration** — only append new ones
+-   After adding a migration, run `pnpm generate-schema` from the project root to update `SQL_SCHEMA.md`
+-   Lint-staged automatically runs schema generation when `migrations.rs` is staged
 
 ## Testing
 

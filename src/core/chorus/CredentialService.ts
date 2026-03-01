@@ -6,9 +6,7 @@ import {
 
 const SERVICE = "sh.chorus.app";
 
-export async function getCredential(
-    key: string,
-): Promise<string | undefined> {
+export async function getCredential(key: string): Promise<string | undefined> {
     try {
         const value = await getPassword(SERVICE, key);
         return value ?? undefined;
@@ -17,10 +15,7 @@ export async function getCredential(
     }
 }
 
-export async function setCredential(
-    key: string,
-    value: string,
-): Promise<void> {
+export async function setCredential(key: string, value: string): Promise<void> {
     await setPassword(SERVICE, key, value);
 }
 

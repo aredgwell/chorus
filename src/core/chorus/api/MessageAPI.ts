@@ -325,9 +325,7 @@ export async function fetchMessage(messageId: string): Promise<Message | null> {
     return readMessage(messageRow, messageParts, attachments);
 }
 
-export async function fetchMessageDraft(
-    chatId: string,
-): Promise<string> {
+export async function fetchMessageDraft(chatId: string): Promise<string> {
     const drafts = await db.select<{ content: string }[]>(
         "SELECT content FROM message_drafts WHERE chat_id = ?",
         [chatId],
