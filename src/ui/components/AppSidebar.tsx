@@ -38,6 +38,7 @@ import {
     FolderOpenIcon,
     FolderPlusIcon,
     InboxIcon,
+    LayersIcon,
     PencilIcon,
     Settings,
     SparklesIcon,
@@ -227,12 +228,49 @@ function CollectionsNavigator() {
 
     const ungroupedCount = countForProject("default");
 
+    const totalItemCount =
+        allChats.filter(
+            (c) =>
+                c.projectId !== "quick-chat" && !c.isNewChat,
+        ).length + allNotes.length;
+
     return (
         <SidebarContent className="relative h-full pt-5 flex flex-col">
             <div className="overflow-y-auto flex-1 no-scrollbar">
                 <SidebarGroup className="min-h-0">
                     <SidebarGroupContent>
                         <SidebarMenu className="truncate">
+                            {/* All items */}
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    isActive={
+                                        selectedCollectionId ===
+                                        "__all__"
+                                    }
+                                    onClick={() =>
+                                        setSelectedCollectionId.mutate(
+                                            "__all__",
+                                        )
+                                    }
+                                    className="flex items-center justify-between"
+                                >
+                                    <span className="flex items-center gap-2">
+                                        <LayersIcon
+                                            className="size-4 text-muted-foreground"
+                                            strokeWidth={1.5}
+                                        />
+                                        <span className="text-base">
+                                            All items
+                                        </span>
+                                    </span>
+                                    {totalItemCount > 0 && (
+                                        <span className="text-xs text-muted-foreground">
+                                            {totalItemCount}
+                                        </span>
+                                    )}
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+
                             {/* Collections section */}
                             <div className="pt-2 flex items-center justify-between group/projects">
                                 <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">

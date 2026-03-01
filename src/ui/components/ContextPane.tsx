@@ -150,6 +150,11 @@ function CollectionView({ collectionId }: { collectionId: string }) {
         // Smart but still loading
         collectionChats = [];
         collectionNotes = [];
+    } else if (collectionId === "__all__") {
+        collectionChats = allChats.filter(
+            (c) => c.projectId !== "quick-chat" && !c.isNewChat,
+        );
+        collectionNotes = allNotes;
     } else {
         collectionChats = allChats.filter((c) => c.projectId === collectionId);
         collectionNotes = allNotes.filter((n) => n.projectId === collectionId);
@@ -170,8 +175,13 @@ function CollectionView({ collectionId }: { collectionId: string }) {
     const sortedChats = sortItems(chatItems, sortMode);
 
     const isDefault = collectionId === "default";
-    const headerTitle = isDefault ? "Ungrouped" : undefined;
-    const showCreateButtons = !isSmart;
+    const headerTitle = isAll
+        ? "All items"
+        : isDefault
+          ? "Ungrouped"
+          : undefined;
+    const isAll = collectionId === "__all__";
+    const showCreateButtons = !isSmart && !isAll;
 
     return (
         <div className="flex flex-col h-full bg-sidebar">
