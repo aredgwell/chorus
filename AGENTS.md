@@ -8,8 +8,8 @@
 
 See component-specific guides:
 
-- [`src/AGENT.md`](src/AGENT.md) — TypeScript/React frontend (lint, format, test)
-- [`src-tauri/AGENT.md`](src-tauri/AGENT.md) — Rust/Tauri backend (lint, format, test)
+- [`src/AGENTS.md`](src/AGENTS.md) — TypeScript/React frontend (lint, format, test)
+- [`src-tauri/AGENTS.md`](src-tauri/AGENTS.md) — Rust/Tauri backend (lint, format, test)
 
 ## Development Workflow
 
