@@ -91,8 +91,8 @@ export function useCreateNote() {
             projectId = "default",
         }: { projectId?: string } = {}) => {
             const result = await db.select<{ id: string }[]>(
-                `INSERT INTO notes (id, project_id, created_at, updated_at)
-                 VALUES (lower(hex(randomblob(16))), ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                `INSERT INTO notes (id, project_id, content, created_at, updated_at)
+                 VALUES (lower(hex(randomblob(16))), ?, '# ', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                  RETURNING id`,
                 [projectId],
             );
@@ -115,7 +115,7 @@ export function useCreateNote() {
                     {
                         id: noteId,
                         title: "",
-                        content: "",
+                        content: "# ",
                         projectId: variables.projectId ?? "default",
                         createdAt: now,
                         updatedAt: now,

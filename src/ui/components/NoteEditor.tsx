@@ -44,8 +44,12 @@ export default function NoteEditor() {
     // Debounced save — called by MarkdownEditor on each edit
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const debouncedSave = useCallback(
-        _.debounce((id: string, markdown: string) => {
-            void updateNote.mutateAsync({ noteId: id, content: markdown });
+        _.debounce((id: string, markdown: string, title: string) => {
+            void updateNote.mutateAsync({
+                noteId: id,
+                content: markdown,
+                title,
+            });
         }, 500),
         [updateNote],
     );
@@ -53,7 +57,10 @@ export default function NoteEditor() {
     const handleUpdate = useCallback(
         (markdown: string) => {
             if (noteId) {
-                debouncedSave(noteId, markdown);
+                // Extract first H1 heading as note title
+                const h1Match = /^#\s+(.+)$/m.exec(markdown);
+                const extractedTitle = h1Match ? h1Match[1].trim() : "";
+                debouncedSave(noteId, markdown, extractedTitle);
             }
         },
         [noteId, debouncedSave],
