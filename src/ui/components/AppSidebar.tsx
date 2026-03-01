@@ -1,13 +1,8 @@
 import {
-    type SidebarSortMode,
     useSelectedCollectionId,
     useSelectedTagIds,
     useSetSelectedCollectionId,
     useSetSelectedTagIds,
-    useSidebarContextTab,
-    useSetSidebarContextTab,
-    useSidebarSortMode,
-    useSetSidebarSortMode,
 } from "@core/chorus/api/AppMetadataAPI";
 import { chatQueries, useGetOrCreateNewChat } from "@core/chorus/api/ChatAPI";
 import { formatCost } from "@core/chorus/api/CostAPI";
@@ -22,7 +17,6 @@ import { useDeleteTag, useTags } from "@core/chorus/api/TagAPI";
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
-import { emit } from "@tauri-apps/api/event";
 import {
     Sidebar,
     SidebarContent,
@@ -39,15 +33,12 @@ import {
 } from "@ui/components/ui/tooltip";
 import { projectDisplayName } from "@ui/lib/utils";
 import {
-    ArrowUpDownIcon,
-    CheckIcon,
     FilePlusIcon,
     FolderIcon,
     FolderOpenIcon,
     FolderPlusIcon,
     LayersIcon,
     PencilIcon,
-    Settings,
     SparklesIcon,
     SquarePlusIcon,
     TagIcon,
@@ -59,12 +50,6 @@ import { toast } from "sonner";
 import Droppable from "./Droppable";
 import { useSettings } from "./hooks/useSettings";
 import { Button } from "./ui/button";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
 import {
     Dialog,
     DialogContent,
@@ -176,78 +161,6 @@ function SidebarTagsSection() {
                 </div>
             )}
         </>
-    );
-}
-
-function SidebarFilterBar() {
-    const activeTab = useSidebarContextTab();
-    const setActiveTab = useSetSidebarContextTab();
-    const sortMode = useSidebarSortMode();
-    const setSortMode = useSetSidebarSortMode();
-
-    return (
-        <div className="flex items-center justify-between px-2 py-1.5 border-b shrink-0">
-            <div className="flex items-center gap-0.5">
-                {(
-                    [
-                        { value: "all", label: "All" },
-                        { value: "notes", label: "Notes" },
-                        { value: "chats", label: "Chats" },
-                    ] as const
-                ).map(({ value, label }) => (
-                    <button
-                        key={value}
-                        onClick={() => setActiveTab.mutate(value)}
-                        className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
-                            activeTab === value
-                                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                                : "text-muted-foreground hover:text-foreground"
-                        }`}
-                    >
-                        {label}
-                    </button>
-                ))}
-            </div>
-            <DropdownMenu>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <DropdownMenuTrigger asChild>
-                            <button className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors shrink-0">
-                                <ArrowUpDownIcon
-                                    className="size-3.5"
-                                    strokeWidth={1.5}
-                                />
-                            </button>
-                        </DropdownMenuTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">Sort</TooltipContent>
-                </Tooltip>
-                <DropdownMenuContent align="end">
-                    {(
-                        [
-                            { value: "date", label: "Date" },
-                            { value: "name", label: "Name" },
-                            { value: "type", label: "Type" },
-                        ] as const
-                    ).map((option) => (
-                        <DropdownMenuItem
-                            key={option.value}
-                            onSelect={() =>
-                                setSortMode.mutate(
-                                    option.value as SidebarSortMode,
-                                )
-                            }
-                            className="flex items-center justify-between"
-                        >
-                            {option.label}
-                            {sortMode === option.value && (
-                                <CheckIcon className="size-3.5 ml-2" />
-                            )}
-                        </DropdownMenuItem>
-                    ))}
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
     );
 }
 
@@ -377,31 +290,8 @@ function CollectionsNavigator() {
                             New Chat
                         </TooltipContent>
                     </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <button
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    void emit("open_settings", {
-                                        tab: "general",
-                                    });
-                                }}
-                                className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
-                            >
-                                <Settings
-                                    className="w-4 h-4"
-                                    strokeWidth={1.5}
-                                />
-                            </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                            Settings <kbd>⌘,</kbd>
-                        </TooltipContent>
-                    </Tooltip>
                 </div>
             </div>
-
-            <SidebarFilterBar />
 
             <div className="overflow-y-auto flex-1 no-scrollbar">
                 <SidebarGroup className="min-h-0">

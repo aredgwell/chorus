@@ -1,8 +1,11 @@
 import {
+    type SidebarSortMode,
     useSelectedCollectionId,
     useSelectedTagIds,
     useSidebarContextTab,
+    useSetSidebarContextTab,
     useSidebarSortMode,
+    useSetSidebarSortMode,
 } from "@core/chorus/api/AppMetadataAPI";
 import { type Chat } from "@core/chorus/api/ChatAPI";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
@@ -26,6 +29,8 @@ import {
 } from "@ui/components/ui/tooltip";
 import { projectDisplayName } from "@ui/lib/utils";
 import {
+    ArrowUpDownIcon,
+    CheckIcon,
     FileTextIcon,
     PinIcon,
     PinOffIcon,
@@ -48,7 +53,85 @@ import {
     DialogHeader,
     DialogTitle,
 } from "./ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import RetroSpinner from "./ui/retro-spinner";
+
+function ContextFilterBar() {
+    const activeTab = useSidebarContextTab();
+    const setActiveTab = useSetSidebarContextTab();
+    const sortMode = useSidebarSortMode();
+    const setSortMode = useSetSidebarSortMode();
+
+    return (
+        <div className="flex items-center justify-between px-2 py-1.5 border-b shrink-0">
+            <div className="flex items-center gap-0.5">
+                {(
+                    [
+                        { value: "all", label: "All" },
+                        { value: "notes", label: "Notes" },
+                        { value: "chats", label: "Chats" },
+                    ] as const
+                ).map(({ value, label }) => (
+                    <button
+                        key={value}
+                        onClick={() => setActiveTab.mutate(value)}
+                        className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                            activeTab === value
+                                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                                : "text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
+            <DropdownMenu>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                            <button className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors shrink-0">
+                                <ArrowUpDownIcon
+                                    className="size-3.5"
+                                    strokeWidth={1.5}
+                                />
+                            </button>
+                        </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Sort</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="end">
+                    {(
+                        [
+                            { value: "date", label: "Date" },
+                            { value: "name", label: "Name" },
+                            { value: "type", label: "Type" },
+                        ] as const
+                    ).map((option) => (
+                        <DropdownMenuItem
+                            key={option.value}
+                            onSelect={() =>
+                                setSortMode.mutate(
+                                    option.value as SidebarSortMode,
+                                )
+                            }
+                            className="flex items-center justify-between"
+                        >
+                            {option.label}
+                            {sortMode === option.value && (
+                                <CheckIcon className="size-3.5 ml-2" />
+                            )}
+                        </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
+    );
+}
 
 export function ContextPane() {
     const selectedCollectionId = useSelectedCollectionId();
@@ -177,6 +260,8 @@ function CollectionView({ collectionId }: { collectionId: string }) {
 
     return (
         <div className="flex flex-col h-full bg-sidebar">
+            <ContextFilterBar />
+
             {/* Scrollable items */}
             <div className="flex-1 overflow-y-auto no-scrollbar">
                 {/* Notes section */}
@@ -315,6 +400,8 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
 
     return (
         <div className="flex flex-col h-full bg-sidebar">
+            <ContextFilterBar />
+
             {/* Scrollable items */}
             <div className="flex-1 overflow-y-auto no-scrollbar">
                 {/* Notes section */}
