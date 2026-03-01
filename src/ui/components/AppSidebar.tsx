@@ -333,7 +333,74 @@ function CollectionsNavigator() {
             : "default";
 
     return (
-        <SidebarContent className="relative h-full pt-5 flex flex-col">
+        <SidebarContent className="relative h-full flex flex-col">
+            {/* Toolbar */}
+            <div className="relative bg-sidebar z-10">
+                <div className="flex items-center justify-center gap-1 py-2 px-2 border-b">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() =>
+                                    createNote.mutate({
+                                        projectId: createInProjectId,
+                                    })
+                                }
+                                className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
+                            >
+                                <FilePlusIcon
+                                    className="w-4 h-4"
+                                    strokeWidth={1.5}
+                                />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                            New Note
+                        </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() =>
+                                    getOrCreateNewChat.mutate({
+                                        projectId: createInProjectId,
+                                    })
+                                }
+                                className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
+                            >
+                                <SquarePlusIcon
+                                    className="w-4 h-4"
+                                    strokeWidth={1.5}
+                                />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                            New Chat
+                        </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    void emit("open_settings", {
+                                        tab: "general",
+                                    });
+                                }}
+                                className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
+                            >
+                                <Settings
+                                    className="w-4 h-4"
+                                    strokeWidth={1.5}
+                                />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                            Settings <kbd>⌘,</kbd>
+                        </TooltipContent>
+                    </Tooltip>
+                </div>
+            </div>
+
             <div className="overflow-y-auto flex-1 no-scrollbar">
                 <SidebarGroup className="min-h-0">
                     <SidebarGroupContent>
@@ -443,73 +510,6 @@ function CollectionsNavigator() {
             </div>
 
             <SidebarFilterBar />
-
-            {/* Footer icon row */}
-            <div className="relative bg-sidebar z-10">
-                <div className="flex items-center justify-center gap-1 py-2 px-2 border-t">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <button
-                                onClick={() =>
-                                    createNote.mutate({
-                                        projectId: createInProjectId,
-                                    })
-                                }
-                                className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
-                            >
-                                <FilePlusIcon
-                                    className="w-4 h-4"
-                                    strokeWidth={1.5}
-                                />
-                            </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                            New Note
-                        </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <button
-                                onClick={() =>
-                                    getOrCreateNewChat.mutate({
-                                        projectId: createInProjectId,
-                                    })
-                                }
-                                className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
-                            >
-                                <SquarePlusIcon
-                                    className="w-4 h-4"
-                                    strokeWidth={1.5}
-                                />
-                            </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                            New Chat
-                        </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <button
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    void emit("open_settings", {
-                                        tab: "general",
-                                    });
-                                }}
-                                className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
-                            >
-                                <Settings
-                                    className="w-4 h-4"
-                                    strokeWidth={1.5}
-                                />
-                            </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                            Settings <kbd>⌘,</kbd>
-                        </TooltipContent>
-                    </Tooltip>
-                </div>
-            </div>
         </SidebarContent>
     );
 }
