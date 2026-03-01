@@ -119,7 +119,6 @@ export function TagInput({ itemType, itemId }: TagInputProps) {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        // eslint-disable-next-line jsx-a11y/no-autofocus
                         autoFocus
                     />
                     <div className="tag-suggestions">
