@@ -1,10 +1,15 @@
+import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
+import { useShortcut } from "@ui/hooks/useShortcut";
+import { posthog } from "posthog-js";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { v4 as uuidv4 } from "uuid";
+
 import { Button } from "./ui/button";
+import { DraggableTopBar } from "./ui/draggable-top-bar";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Textarea } from "./ui/textarea";
-import { DraggableTopBar } from "./ui/draggable-top-bar";
 import {
     Select,
     SelectContent,
@@ -12,11 +17,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "./ui/select";
-import { toast } from "sonner";
-import { v4 as uuidv4 } from "uuid";
-import { posthog } from "posthog-js";
-import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
-import { useShortcut } from "@ui/hooks/useShortcut";
+import { Textarea } from "./ui/textarea";
 
 // providers that support system prompts
 const CUSTOM_PROMPT_PROVIDERS = ["anthropic", "openai", "google", "perplexity"];

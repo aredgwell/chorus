@@ -1,8 +1,9 @@
+import { homeDir } from "@tauri-apps/api/path";
 import { exists } from "@tauri-apps/plugin-fs";
 import { Command } from "@tauri-apps/plugin-shell";
-import { MCPServer, Toolset } from "../Toolsets";
+
 import { StdioServerParameters } from "../MCPStdioTauri";
-import { homeDir } from "@tauri-apps/api/path";
+import { MCPServer, Toolset } from "../Toolsets";
 export class MCPMessages extends MCPServer {
     protected getExecutionParameters(
         _config: Record<string, string>,

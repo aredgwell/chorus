@@ -1,12 +1,13 @@
+import { dialogActions } from "@core/infra/DialogStore";
+import { openPath } from "@tauri-apps/plugin-opener";
 import {
     Dialog,
     DialogContent,
     DialogFooter,
     DialogTitle,
 } from "@ui/components/ui/dialog";
+
 import { Button } from "../ui/button";
-import { openPath } from "@tauri-apps/plugin-opener";
-import { dialogActions } from "@core/infra/DialogStore";
 interface ImagePreviewProps {
     src: string;
     alt?: string;

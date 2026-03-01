@@ -1,7 +1,8 @@
-import { IProvider } from "./IProvider";
-import { llmMessageToString, StreamResponseParams } from "../Models";
-import OpenAI from "openai";
 import { SettingsManager } from "@core/utilities/Settings";
+import OpenAI from "openai";
+
+import { llmMessageToString, StreamResponseParams } from "../Models";
+import { IProvider } from "./IProvider";
 
 export class ProviderLMStudio implements IProvider {
     async streamResponse({

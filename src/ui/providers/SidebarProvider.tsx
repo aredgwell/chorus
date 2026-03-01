@@ -1,9 +1,9 @@
-import React from "react";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
-import { cn } from "@ui/lib/utils";
 import { useIsMobile } from "@ui/components/hooks/use-mobile";
-import { useShortcut } from "@ui/hooks/useShortcut";
 import { SidebarContext, SidebarContexts } from "@ui/context/SidebarContext";
+import { useShortcut } from "@ui/hooks/useShortcut";
+import { cn } from "@ui/lib/utils";
+import React from "react";
 
 export const SIDEBAR_COOKIE_NAME = "sidebar:state";
 export const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;

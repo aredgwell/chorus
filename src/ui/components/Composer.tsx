@@ -1,20 +1,20 @@
-import { useState, useRef } from "react";
-import { ArrowUp } from "lucide-react";
+import { MODEL_HANDLE_MAP } from "@core/chorus/api/GroupChatAPI";
 import AutoExpandingTextarea from "@ui/components/AutoExpandingTextarea";
-import { useShortcut } from "@ui/hooks/useShortcut";
-import { ProviderLogo } from "@ui/components/ui/provider-logo";
+import ToolsBox from "@ui/components/ToolsBox";
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from "@ui/components/ui/popover";
+import { ProviderLogo } from "@ui/components/ui/provider-logo";
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from "@ui/components/ui/tooltip";
-import { MODEL_HANDLE_MAP } from "@core/chorus/api/GroupChatAPI";
-import ToolsBox from "@ui/components/ToolsBox";
+import { useShortcut } from "@ui/hooks/useShortcut";
+import { ArrowUp } from "lucide-react";
+import { useRef, useState } from "react";
 
 // NOTE: useRef is used here for (1) textarea focus via Cmd+L and
 // (2) caret position tracking for @mention insertion. Both are standard
@@ -45,8 +45,7 @@ function buildMentionItems(): MentionItem[] {
             // Preset group
             presets.push({
                 handle,
-                displayName:
-                    handle.charAt(0).toUpperCase() + handle.slice(1),
+                displayName: handle.charAt(0).toUpperCase() + handle.slice(1),
                 isPreset: true,
                 presetMembers: modelIdOrIds
                     .map((id) => {
@@ -230,10 +229,7 @@ export default function Composer({ onSend, disabled }: ComposerProps) {
         const cursorPos = textarea?.selectionStart ?? input.length;
         const textBeforeCursor = input.slice(0, cursorPos);
         const textAfterCursor = input.slice(cursorPos);
-        const newTextBefore = textBeforeCursor.replace(
-            /@\w*$/,
-            `@${handle} `,
-        );
+        const newTextBefore = textBeforeCursor.replace(/@\w*$/, `@${handle} `);
         setInput(newTextBefore + textAfterCursor);
         setShowMentionPicker(false);
 
@@ -415,9 +411,7 @@ export default function Composer({ onSend, disabled }: ComposerProps) {
                                     />
                                 </button>
                             </TooltipTrigger>
-                            <TooltipContent>
-                                Send message ↵
-                            </TooltipContent>
+                            <TooltipContent>Send message ↵</TooltipContent>
                         </Tooltip>
                     </div>
                 </div>

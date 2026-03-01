@@ -1,25 +1,26 @@
-import { useEffect, useState } from "react";
+import { AnthropicImporter } from "@core/chorus/importers/AnthropicImporter";
+import { OpenAIImporter } from "@core/chorus/importers/OpenAIImporter";
+import { useDialogStore } from "@core/infra/DialogStore";
+import { DialogDescription } from "@radix-ui/react-dialog";
+import { useQueryClient } from "@tanstack/react-query";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { open } from "@tauri-apps/plugin-dialog";
+import { readFile, readTextFile } from "@tauri-apps/plugin-fs";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { Button } from "@ui/components/ui/button";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from "@ui/components/ui/dialog";
-import { Button } from "@ui/components/ui/button";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { open } from "@tauri-apps/plugin-dialog";
-import { readTextFile, readFile } from "@tauri-apps/plugin-fs";
 import JSZip from "jszip";
-import { AnthropicImporter } from "@core/chorus/importers/AnthropicImporter";
-import { OpenAIImporter } from "@core/chorus/importers/OpenAIImporter";
-import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
-import { Upload, ExternalLink, FileJson, Check } from "lucide-react";
-import { cn } from "../lib/utils";
-import { getCurrentWebview } from "@tauri-apps/api/webview";
-import { DialogDescription } from "@radix-ui/react-dialog";
+import { Check, ExternalLink, FileJson, Upload } from "lucide-react";
 import posthog from "posthog-js";
-import { useDialogStore } from "@core/infra/DialogStore";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+
+import { cn } from "../lib/utils";
 
 interface ImportChatDialogProps {
     provider: "openai" | "anthropic";

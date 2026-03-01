@@ -1,33 +1,77 @@
-import { useEffect, useRef, useState, useCallback, memo, useMemo } from "react";
-import React from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import { Button } from "./ui/button";
+import * as AttachmentsAPI from "@core/chorus/api/AttachmentsAPI";
+import * as ChatAPI from "@core/chorus/api/ChatAPI";
+import * as DraftAPI from "@core/chorus/api/DraftAPI";
+import * as MessageAPI from "@core/chorus/api/MessageAPI";
+import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
+import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
+import { resizeAndStoreFileData } from "@core/chorus/AttachmentsHelpers";
 import {
-    FileTextIcon,
-    PlusIcon,
+    Message,
+    MessagePart,
+    ToolsBlock,
+    UserBlock,
+} from "@core/chorus/ChatState";
+import { ANTHROPIC_IMPORT_PREFIX } from "@core/chorus/importers/AnthropicImporter";
+import { OPENAI_IMPORT_PREFIX } from "@core/chorus/importers/OpenAIImporter";
+import * as Models from "@core/chorus/Models";
+import {
+    getToolsetIcon,
+    UserToolCall,
+    UserToolResult,
+} from "@core/chorus/Toolsets";
+import * as Toolsets from "@core/chorus/Toolsets";
+import { dialogActions } from "@core/infra/DialogStore";
+import { useQuery } from "@tanstack/react-query";
+import { readFile } from "@tauri-apps/plugin-fs";
+import {
+    isPermissionGranted,
+    requestPermission,
+} from "@tauri-apps/plugin-notification";
+import {
+    BrainstormBlockView,
+    ChatBlockView,
+    CompareBlockView,
+} from "@ui/components/MultiChatDeprecationPath";
+import { ProviderLogo } from "@ui/components/ui/provider-logo";
+import useElementScrollDetection from "@ui/hooks/useScrollDetection";
+import { useWaitForAppMetadata } from "@ui/hooks/useWaitForAppMetadata";
+import { filterReplyMessageSets } from "@ui/lib/replyUtils";
+import { projectDisplayName } from "@ui/lib/utils";
+import { sendTauriNotification } from "@ui/lib/utils";
+import * as _ from "lodash";
+import {
+    BellIcon,
     ChevronRightIcon,
+    CircleAlertIcon,
+    CircleXIcon,
+    FileTextIcon,
     FolderOpenIcon,
-    ReplyIcon,
-    SplitIcon,
-    Pencil,
     Loader2,
     Maximize2Icon,
-    RemoveFormattingIcon,
+    Pencil,
+    PlusIcon,
     RefreshCcwIcon,
+    RemoveFormattingIcon,
+    ReplyIcon,
+    SplitIcon,
     StopCircleIcon,
-    CircleXIcon,
-    BellIcon,
-    CircleAlertIcon,
 } from "lucide-react";
-import { ChevronDownIcon, CheckIcon, XIcon, CopyIcon } from "lucide-react";
-import RetroSpinner from "./ui/retro-spinner";
-import { TooltipContent } from "./ui/tooltip";
-import { Tooltip } from "./ui/tooltip";
-import { TooltipTrigger } from "./ui/tooltip";
+import { CheckIcon, ChevronDownIcon, CopyIcon, XIcon } from "lucide-react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
+import { useEditable } from "use-editable";
+
 import { AttachmentPillsList } from "./AttachmentsViews";
-import * as Models from "@core/chorus/Models";
-import { ProviderLogo } from "@ui/components/ui/provider-logo";
+import { EditableTitle } from "./EditableTitle";
+import { ManageModelsBox } from "./ManageModelsBox";
+import { MessageCostDisplay } from "./MessageCostDisplay";
+import { CodeBlock } from "./renderers/CodeBlock";
+import { MessageMarkdown } from "./renderers/MessageMarkdown";
+import { Button } from "./ui/button";
+import { CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
+import { Collapsible } from "./ui/collapsible";
 import {
     Dialog,
     DialogContent,
@@ -35,56 +79,13 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "./ui/dialog";
-import { MessageMarkdown } from "./renderers/MessageMarkdown";
-import {
-    Message,
-    UserBlock,
-    ToolsBlock,
-    MessagePart,
-} from "@core/chorus/ChatState";
+import RetroSpinner from "./ui/retro-spinner";
 import { Separator } from "./ui/separator";
 import { Toggle } from "./ui/toggle";
-import { CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
-import { Collapsible } from "./ui/collapsible";
-import * as _ from "lodash";
-import {
-    getToolsetIcon,
-    UserToolCall,
-    UserToolResult,
-} from "@core/chorus/Toolsets";
-import { CodeBlock } from "./renderers/CodeBlock";
-import * as Toolsets from "@core/chorus/Toolsets";
-import { projectDisplayName } from "@ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import { ManageModelsBox } from "./ManageModelsBox";
-import useElementScrollDetection from "@ui/hooks/useScrollDetection";
-import { dialogActions } from "@core/infra/DialogStore";
-import { ANTHROPIC_IMPORT_PREFIX } from "@core/chorus/importers/AnthropicImporter";
-import { OPENAI_IMPORT_PREFIX } from "@core/chorus/importers/OpenAIImporter";
-import { readFile } from "@tauri-apps/plugin-fs";
-import { filterReplyMessageSets } from "@ui/lib/replyUtils";
-import * as MessageAPI from "@core/chorus/api/MessageAPI";
-import * as ChatAPI from "@core/chorus/api/ChatAPI";
-import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
-import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
-import * as AttachmentsAPI from "@core/chorus/api/AttachmentsAPI";
-import * as DraftAPI from "@core/chorus/api/DraftAPI";
+import { TooltipContent } from "./ui/tooltip";
+import { Tooltip } from "./ui/tooltip";
+import { TooltipTrigger } from "./ui/tooltip";
 import SimpleCopyButton from "./unused/CopyButton";
-import { MessageCostDisplay } from "./MessageCostDisplay";
-import { useWaitForAppMetadata } from "@ui/hooks/useWaitForAppMetadata";
-import { useEditable } from "use-editable";
-import { EditableTitle } from "./EditableTitle";
-import {
-    CompareBlockView,
-    ChatBlockView,
-    BrainstormBlockView,
-} from "@ui/components/MultiChatDeprecationPath";
-import { resizeAndStoreFileData } from "@core/chorus/AttachmentsHelpers";
-import { sendTauriNotification } from "@ui/lib/utils";
-import {
-    isPermissionGranted,
-    requestPermission,
-} from "@tauri-apps/plugin-notification";
 
 function ErrorView({ message }: { message: Message }) {
     if (!message.errorMessage) {
@@ -611,9 +612,7 @@ function ToolCallView({
         toolCallWithResult.namespacedToolName?.startsWith(
             ANTHROPIC_IMPORT_PREFIX,
         ) ||
-        toolCallWithResult.namespacedToolName?.startsWith(
-            OPENAI_IMPORT_PREFIX,
-        );
+        toolCallWithResult.namespacedToolName?.startsWith(OPENAI_IMPORT_PREFIX);
 
     const formattedArgs = (() => {
         const argsList = toolCallWithResult.args as {

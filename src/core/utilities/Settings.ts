@@ -1,10 +1,10 @@
-import { getStore } from "@core/infra/Store";
-import { emit } from "@tauri-apps/api/event";
 import {
+    deleteCredential,
     getCredential,
     setCredential,
-    deleteCredential,
 } from "@core/chorus/CredentialService";
+import { getStore } from "@core/infra/Store";
+import { emit } from "@tauri-apps/api/event";
 
 export interface Settings {
     defaultEditor: string;
@@ -86,9 +86,7 @@ export class SettingsManager {
             await store.set("settings", settingsWithoutKeys);
             await store.save();
 
-            console.log(
-                "Migrated API keys from store to keychain",
-            );
+            console.log("Migrated API keys from store to keychain");
 
             // Also migrate the auth token if present
             try {
@@ -125,10 +123,7 @@ export class SettingsManager {
     /**
      * Set a single API key in the OS keychain.
      */
-    public async setApiKey(
-        provider: string,
-        value: string,
-    ): Promise<void> {
+    public async setApiKey(provider: string, value: string): Promise<void> {
         if (value) {
             await setCredential(`apikey:${provider}`, value);
         } else {

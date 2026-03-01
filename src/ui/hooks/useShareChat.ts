@@ -1,9 +1,9 @@
-import { toast } from "sonner";
+import * as ChatAPI from "@core/chorus/api/ChatAPI";
+import { config } from "@core/config";
 import { fetch } from "@tauri-apps/plugin-http";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useState } from "react";
-import * as ChatAPI from "@core/chorus/api/ChatAPI";
-import { config } from "@core/config";
+import { toast } from "sonner";
 
 export function useShareChat(chatId: string) {
     const chatQuery = ChatAPI.useChat(chatId);

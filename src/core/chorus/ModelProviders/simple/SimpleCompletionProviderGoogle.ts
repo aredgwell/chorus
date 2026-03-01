@@ -1,8 +1,9 @@
 import OpenAI from "openai";
+
 import {
     ISimpleCompletionProvider,
-    SimpleCompletionParams,
     SimpleCompletionMode,
+    SimpleCompletionParams,
 } from "./ISimpleCompletionProvider";
 
 const DEFAULT_TITLE_MODEL = "gemini-2.5-flash";

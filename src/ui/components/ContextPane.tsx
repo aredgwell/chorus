@@ -1,33 +1,50 @@
 import {
-    FileTextIcon,
-    FilePlusIcon,
-    SquarePlusIcon,
-    PinIcon,
-    PinOffIcon,
-    ArrowUpDownIcon,
-    CheckIcon,
-} from "lucide-react";
+    type SidebarSortMode,
+    useSelectedCollectionId,
+    useSetSidebarSortMode,
+    useSidebarSortMode,
+} from "@core/chorus/api/AppMetadataAPI";
+import { type Chat } from "@core/chorus/api/ChatAPI";
+import * as ChatAPI from "@core/chorus/api/ChatAPI";
+import { chatQueries } from "@core/chorus/api/ChatAPI";
+import { formatCost } from "@core/chorus/api/CostAPI";
+import * as NoteAPI from "@core/chorus/api/NoteAPI";
+import { type Note } from "@core/chorus/api/NoteAPI";
+import { noteQueries } from "@core/chorus/api/NoteAPI";
+import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
+import {
+    fetchSmartCollectionItems,
+    type SmartCollectionItem,
+} from "@core/chorus/api/ProjectAPI";
+import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import { useQuery } from "@tanstack/react-query";
 import { SidebarMenuButton } from "@ui/components/ui/sidebar";
-
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from "@ui/components/ui/tooltip";
-import { useNavigate, useLocation } from "react-router-dom";
-
-import React, {
-    useState,
-    useCallback,
-    useEffect,
-    forwardRef,
-} from "react";
+import { projectDisplayName } from "@ui/lib/utils";
+import {
+    ArrowUpDownIcon,
+    CheckIcon,
+    FilePlusIcon,
+    FileTextIcon,
+    PinIcon,
+    PinOffIcon,
+    SparklesIcon,
+    SquarePlusIcon,
+} from "lucide-react";
+import React, { forwardRef, useCallback, useEffect, useState } from "react";
 import { useRef } from "react";
-import { Button } from "./ui/button";
-import { EditableTitle } from "./EditableTitle";
-import { type Chat } from "@core/chorus/api/ChatAPI";
-import { useSettings } from "./hooks/useSettings";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+
+import Draggable from "./Draggable";
+import { EditableTitle } from "./EditableTitle";
+import { useSettings } from "./hooks/useSettings";
+import { type SidebarItem, sortItems } from "./sidebar/ItemListHelpers";
+import { Button } from "./ui/button";
 import {
     Dialog,
     DialogContent,
@@ -36,34 +53,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from "./ui/dialog";
-import * as ChatAPI from "@core/chorus/api/ChatAPI";
-import * as NoteAPI from "@core/chorus/api/NoteAPI";
-import { type Note } from "@core/chorus/api/NoteAPI";
-import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
-import { formatCost } from "@core/chorus/api/CostAPI";
-import RetroSpinner from "./ui/retro-spinner";
-import { projectDisplayName } from "@ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import Draggable from "./Draggable";
-import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { chatQueries } from "@core/chorus/api/ChatAPI";
-import { noteQueries } from "@core/chorus/api/NoteAPI";
-import {
-    useSelectedCollectionId,
-    useSidebarSortMode,
-    useSetSidebarSortMode,
-    type SidebarSortMode,
-} from "@core/chorus/api/AppMetadataAPI";
-import {
-    type SidebarItem,
-    sortItems,
-} from "./sidebar/ItemListHelpers";
+import RetroSpinner from "./ui/retro-spinner";
 
 export function ContextPane() {
     const selectedCollectionId = useSelectedCollectionId();
@@ -84,6 +80,7 @@ type ContextTab = "all" | "notes" | "chats";
 function CollectionView({ collectionId }: { collectionId: string }) {
     const chatsQuery = useQuery(chatQueries.list());
     const notesQuery = useQuery(noteQueries.list());
+    const projectsQuery = useQuery(ProjectAPI.projectQueries.list());
     const location = useLocation();
     const currentChatId = location.pathname.startsWith("/chat/")
         ? location.pathname.split("/").pop()!
@@ -97,6 +94,20 @@ function CollectionView({ collectionId }: { collectionId: string }) {
     const [activeTab, setActiveTab] = useState<ContextTab>("all");
     const sortMode = useSidebarSortMode();
     const setSortMode = useSetSidebarSortMode();
+
+    // Detect smart collection
+    const project = (projectsQuery.data ?? []).find(
+        (p) => p.id === collectionId,
+    );
+    const isSmart = project?.collectionType === "smart";
+    const smartRules = project?.smartCollectionRules;
+
+    // Fetch smart collection items when applicable
+    const smartItemsQuery = useQuery({
+        queryKey: ["smartCollectionItems", collectionId, smartRules] as const,
+        queryFn: () => fetchSmartCollectionItems(smartRules!),
+        enabled: isSmart && !!smartRules,
+    });
 
     if (chatsQuery.isPending || notesQuery.isPending) {
         return (
@@ -117,13 +128,32 @@ function CollectionView({ collectionId }: { collectionId: string }) {
     const allChats = chatsQuery.data ?? [];
     const allNotes = notesQuery.data ?? [];
 
-    // Filter items for this collection (show all chats including new/empty ones)
-    const collectionChats = allChats.filter(
-        (c) => c.projectId === collectionId,
-    );
-    const collectionNotes = allNotes.filter(
-        (n) => n.projectId === collectionId,
-    );
+    // For smart collections, filter by matching item IDs; for manual, by projectId
+    let collectionChats: Chat[];
+    let collectionNotes: Note[];
+
+    if (isSmart && smartItemsQuery.data) {
+        const smartItems = smartItemsQuery.data;
+        const smartChatIds = new Set(
+            smartItems
+                .filter((i: SmartCollectionItem) => i.itemType === "chat")
+                .map((i: SmartCollectionItem) => i.itemId),
+        );
+        const smartNoteIds = new Set(
+            smartItems
+                .filter((i: SmartCollectionItem) => i.itemType === "note")
+                .map((i: SmartCollectionItem) => i.itemId),
+        );
+        collectionChats = allChats.filter((c) => smartChatIds.has(c.id));
+        collectionNotes = allNotes.filter((n) => smartNoteIds.has(n.id));
+    } else if (isSmart) {
+        // Smart but still loading
+        collectionChats = [];
+        collectionNotes = [];
+    } else {
+        collectionChats = allChats.filter((c) => c.projectId === collectionId);
+        collectionNotes = allNotes.filter((n) => n.projectId === collectionId);
+    }
 
     // Build sidebar items
     const noteItems: SidebarItem[] = collectionNotes.map((note) => ({
@@ -141,14 +171,12 @@ function CollectionView({ collectionId }: { collectionId: string }) {
 
     const isDefault = collectionId === "default";
     const headerTitle = isDefault ? "Ungrouped" : undefined;
+    const showCreateButtons = !isSmart;
 
     return (
         <div className="flex flex-col h-full bg-sidebar">
             {/* Header */}
-            <CollectionHeader
-                collectionId={collectionId}
-                title={headerTitle}
-            />
+            <CollectionHeader collectionId={collectionId} title={headerTitle} />
 
             {/* Tabs + sort */}
             <div className="flex items-center justify-between px-2 pt-1.5 pb-1 border-b">
@@ -223,33 +251,33 @@ function CollectionView({ collectionId }: { collectionId: string }) {
                             <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
                                 Notes
                             </div>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        className="text-muted-foreground hover:text-foreground p-1 pr-3 rounded"
-                                        onClick={() =>
-                                            createNote.mutate({
-                                                projectId: collectionId,
-                                            })
-                                        }
-                                    >
-                                        <FilePlusIcon
-                                            className="size-3.5"
-                                            strokeWidth={1.5}
-                                        />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent>New Note</TooltipContent>
-                            </Tooltip>
+                            {showCreateButtons && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            className="text-muted-foreground hover:text-foreground p-1 pr-3 rounded"
+                                            onClick={() =>
+                                                createNote.mutate({
+                                                    projectId: collectionId,
+                                                })
+                                            }
+                                        >
+                                            <FilePlusIcon
+                                                className="size-3.5"
+                                                strokeWidth={1.5}
+                                            />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>New Note</TooltipContent>
+                                </Tooltip>
+                            )}
                         </div>
                         {sortedNotes.length > 0 ? (
                             sortedNotes.map((item) => (
                                 <NoteListItem
                                     key={item.data.id + "-ctx"}
                                     note={item.data as Note}
-                                    isActive={
-                                        currentNoteId === item.data.id
-                                    }
+                                    isActive={currentNoteId === item.data.id}
                                 />
                             ))
                         ) : (
@@ -267,33 +295,33 @@ function CollectionView({ collectionId }: { collectionId: string }) {
                             <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
                                 Chats
                             </div>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        className="text-muted-foreground hover:text-foreground p-1 pr-3 rounded"
-                                        onClick={() =>
-                                            getOrCreateNewChat.mutate({
-                                                projectId: collectionId,
-                                            })
-                                        }
-                                    >
-                                        <SquarePlusIcon
-                                            className="size-3.5"
-                                            strokeWidth={1.5}
-                                        />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent>New Chat</TooltipContent>
-                            </Tooltip>
+                            {showCreateButtons && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            className="text-muted-foreground hover:text-foreground p-1 pr-3 rounded"
+                                            onClick={() =>
+                                                getOrCreateNewChat.mutate({
+                                                    projectId: collectionId,
+                                                })
+                                            }
+                                        >
+                                            <SquarePlusIcon
+                                                className="size-3.5"
+                                                strokeWidth={1.5}
+                                            />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>New Chat</TooltipContent>
+                                </Tooltip>
+                            )}
                         </div>
                         {sortedChats.length > 0 ? (
                             sortedChats.map((item) => (
                                 <ChatListItem
                                     key={item.data.id + "-ctx"}
                                     chat={item.data as Chat}
-                                    isActive={
-                                        currentChatId === item.data.id
-                                    }
+                                    isActive={currentChatId === item.data.id}
                                 />
                             ))
                         ) : (
@@ -320,6 +348,7 @@ function CollectionHeader({
     const project = (projectsQuery.data ?? []).find(
         (p) => p.id === collectionId,
     );
+    const isSmart = project?.collectionType === "smart";
     const displayTitle =
         title ?? projectDisplayName(project?.name ?? "Collection");
 
@@ -328,7 +357,13 @@ function CollectionHeader({
             data-tauri-drag-region
             className="h-[44px] flex items-center justify-end px-3 border-b shrink-0"
         >
-            <span className="text-sm font-medium truncate">
+            <span className="text-sm font-medium truncate flex items-center gap-1.5">
+                {isSmart && (
+                    <SparklesIcon
+                        className="size-3.5 text-muted-foreground shrink-0"
+                        strokeWidth={1.5}
+                    />
+                )}
                 {displayTitle}
             </span>
         </div>
@@ -372,16 +407,9 @@ const SplitOptimized = forwardRef<
 
 // ─── NoteListItem ───────────────────────────────────────────────────────────
 
-const deleteNoteDialogId = (noteId: string) =>
-    `delete-note-dialog-${noteId}`;
+const deleteNoteDialogId = (noteId: string) => `delete-note-dialog-${noteId}`;
 
-function NoteListItem({
-    note,
-    isActive,
-}: {
-    note: Note;
-    isActive: boolean;
-}) {
+function NoteListItem({ note, isActive }: { note: Note; isActive: boolean }) {
     const navigate = useNavigate();
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const renameNote = NoteAPI.useRenameNote();
@@ -480,10 +508,7 @@ function NoteListItem({
             </Draggable>
 
             {/* Delete confirmation dialog */}
-            <Dialog
-                id={deleteNoteDialogId(note.id)}
-                open={isDeleteDialogOpen}
-            >
+            <Dialog id={deleteNoteDialogId(note.id)} open={isDeleteDialogOpen}>
                 <DialogContent className="sm:max-w-md p-5">
                     <DialogHeader>
                         <DialogTitle>
@@ -751,8 +776,7 @@ function ChatListItem({ chat, isActive }: { chat: Chat; isActive: boolean }) {
                             tabIndex={1}
                             ref={deleteConfirmButtonRef}
                         >
-                            Delete{" "}
-                            <span className="ml-1 text-xs">⌘↵</span>
+                            Delete <span className="ml-1 text-xs">⌘↵</span>
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -761,11 +785,8 @@ function ChatListItem({ chat, isActive }: { chat: Chat; isActive: boolean }) {
     );
 }
 
-const ChatLoadingIndicator = React.memo(
-    ({ chatId }: { chatId: string }) => {
-        const chatIsLoading =
-            useQuery(ChatAPI.chatIsLoadingQueries.detail(chatId)).data ??
-            false;
-        return chatIsLoading ? <RetroSpinner className="ml-2" /> : null;
-    },
-);
+const ChatLoadingIndicator = React.memo(({ chatId }: { chatId: string }) => {
+    const chatIsLoading =
+        useQuery(ChatAPI.chatIsLoadingQueries.detail(chatId)).data ?? false;
+    return chatIsLoading ? <RetroSpinner className="ml-2" /> : null;
+});

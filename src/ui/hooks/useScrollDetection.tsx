@@ -3,7 +3,7 @@
  * https://app.chorus.sh/chats/read-only/71d2abed-1434-4c76-b34f-9c97f8010296
  */
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const SCROLLBAR_THICKNESS_PX = 7; // matches styling in App.css
 const MARGIN_OF_ERROR_PX = 6;

@@ -121,7 +121,9 @@ export async function exportChatAsMarkdown(chatId: string): Promise<string> {
 
     lines.push(`# ${chat.title}`);
     lines.push("");
-    lines.push(`_Exported from Chorus on ${new Date().toISOString().slice(0, 10)}_`);
+    lines.push(
+        `_Exported from Chorus on ${new Date().toISOString().slice(0, 10)}_`,
+    );
     lines.push("");
 
     for (const message of chat.messages) {

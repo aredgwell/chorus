@@ -1,0 +1,165 @@
+import {
+    type ItemType,
+    type Tag,
+    useAddTagToItem,
+    useCreateTag,
+    useItemTags,
+    useRemoveTagFromItem,
+    useTags,
+} from "@core/chorus/api/TagAPI";
+import { TagIcon, XIcon } from "lucide-react";
+import { useState } from "react";
+
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+
+interface TagInputProps {
+    itemType: ItemType;
+    itemId: string;
+}
+
+/** Compact tag chips with popover for adding tags */
+export function TagInput({ itemType, itemId }: TagInputProps) {
+    const [open, setOpen] = useState(false);
+    const [input, setInput] = useState("");
+
+    const allTagsQuery = useTags();
+    const itemTagsQuery = useItemTags(itemType, itemId);
+    const createTag = useCreateTag();
+    const addTag = useAddTagToItem();
+    const removeTag = useRemoveTagFromItem();
+
+    const allTags = allTagsQuery.data ?? [];
+    const itemTags = itemTagsQuery.data ?? [];
+    const itemTagIds = new Set(itemTags.map((t) => t.id));
+
+    // Filter suggestions: tags not already attached, matching input
+    const suggestions = allTags.filter(
+        (t) =>
+            !itemTagIds.has(t.id) &&
+            t.name.toLowerCase().includes(input.toLowerCase()),
+    );
+
+    const inputMatchesExisting = allTags.some(
+        (t) => t.name.toLowerCase() === input.trim().toLowerCase(),
+    );
+
+    const handleAddExistingTag = (tag: Tag) => {
+        void addTag.mutateAsync({ tagId: tag.id, itemType, itemId });
+        setInput("");
+    };
+
+    const handleCreateAndAdd = async () => {
+        const name = input.trim();
+        if (!name) return;
+        const tagId = await createTag.mutateAsync({ name });
+        void addTag.mutateAsync({ tagId, itemType, itemId });
+        setInput("");
+    };
+
+    const handleRemoveTag = (tagId: string) => {
+        void removeTag.mutateAsync({ tagId, itemType, itemId });
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            const trimmed = input.trim();
+            if (!trimmed) return;
+
+            // If exact match exists, attach it
+            const exact = allTags.find(
+                (t) => t.name.toLowerCase() === trimmed.toLowerCase(),
+            );
+            if (exact) {
+                handleAddExistingTag(exact);
+            } else {
+                void handleCreateAndAdd();
+            }
+        }
+        if (e.key === "Escape") {
+            setOpen(false);
+        }
+    };
+
+    return (
+        <div className="tag-input-container">
+            {itemTags.map((tag) => (
+                <span key={tag.id} className="tag-chip">
+                    {tag.color && (
+                        <span
+                            className="tag-chip-dot"
+                            style={{ backgroundColor: tag.color }}
+                        />
+                    )}
+                    <span className="tag-chip-name">{tag.name}</span>
+                    <button
+                        type="button"
+                        className="tag-chip-remove"
+                        onClick={() => handleRemoveTag(tag.id)}
+                    >
+                        <XIcon size={10} />
+                    </button>
+                </span>
+            ))}
+
+            <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                    <button type="button" className="tag-add-btn">
+                        <TagIcon size={12} />
+                    </button>
+                </PopoverTrigger>
+                <PopoverContent
+                    align="start"
+                    className="w-52 p-2"
+                    onOpenAutoFocus={(e) => e.preventDefault()}
+                >
+                    <input
+                        type="text"
+                        className="tag-search-input"
+                        placeholder="Add tag..."
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        autoFocus
+                    />
+                    <div className="tag-suggestions">
+                        {suggestions.map((tag) => (
+                            <button
+                                key={tag.id}
+                                type="button"
+                                className="tag-suggestion-item"
+                                onClick={() => handleAddExistingTag(tag)}
+                            >
+                                {tag.color && (
+                                    <span
+                                        className="tag-chip-dot"
+                                        style={{
+                                            backgroundColor: tag.color,
+                                        }}
+                                    />
+                                )}
+                                {tag.name}
+                            </button>
+                        ))}
+                        {input.trim() && !inputMatchesExisting && (
+                            <button
+                                type="button"
+                                className="tag-suggestion-item tag-suggestion-create"
+                                onClick={() => void handleCreateAndAdd()}
+                            >
+                                Create &ldquo;{input.trim()}&rdquo;
+                            </button>
+                        )}
+                        {!suggestions.length &&
+                            !input.trim() &&
+                            allTags.length === 0 && (
+                                <div className="tag-suggestion-empty">
+                                    Type to create your first tag
+                                </div>
+                            )}
+                    </div>
+                </PopoverContent>
+            </Popover>
+        </div>
+    );
+}

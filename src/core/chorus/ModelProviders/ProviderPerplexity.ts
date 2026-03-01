@@ -1,9 +1,10 @@
-import OpenAI from "openai";
-import { StreamResponseParams } from "../Models";
-import { IProvider } from "./IProvider";
+import OpenAICompletionsAPIUtils from "@core/chorus/OpenAICompletionsAPIUtils";
 import { canProceedWithProvider } from "@core/utilities/ProxyUtils";
 import _ from "lodash";
-import OpenAICompletionsAPIUtils from "@core/chorus/OpenAICompletionsAPIUtils";
+import OpenAI from "openai";
+
+import { StreamResponseParams } from "../Models";
+import { IProvider } from "./IProvider";
 
 export class ProviderPerplexity implements IProvider {
     async streamResponse({

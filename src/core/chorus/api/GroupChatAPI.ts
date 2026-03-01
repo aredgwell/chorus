@@ -1,38 +1,34 @@
+import { getApiKeys } from "@core/chorus/api/AppMetadataAPI";
+import { chatQueries } from "@core/chorus/api/ChatAPI";
+import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
+import { useGetToolsets } from "@core/chorus/api/ToolsetsAPI";
+import { db } from "@core/chorus/DB";
+import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
+import {
+    getChatFormatPrompt,
+    getConductorPrompt,
+    getConductorReminder,
+    getNonConductorPrompt,
+} from "@core/chorus/gc-prototype/PromptsGC";
+import {
+    LLMMessage,
+    ModelConfig,
+    streamResponse,
+    UsageData,
+} from "@core/chorus/Models";
+import { simpleLLM } from "@core/chorus/simpleLLM";
+import { UserTool, UserToolCall, UserToolResult } from "@core/chorus/Toolsets";
+import { ToolsetsManager } from "@core/chorus/ToolsetsManager";
+import { UpdateQueue } from "@core/chorus/UpdateQueue";
 import {
     QueryClient,
     useMutation,
     useQuery,
     useQueryClient,
 } from "@tanstack/react-query";
+import { invoke } from "@tauri-apps/api/core";
 import { produce } from "immer";
 import { v4 as uuidv4 } from "uuid";
-import { db } from "@core/chorus/DB";
-import { invoke } from "@tauri-apps/api/core";
-import { chatQueries } from "@core/chorus/api/ChatAPI";
-import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
-import { getApiKeys } from "@core/chorus/api/AppMetadataAPI";
-import {
-    LLMMessage,
-    ModelConfig,
-    UsageData,
-    streamResponse,
-} from "@core/chorus/Models";
-import {
-    UserTool,
-    UserToolCall,
-    UserToolResult,
-} from "@core/chorus/Toolsets";
-import { ToolsetsManager } from "@core/chorus/ToolsetsManager";
-import { useGetToolsets } from "@core/chorus/api/ToolsetsAPI";
-import { simpleLLM } from "@core/chorus/simpleLLM";
-import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
-import {
-    getChatFormatPrompt,
-    getNonConductorPrompt,
-    getConductorPrompt,
-    getConductorReminder,
-} from "@core/chorus/gc-prototype/PromptsGC";
-import { UpdateQueue } from "@core/chorus/UpdateQueue";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -92,7 +88,9 @@ function readGCMessage(row: GCMessageDBRow): GCMessage {
 // DB helpers (private)
 // ---------------------------------------------------------------------------
 
-export async function fetchGCMainMessages(chatId: string): Promise<GCMessage[]> {
+export async function fetchGCMainMessages(
+    chatId: string,
+): Promise<GCMessage[]> {
     const rows = await db.select<GCMessageDBRow[]>(
         `SELECT * FROM gc_messages
          WHERE chat_id = ? AND thread_root_message_id IS NULL
@@ -273,10 +271,7 @@ async function incrementConductorTurn(
     });
 }
 
-async function clearConductor(
-    chatId: string,
-    scopeId?: string,
-): Promise<void> {
+async function clearConductor(chatId: string, scopeId?: string): Promise<void> {
     await db.execute(
         `UPDATE gc_conductors
          SET is_active = 0
@@ -368,9 +363,7 @@ export async function encodeConversation(
     const result: LLMMessage[] = [];
 
     const allConfigs = await ModelsAPI.fetchModelConfigs();
-    const modelConfig = allConfigs.find(
-        (c) => c.modelId === povModelConfigId,
-    );
+    const modelConfig = allConfigs.find((c) => c.modelId === povModelConfigId);
     const modelName = modelConfig?.displayName || povModelConfigId;
 
     // System prompts explaining the group chat format
@@ -403,7 +396,9 @@ export async function encodeConversation(
             (m) => m.id === options.threadRootMessageId,
         );
         const mainUpToRoot =
-            rootIndex >= 0 ? mainMessages.slice(0, rootIndex + 1) : mainMessages;
+            rootIndex >= 0
+                ? mainMessages.slice(0, rootIndex + 1)
+                : mainMessages;
         const threadReplies = options.threadMessages.filter(
             (m) => !m.isDeleted,
         );
@@ -426,10 +421,7 @@ export async function encodeConversation(
                     toolResults,
                 });
             } catch {
-                console.warn(
-                    "Failed to parse tool_result message",
-                    message.id,
-                );
+                console.warn("Failed to parse tool_result message", message.id);
             }
         } else if (message.modelConfigId === povModelConfigId) {
             result.push({
@@ -504,9 +496,7 @@ async function getRespondingModels(text: string): Promise<{
                 const config = allConfigs.find((c) => c.modelId === id);
                 return config ? { id, name: config.displayName } : undefined;
             })
-            .filter(
-                (m): m is { id: string; name: string } => m !== undefined,
-            );
+            .filter((m): m is { id: string; name: string } => m !== undefined);
         return { models, multiplier };
     }
 
@@ -539,8 +529,15 @@ async function streamGCResponse(params: {
     tools?: UserTool[];
     cacheKey?: readonly string[];
 }): Promise<{ toolCalls?: UserToolCall[] }> {
-    const { chatId, messageId, modelConfig, conversation, queryClient, scopeId, tools } =
-        params;
+    const {
+        chatId,
+        messageId,
+        modelConfig,
+        conversation,
+        queryClient,
+        scopeId,
+        tools,
+    } = params;
     const effectiveCacheKey = params.cacheKey ?? gcMessageKeys.main(chatId);
     const apiKeys = await getApiKeys();
     const scope = scopeId ?? "main";
@@ -646,11 +643,7 @@ async function streamGCResponse(params: {
         return { toolCalls: resultToolCalls };
     } catch (err) {
         UpdateQueue.getInstance().closeUpdateStream(streamKey);
-        modelThinkingTracker.stopThinking(
-            modelConfig.modelId,
-            chatId,
-            scope,
-        );
+        modelThinkingTracker.stopThinking(modelConfig.modelId, chatId, scope);
         throw err;
     }
 }
@@ -893,13 +886,9 @@ async function orchestrateConductorSession(params: {
 
         // Pre-insert empty conductor message
         const messageId = uuidv4().toLowerCase();
-        await insertGCMessage(
-            chatId,
-            messageId,
-            "",
-            conductorModelId,
-            { threadRootMessageId },
-        );
+        await insertGCMessage(chatId, messageId, "", conductorModelId, {
+            threadRootMessageId,
+        });
 
         // Optimistically add to cache
         queryClient.setQueryData(
@@ -1035,7 +1024,8 @@ export function useGCThreadCounts(chatId: string) {
 export function useGCConductor(chatId: string, scopeId?: string) {
     return useQuery({
         queryKey: gcMessageKeys.conductor(chatId, scopeId),
-        queryFn: () => fetchActiveConductor(chatId, scopeId),
+        queryFn: async () =>
+            (await fetchActiveConductor(chatId, scopeId)) ?? null,
         enabled: !!chatId,
     });
 }
@@ -1159,9 +1149,7 @@ export function useDeleteGCMessage() {
                 queryOptions.queryKey,
                 produce(previous, (draft: GCMessage[] | undefined) => {
                     if (!draft) return;
-                    const msg = draft.find(
-                        (m) => m.id === variables.messageId,
-                    );
+                    const msg = draft.find((m) => m.id === variables.messageId);
                     if (msg) msg.isDeleted = true;
                 }),
             );
@@ -1209,9 +1197,7 @@ export function useRestoreGCMessage() {
                 queryOptions.queryKey,
                 produce(previous, (draft: GCMessage[] | undefined) => {
                     if (!draft) return;
-                    const msg = draft.find(
-                        (m) => m.id === variables.messageId,
-                    );
+                    const msg = draft.find((m) => m.id === variables.messageId);
                     if (msg) msg.isDeleted = false;
                 }),
             );
@@ -1260,9 +1246,7 @@ export function useRegenerateGCMessage() {
                 (c) => c.modelId === modelConfigId,
             );
             if (!modelConfig) {
-                throw new Error(
-                    `Model config not found for: ${modelConfigId}`,
-                );
+                throw new Error(`Model config not found for: ${modelConfigId}`);
             }
 
             // Resolve tools
@@ -1303,8 +1287,7 @@ export function useGenerateAIResponses() {
             // Check for /conduct command
             if (userMessage.toLowerCase().startsWith("/conduct")) {
                 const { models } = await getRespondingModels(userMessage);
-                const conductorModelId =
-                    models[0]?.id ?? DEFAULT_MODEL_ID;
+                const conductorModelId = models[0]?.id ?? DEFAULT_MODEL_ID;
                 const toolsets = await getToolsets();
                 const tools = toolsets.flatMap((t) => t.listTools());
 
@@ -1338,10 +1321,7 @@ export function useGenerateAIResponses() {
 
             // Check if there's an active conductor
             const scopeId = threadRootMessageId;
-            const activeConductor = await fetchActiveConductor(
-                chatId,
-                scopeId,
-            );
+            const activeConductor = await fetchActiveConductor(chatId, scopeId);
             if (activeConductor) {
                 const toolsets = await getToolsets();
                 const tools = toolsets.flatMap((t) => t.listTools());
@@ -1522,10 +1502,10 @@ ${firstUserMessage.text}
                 .slice(0, 40)
                 .replace(/["']/g, "");
             if (cleanTitle) {
-                await db.execute(
-                    "UPDATE chats SET title = $1 WHERE id = $2",
-                    [cleanTitle, chatId],
-                );
+                await db.execute("UPDATE chats SET title = $1 WHERE id = $2", [
+                    cleanTitle,
+                    chatId,
+                ]);
             }
             return { skipped: false };
         },

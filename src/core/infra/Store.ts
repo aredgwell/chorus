@@ -1,4 +1,4 @@
-import { Store, load } from "@tauri-apps/plugin-store";
+import { load, Store } from "@tauri-apps/plugin-store";
 
 /**
  * Loads a store from the app's data directory, which is in

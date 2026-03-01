@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { type ThemeName, type ThemeMode, themes } from "@ui/themes";
 import { SettingsManager } from "@core/utilities/Settings";
 import { invoke } from "@tauri-apps/api/core";
 import { ThemeContext } from "@ui/context/ThemeContext";
+import { type ThemeMode, type ThemeName, themes } from "@ui/themes";
+import { useEffect, useState } from "react";
 
 export function ThemeProvider({
     children,

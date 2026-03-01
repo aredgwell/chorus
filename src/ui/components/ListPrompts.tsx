@@ -1,8 +1,23 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
+import type { ModelConfig } from "@core/chorus/Models";
+import { dialogActions } from "@core/infra/DialogStore";
+import {
+    MixIcon,
+    Pencil2Icon,
+    PlusIcon,
+    TrashIcon,
+} from "@radix-ui/react-icons";
 import { Button } from "@ui/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@ui/components/ui/dialog";
 import { DraggableTopBar } from "@ui/components/ui/draggable-top-bar";
-import { toast } from "sonner";
+import { Input } from "@ui/components/ui/input";
+import { Label } from "@ui/components/ui/label";
 import {
     Table,
     TableBody,
@@ -11,25 +26,10 @@ import {
     TableHeader,
     TableRow,
 } from "@ui/components/ui/table";
-import {
-    PlusIcon,
-    Pencil2Icon,
-    TrashIcon,
-    MixIcon,
-} from "@radix-ui/react-icons";
-import type { ModelConfig } from "@core/chorus/Models";
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@ui/components/ui/dialog";
-import { Input } from "@ui/components/ui/input";
-import { Label } from "@ui/components/ui/label";
 import { Textarea } from "@ui/components/ui/textarea";
-import { dialogActions } from "@core/infra/DialogStore";
-import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const editPromptDialogId = (promptId: string) =>
     `edit-prompt-dialog-${promptId}`;

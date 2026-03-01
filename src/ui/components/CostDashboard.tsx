@@ -1,9 +1,9 @@
 import {
-    useCostByModel,
+    formatCost,
     useCostByDay,
+    useCostByModel,
     useCostByProject,
     useTotalCost,
-    formatCost,
 } from "@core/chorus/api/CostAPI";
 import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
 import { ProviderLogo } from "@ui/components/ui/provider-logo";
@@ -51,10 +51,7 @@ export function CostDashboard() {
             .reduce((sum, d) => sum + d.total_cost, 0);
     })();
 
-    const last30DaysCost = costByDay.reduce(
-        (sum, d) => sum + d.total_cost,
-        0,
-    );
+    const last30DaysCost = costByDay.reduce((sum, d) => sum + d.total_cost, 0);
 
     if (totalCost === undefined) {
         return (

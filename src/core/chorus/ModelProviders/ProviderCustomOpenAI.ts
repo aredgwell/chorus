@@ -1,8 +1,9 @@
+import OpenAICompletionsAPIUtils from "@core/chorus/OpenAICompletionsAPIUtils";
+import { SettingsManager } from "@core/utilities/Settings";
 import OpenAI from "openai";
+
 import { StreamResponseParams } from "../Models";
 import { IProvider } from "./IProvider";
-import { SettingsManager } from "@core/utilities/Settings";
-import OpenAICompletionsAPIUtils from "@core/chorus/OpenAICompletionsAPIUtils";
 
 export class ProviderCustomOpenAI implements IProvider {
     async streamResponse({
@@ -45,7 +46,8 @@ export class ProviderCustomOpenAI implements IProvider {
         }
 
         const streamParams: OpenAI.ChatCompletionCreateParamsStreaming = {
-            model: modelConfig.apiModelName ?? modelConfig.modelId.split("::")[1],
+            model:
+                modelConfig.apiModelName ?? modelConfig.modelId.split("::")[1],
             messages,
             stream: true,
             ...(hasFunctionSupport && {

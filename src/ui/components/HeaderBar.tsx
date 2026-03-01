@@ -1,6 +1,6 @@
-import { ReactNode } from "react";
 import { SidebarTrigger } from "@ui/components/ui/sidebar";
 import { useSidebar } from "@ui/hooks/useSidebar";
+import { ReactNode } from "react";
 
 interface HeaderBarProps {
     /** Actions for the right side (buttons, menus, etc.) */
@@ -22,9 +22,7 @@ export function HeaderBar({ actions }: HeaderBarProps) {
             active:border-border!"
         >
             <div className="flex items-center gap-1">
-                {!isSidebarOpen && (
-                    <SidebarTrigger className="size-4! ml-2" />
-                )}
+                {!isSidebarOpen && <SidebarTrigger className="size-4! ml-2" />}
             </div>
 
             {actions && (

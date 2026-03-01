@@ -1,13 +1,14 @@
+import { allowedExtensions, AttachmentType } from "@core/chorus/Models";
+import Firecrawl from "@mendable/firecrawl-js";
+import { invoke } from "@tauri-apps/api/core";
 import { appDataDir } from "@tauri-apps/api/path";
 import { mkdir, readFile } from "@tauri-apps/plugin-fs";
-import { allowedExtensions, AttachmentType } from "@core/chorus/Models";
-import { v4 as uuidv4 } from "uuid";
-import Firecrawl from "@mendable/firecrawl-js";
 import { fileTypeFromBuffer } from "file-type";
-import path from "path";
 import mime from "mime-types";
-import { invoke } from "@tauri-apps/api/core";
+import path from "path";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import { v4 as uuidv4 } from "uuid";
+
 import { Attachment } from "./api/AttachmentsAPI";
 
 // Initialize PDF.js worker

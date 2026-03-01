@@ -1,6 +1,7 @@
-import * as React from "react";
+import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { useDialogStore, dialogActions } from "@core/infra/DialogStore";
+import * as React from "react";
+
 import { cn } from "../../lib/utils";
 
 const Dialog = DialogPrimitive.Root;
@@ -139,13 +140,13 @@ AppDialog.displayName = Dialog.displayName;
 
 export {
     AppDialog as Dialog,
-    DialogPortal,
-    DialogOverlay,
     DialogClose,
-    DialogTrigger,
     DialogContent,
-    DialogHeader,
-    DialogFooter,
-    DialogTitle,
     DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogOverlay,
+    DialogPortal,
+    DialogTitle,
+    DialogTrigger,
 };

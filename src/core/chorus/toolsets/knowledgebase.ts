@@ -1,8 +1,8 @@
-import { Toolset } from "@core/chorus/Toolsets";
+import { fetchNote } from "@core/chorus/api/NoteAPI";
+import { escapeFtsQuery } from "@core/chorus/api/SearchAPI";
 import { db } from "@core/chorus/DB";
 import { findSimilarItems, SimilarItem } from "@core/chorus/EmbeddingService";
-import { escapeFtsQuery } from "@core/chorus/api/SearchAPI";
-import { fetchNote } from "@core/chorus/api/NoteAPI";
+import { Toolset } from "@core/chorus/Toolsets";
 
 const NOTE_CONTENT_CAP = 2000;
 

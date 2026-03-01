@@ -1,18 +1,18 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import * as db from "@core/chorus/DB";
-import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
-import * as gcdb from "@core/chorus/gc-prototype/DBGC";
-import { v4 as uuidv4 } from "uuid";
-import { chatQueries } from "@core/chorus/api/ChatAPI";
 import { getApiKeys } from "@core/chorus/api/AppMetadataAPI";
-import { LLMMessage, ModelConfig, streamResponse } from "@core/chorus/Models";
+import { chatQueries } from "@core/chorus/api/ChatAPI";
+import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
+import * as db from "@core/chorus/DB";
+import * as gcdb from "@core/chorus/gc-prototype/DBGC";
 import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
 import {
     getChatFormatPrompt,
     getConductorPrompt,
-    getNonConductorPrompt,
     getConductorReminder,
+    getNonConductorPrompt,
 } from "@core/chorus/gc-prototype/PromptsGC";
+import { LLMMessage, ModelConfig, streamResponse } from "@core/chorus/Models";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { v4 as uuidv4 } from "uuid";
 
 // Command detection utilities
 export function containsConductCommand(text: string): boolean {
@@ -54,11 +54,8 @@ export const gcMessageQueries = {
 
 export const gcConductorQueries = {
     activeConductor: (chatId: string, scopeId?: string) => {
-        // Normalize scopeId to ensure consistency with database
-        const normalizedScopeId = scopeId ?? null;
-        const queryKey = ["gcConductor", chatId, normalizedScopeId] as const;
         return {
-            queryKey,
+            queryKey: ["gcConductor", chatId, scopeId ?? null] as const,
             queryFn: async () => {
                 const result = await gcdb.fetchActiveConductor(chatId, scopeId);
                 // TanStack Query requires a defined value - use null instead of undefined

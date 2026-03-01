@@ -1,10 +1,11 @@
-import _ from "lodash";
-import OpenAI from "openai";
-import { StreamResponseParams } from "../Models";
-import { IProvider, ModelDisabled } from "./IProvider";
 import OpenAICompletionsAPIUtils from "@core/chorus/OpenAICompletionsAPIUtils";
 import { canProceedWithProvider } from "@core/utilities/ProxyUtils";
 import JSON5 from "json5";
+import _ from "lodash";
+import OpenAI from "openai";
+
+import { StreamResponseParams } from "../Models";
+import { IProvider, ModelDisabled } from "./IProvider";
 
 interface ProviderError {
     message: string;
@@ -149,7 +150,9 @@ export class ProviderOpenRouter implements IProvider {
                 if (onError) {
                     onError(errorMessage);
                 } else {
-                    throw Object.assign(new Error(errorMessage), { cause: error });
+                    throw Object.assign(new Error(errorMessage), {
+                        cause: error,
+                    });
                 }
             } else {
                 if (onError) {

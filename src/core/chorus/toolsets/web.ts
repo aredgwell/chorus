@@ -1,6 +1,7 @@
 import { Toolset as Toolset } from "@core/chorus/Toolsets";
-import { WebTools } from "../WebTools";
+
 import { getApiKeys } from "../api/AppMetadataAPI";
+import { WebTools } from "../WebTools";
 
 /*
 Spec

@@ -1,18 +1,19 @@
+import { chatQueries } from "@core/chorus/api/ChatAPI";
+import { findSimilarChats, SimilarChat } from "@core/chorus/EmbeddingService";
+import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import { useQueryClient } from "@tanstack/react-query";
+import { convertDate, displayDate } from "@ui/lib/utils";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
-    DialogDescription,
 } from "./ui/dialog";
-import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
-import { findSimilarChats, SimilarChat } from "@core/chorus/EmbeddingService";
-import { chatQueries } from "@core/chorus/api/ChatAPI";
-import { useQueryClient } from "@tanstack/react-query";
 import RetroSpinner from "./ui/retro-spinner";
-import { convertDate, displayDate } from "@ui/lib/utils";
 
 export const SIMILAR_CHATS_DIALOG_ID = "similar-chats-dialog";
 
@@ -64,7 +65,11 @@ export function SimilarChatsDialog() {
             }
 
             try {
-                const similar = await findSimilarChats(chat.summary, 10, chatId);
+                const similar = await findSimilarChats(
+                    chat.summary,
+                    10,
+                    chatId,
+                );
                 if (!cancelled) {
                     setResults(similar);
                 }
@@ -139,10 +144,9 @@ export function SimilarChatsDialog() {
                                     <div className="text-xs text-muted-foreground flex gap-2">
                                         <span>
                                             Similarity:{" "}
-                                            {(
-                                                (1 - r.distance) *
-                                                100
-                                            ).toFixed(0)}
+                                            {((1 - r.distance) * 100).toFixed(
+                                                0,
+                                            )}
                                             %
                                         </span>
                                         {r.updatedAt && (

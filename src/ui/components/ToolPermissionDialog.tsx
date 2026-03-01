@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from "react";
+import { toolPermissionsKeys } from "@core/chorus/api/ToolPermissionsAPI";
+import { getToolsetIcon } from "@core/chorus/Toolsets";
+import {
+    toolPermissionActions,
+    useToolPermissionStore,
+} from "@core/infra/ToolPermissionStore";
+import { useQueryClient } from "@tanstack/react-query";
 import {
     AlertDialog,
-    AlertDialogContent,
-    AlertDialogHeader,
-    AlertDialogFooter,
-    AlertDialogTitle,
-    AlertDialogDescription,
     AlertDialogAction,
     AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from "@ui/components/ui/alert-dialog";
-import {
-    useToolPermissionStore,
-    toolPermissionActions,
-} from "@core/infra/ToolPermissionStore";
-import { getToolsetIcon } from "@core/chorus/Toolsets";
 import { Checkbox } from "@ui/components/ui/checkbox";
 import { Label } from "@ui/components/ui/label";
-import { BanIcon, CheckIcon, ShieldCheckIcon } from "lucide-react";
 import { useShortcut } from "@ui/hooks/useShortcut";
-import { useQueryClient } from "@tanstack/react-query";
-import { toolPermissionsKeys } from "@core/chorus/api/ToolPermissionsAPI";
+import { BanIcon, CheckIcon, ShieldCheckIcon } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import Lowlight from "react-lowlight";
 
 export const ToolPermissionDialog: React.FC = () => {

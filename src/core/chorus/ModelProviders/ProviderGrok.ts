@@ -1,10 +1,11 @@
-import OpenAI from "openai";
-import { StreamResponseParams } from "../Models";
-import { IProvider } from "./IProvider";
-import { canProceedWithProvider } from "@core/utilities/ProxyUtils";
 import OpenAICompletionsAPIUtils from "@core/chorus/OpenAICompletionsAPIUtils";
+import { canProceedWithProvider } from "@core/utilities/ProxyUtils";
 import JSON5 from "json5";
 import _ from "lodash";
+import OpenAI from "openai";
+
+import { StreamResponseParams } from "../Models";
+import { IProvider } from "./IProvider";
 
 interface ProviderError {
     message: string;
@@ -118,7 +119,9 @@ export class ProviderGrok implements IProvider {
                     error.error?.metadata?.raw || error.metadata?.raw || "{}",
                 );
                 throw Object.assign(
-                    new Error(`Provider returned error: ${errorDetails.error?.message || error.message}`),
+                    new Error(
+                        `Provider returned error: ${errorDetails.error?.message || error.message}`,
+                    ),
                     { cause: error },
                 );
             }

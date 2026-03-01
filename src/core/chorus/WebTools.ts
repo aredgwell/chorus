@@ -1,5 +1,6 @@
 import { fetch } from "@tauri-apps/plugin-http";
 import OpenAI from "openai";
+
 import { ApiKeys } from "./Models";
 
 type FetchOptions = {

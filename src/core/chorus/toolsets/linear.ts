@@ -269,9 +269,7 @@ export class ToolsetLinear extends Toolset {
                         teams: { nodes: Array<{ id: string }> };
                     };
                     if (teamData.teams.nodes.length === 0) {
-                        throw new Error(
-                            `Team with key "${teamId}" not found.`,
-                        );
+                        throw new Error(`Team with key "${teamId}" not found.`);
                     }
                     resolvedTeamId = teamData.teams.nodes[0].id;
                 }
@@ -348,8 +346,7 @@ export class ToolsetLinear extends Toolset {
                     },
                     assigneeId: {
                         type: "string",
-                        description:
-                            "UUID of the user to assign the issue to.",
+                        description: "UUID of the user to assign the issue to.",
                     },
                 },
                 required: ["issueId"],
@@ -376,9 +373,7 @@ export class ToolsetLinear extends Toolset {
                         issueSearch: { nodes: Array<{ id: string }> };
                     };
                     if (searchData.issueSearch.nodes.length === 0) {
-                        throw new Error(
-                            `Issue "${issueId}" not found.`,
-                        );
+                        throw new Error(`Issue "${issueId}" not found.`);
                     }
                     resolvedId = searchData.issueSearch.nodes[0].id;
                 }

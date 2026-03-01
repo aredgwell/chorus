@@ -1,59 +1,58 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useChat } from "@core/chorus/api/ChatAPI";
 import {
-    Loader2,
-    X,
-    Undo2,
-    Users,
-    RefreshCcwIcon,
-    Maximize2Icon,
-    RemoveFormattingIcon,
-    ChevronDownIcon,
-    WrenchIcon,
-    MessageSquareIcon,
-} from "lucide-react";
-
+    type GCMessage,
+    useClearConductor,
+    useDeleteGCMessage,
+    useGCConductor,
+    useGCMainMessages,
+    useGCThreadCounts,
+    useGenerateAIResponses,
+    useGenerateGCChatTitle,
+    useRegenerateGCMessage,
+    useRestoreGCMessage,
+    useSendGCMessage,
+} from "@core/chorus/api/GroupChatAPI";
+import { useMarkProjectContextSummaryAsStale } from "@core/chorus/api/ProjectAPI";
+import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
+import { getModelDisplayName } from "@core/chorus/gc-prototype/UtilsGC";
+import { type UserToolCall } from "@core/chorus/Toolsets";
+import { dialogActions } from "@core/infra/DialogStore";
+import Composer from "@ui/components/Composer";
+import GroupChatThread from "@ui/components/GroupChatThread";
 import { MessageMarkdown } from "@ui/components/renderers/MessageMarkdown";
-import { ProviderLogo } from "@ui/components/ui/provider-logo";
-import SimpleCopyButton from "@ui/components/unused/CopyButton";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@ui/components/ui/collapsible";
 import {
     Dialog,
     DialogContent,
     DialogTitle,
     DialogTrigger,
 } from "@ui/components/ui/dialog";
+import { ProviderLogo } from "@ui/components/ui/provider-logo";
 import { Toggle } from "@ui/components/ui/toggle";
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from "@ui/components/ui/tooltip";
+import SimpleCopyButton from "@ui/components/unused/CopyButton";
 import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "@ui/components/ui/collapsible";
-import Composer from "@ui/components/Composer";
-import GroupChatThread from "@ui/components/GroupChatThread";
-import { dialogActions } from "@core/infra/DialogStore";
-import {
-    useGCMainMessages,
-    useGCThreadCounts,
-    useGCConductor,
-    useClearConductor,
-    useSendGCMessage,
-    useGenerateAIResponses,
-    useDeleteGCMessage,
-    useRestoreGCMessage,
-    useRegenerateGCMessage,
-    useGenerateGCChatTitle,
-    type GCMessage,
-} from "@core/chorus/api/GroupChatAPI";
-import { useChat } from "@core/chorus/api/ChatAPI";
-import { useMarkProjectContextSummaryAsStale } from "@core/chorus/api/ProjectAPI";
-import { type UserToolCall } from "@core/chorus/Toolsets";
-import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
-import { getModelDisplayName } from "@core/chorus/gc-prototype/UtilsGC";
+    ChevronDownIcon,
+    Loader2,
+    Maximize2Icon,
+    MessageSquareIcon,
+    RefreshCcwIcon,
+    RemoveFormattingIcon,
+    Undo2,
+    Users,
+    WrenchIcon,
+    X,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
 
 // NOTE: useRef is used here for auto-scroll (standard DOM pattern).
 // useState is used for thinking state tracking (event-driven from ModelThinkingTracker).
@@ -277,7 +276,7 @@ function GCToolCallView({ toolCall }: { toolCall: UserToolCall }) {
     return (
         <Collapsible className="my-2 rounded-md text-muted-foreground text-sm py-1.5 px-1.5 border w-fit max-w-full">
             <CollapsibleTrigger className="group font-mono text-xs text-left flex items-center justify-left hover:text-foreground">
-                <WrenchIcon className="w-3 h-3 mr-2 flex-shrink-0" />
+                <WrenchIcon className="w-3 h-3 mr-2 shrink-0" />
                 {label}
                 <ChevronDownIcon className="w-3 h-3 ml-2 transition-transform group-data-[state=open]:rotate-180" />
             </CollapsibleTrigger>
@@ -289,10 +288,7 @@ function GCToolCallView({ toolCall }: { toolCall: UserToolCall }) {
                                 <span className="text-muted-foreground">
                                     {arg.key}
                                 </span>
-                                ={" "}
-                                <span className="break-all">
-                                    {arg.value}
-                                </span>
+                                = <span className="break-all">{arg.value}</span>
                             </li>
                         ))}
                     </ul>
@@ -343,7 +339,9 @@ function AIMessageView({
 
                     {/* Hover action buttons (hidden while streaming) */}
                     <div className="mr-3 flex items-center h-6 gap-2">
-                        <div className={`gap-2 text-muted-foreground px-2 bg-background ${isStreaming ? "hidden" : "hidden group-hover/message-set-view:flex"}`}>
+                        <div
+                            className={`gap-2 text-muted-foreground px-2 bg-background ${isStreaming ? "hidden" : "hidden group-hover/message-set-view:flex"}`}
+                        >
                             {message.isDeleted ? (
                                 <button
                                     className="hover:text-foreground transition-colors"
@@ -432,25 +430,24 @@ function AIMessageView({
                     {message.toolCalls && message.toolCalls.length > 0 && (
                         <div className="mt-2">
                             {message.toolCalls.map((tc) => (
-                                <GCToolCallView
-                                    key={tc.id}
-                                    toolCall={tc}
-                                />
+                                <GCToolCallView key={tc.id} toolCall={tc} />
                             ))}
                         </div>
                     )}
                 </div>
                 {/* Thread reply count */}
-                {threadReplyCount !== undefined && threadReplyCount > 0 && onOpenThread && (
-                    <button
-                        className="mt-1 px-4 pb-2 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-                        onClick={() => onOpenThread(message.id)}
-                    >
-                        <MessageSquareIcon className="h-3 w-3" />
-                        {threadReplyCount}{" "}
-                        {threadReplyCount === 1 ? "reply" : "replies"}
-                    </button>
-                )}
+                {threadReplyCount !== undefined &&
+                    threadReplyCount > 0 &&
+                    onOpenThread && (
+                        <button
+                            className="mt-1 px-4 pb-2 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                            onClick={() => onOpenThread(message.id)}
+                        >
+                            <MessageSquareIcon className="h-3 w-3" />
+                            {threadReplyCount}{" "}
+                            {threadReplyCount === 1 ? "reply" : "replies"}
+                        </button>
+                    )}
             </div>
         </div>
     );
@@ -616,7 +613,14 @@ export default function GroupChat() {
             // Trigger AI responses
             generateAIResponses.mutate({ chatId, userMessage: text });
         },
-        [chatId, messages, sendMessage, generateTitle, markProjectContextSummaryAsStale, generateAIResponses],
+        [
+            chatId,
+            messages,
+            sendMessage,
+            generateTitle,
+            markProjectContextSummaryAsStale,
+            generateAIResponses,
+        ],
     );
 
     const handleDelete = useCallback(
@@ -718,7 +722,9 @@ export default function GroupChat() {
                 )}
 
                 {/* Message list */}
-                <div className={`flex-1 overflow-y-auto ${conductor ? "" : "pt-[52px]"} pb-4`}>
+                <div
+                    className={`flex-1 overflow-y-auto ${conductor ? "" : "pt-13"} pb-4`}
+                >
                     <div className="max-w-3xl mx-auto">
                         {messages.map((message) => (
                             <GCMessageView
@@ -727,9 +733,7 @@ export default function GroupChat() {
                                 isStreaming={streamingMessageIds.has(
                                     message.id,
                                 )}
-                                threadReplyCount={threadCounts?.get(
-                                    message.id,
-                                )}
+                                threadReplyCount={threadCounts?.get(message.id)}
                                 onDelete={handleDelete}
                                 onRestore={handleRestore}
                                 onRegenerate={handleRegenerate}
@@ -771,7 +775,7 @@ export default function GroupChat() {
 
             {/* Thread panel */}
             {openThreadId && chatId && (
-                <div className="w-96 border-l flex-shrink-0">
+                <div className="w-96 border-l shrink-0">
                     <GroupChatThread
                         chatId={chatId}
                         threadRootMessageId={openThreadId}

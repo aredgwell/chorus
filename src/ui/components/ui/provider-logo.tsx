@@ -1,16 +1,16 @@
 import { getProviderName, ProviderName } from "@core/chorus/Models";
 import { OPENROUTER_CUSTOM_PROVIDER_LOGOS } from "@ui/lib/models";
 import { cn } from "@ui/lib/utils";
+import { Server } from "lucide-react";
 import {
     RiAnthropicFill,
-    RiOpenaiFill,
     RiGoogleFill,
+    RiMetaFill,
+    RiOpenaiFill,
     RiPerplexityFill,
     RiQuestionMark,
-    RiMetaFill,
 } from "react-icons/ri";
 import { SiOllama } from "react-icons/si";
-import { Server } from "lucide-react";
 
 // can pass in either provider or modelId. provider takes precedence over modelId
 export type ProviderLogoProps = {

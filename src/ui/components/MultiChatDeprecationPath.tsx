@@ -1,60 +1,61 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { Button } from "./ui/button";
+import * as MessageAPI from "@core/chorus/api/MessageAPI";
+import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
+import * as Brainstorms from "@core/chorus/brainstorm";
 import {
-    Maximize2Icon,
-    MergeIcon,
-    RemoveFormattingIcon,
-    StopCircleIcon,
-    RefreshCcwIcon,
-    CircleAlertIcon,
-    CheckCircleIcon,
-    ThumbsUpIcon,
-    ThumbsDownIcon,
-    IterationCcwIcon,
-    SplitIcon,
-    InfoIcon,
-    UndoIcon,
-} from "lucide-react";
-import { XIcon, PlusIcon } from "lucide-react";
-import RetroSpinner from "./ui/retro-spinner";
-import { TooltipContent } from "./ui/tooltip";
-import { Tooltip } from "./ui/tooltip";
-import { TooltipTrigger } from "./ui/tooltip";
+    BlockType,
+    BrainstormBlock,
+    ChatBlock,
+    CompareBlock,
+    Message,
+} from "@core/chorus/ChatState";
 import * as Models from "@core/chorus/Models";
+import { ProviderName } from "@core/chorus/Models";
+import * as Reviews from "@core/chorus/reviews";
+import { dialogActions } from "@core/infra/DialogStore";
 import { invoke } from "@tauri-apps/api/core";
 import { ProviderLogo } from "@ui/components/ui/provider-logo";
+import { useWaitForAppMetadata } from "@ui/hooks/useWaitForAppMetadata";
+import {
+    CheckCircleIcon,
+    CircleAlertIcon,
+    InfoIcon,
+    IterationCcwIcon,
+    Maximize2Icon,
+    MergeIcon,
+    RefreshCcwIcon,
+    RemoveFormattingIcon,
+    SplitIcon,
+    StopCircleIcon,
+    ThumbsDownIcon,
+    ThumbsUpIcon,
+    UndoIcon,
+} from "lucide-react";
+import { PlusIcon, XIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import Markdown from "react-markdown";
+import { useParams } from "react-router-dom";
+
 import {
     MANAGE_MODELS_COMPARE_INLINE_DIALOG_ID,
     ManageModelsBox,
 } from "./ManageModelsBox";
+import { MessageCostDisplay } from "./MessageCostDisplay";
+import { Metrics } from "./Metrics";
+import { MessageMarkdown } from "./renderers/MessageMarkdown";
+import { Button } from "./ui/button";
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogTitle,
 } from "./ui/dialog";
-import { MessageMarkdown } from "./renderers/MessageMarkdown";
-import { Toggle } from "./ui/toggle";
+import RetroSpinner from "./ui/retro-spinner";
 import { Separator } from "./ui/separator";
-import {
-    Message,
-    BlockType,
-    ChatBlock,
-    BrainstormBlock,
-    CompareBlock,
-} from "@core/chorus/ChatState";
-import { Metrics } from "./Metrics";
-import * as Reviews from "@core/chorus/reviews";
-import * as Brainstorms from "@core/chorus/brainstorm";
-import Markdown from "react-markdown";
-import { MessageCostDisplay } from "./MessageCostDisplay";
 import { Skeleton } from "./ui/skeleton";
-import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
-import { useWaitForAppMetadata } from "@ui/hooks/useWaitForAppMetadata";
-import { ProviderName } from "@core/chorus/Models";
-import { dialogActions } from "@core/infra/DialogStore";
-import * as MessageAPI from "@core/chorus/api/MessageAPI";
+import { Toggle } from "./ui/toggle";
+import { TooltipContent } from "./ui/tooltip";
+import { Tooltip } from "./ui/tooltip";
+import { TooltipTrigger } from "./ui/tooltip";
 import SimpleCopyButton from "./unused/CopyButton";
 
 function getReviewerLongName(
@@ -1140,4 +1141,4 @@ function BrainstormBlockView({
     );
 }
 
-export { CompareBlockView, ChatBlockView, BrainstormBlockView };
+export { BrainstormBlockView, ChatBlockView, CompareBlockView };

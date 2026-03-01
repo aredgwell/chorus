@@ -1,10 +1,10 @@
 import {
+    index,
+    integer,
+    primaryKey,
+    real,
     sqliteTable,
     text,
-    integer,
-    real,
-    primaryKey,
-    index,
 } from "drizzle-orm/sqlite-core";
 
 // ── app_metadata ──────────────────────────────────────────────────────────────
@@ -21,10 +21,14 @@ export const attachments = sqliteTable("attachments", {
     id: text("id").primaryKey(),
     createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
     type: text("type").notNull(),
-    isLoading: integer("is_loading", { mode: "boolean" }).notNull().default(false),
+    isLoading: integer("is_loading", { mode: "boolean" })
+        .notNull()
+        .default(false),
     originalName: text("original_name"),
     path: text("path").notNull(),
-    ephemeral: integer("ephemeral", { mode: "boolean" }).notNull().default(false),
+    ephemeral: integer("ephemeral", { mode: "boolean" })
+        .notNull()
+        .default(false),
 });
 
 // ── chats ─────────────────────────────────────────────────────────────────────
@@ -322,9 +326,7 @@ export const toolPermissions = sqliteTable(
         createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
         updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
     },
-    (table) => [
-        primaryKey({ columns: [table.toolsetName, table.toolName] }),
-    ],
+    (table) => [primaryKey({ columns: [table.toolsetName, table.toolName] })],
 );
 
 // ── toolsets_config ───────────────────────────────────────────────────────────

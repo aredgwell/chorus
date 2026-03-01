@@ -1,46 +1,51 @@
-import {
-    useEditor,
-    EditorContent,
-    NodeViewWrapper,
-    NodeViewContent,
-    ReactNodeViewRenderer,
-} from "@tiptap/react";
+import "@ui/styles/tiptap.css";
+
 import type { Editor, NodeViewProps } from "@tiptap/core";
-import StarterKit from "@tiptap/starter-kit";
-import { Markdown } from "tiptap-markdown";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import Image from "@tiptap/extension-image";
+import Link from "@tiptap/extension-link";
+import Placeholder from "@tiptap/extension-placeholder";
 import {
     Table,
-    TableRow,
     TableCell,
     TableHeader,
+    TableRow,
 } from "@tiptap/extension-table";
-import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
-import Link from "@tiptap/extension-link";
-import Image from "@tiptap/extension-image";
-import Placeholder from "@tiptap/extension-placeholder";
+import TaskList from "@tiptap/extension-task-list";
 import Typography from "@tiptap/extension-typography";
-import { createLowlight, common } from "lowlight";
+import {
+    EditorContent,
+    NodeViewContent,
+    NodeViewWrapper,
+    ReactNodeViewRenderer,
+    useEditor,
+} from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import { common, createLowlight } from "lowlight";
 import {
     BoldIcon,
-    ItalicIcon,
-    StrikethroughIcon,
     CodeIcon,
     Heading1Icon,
     Heading2Icon,
     Heading3Icon,
+    ItalicIcon,
     LinkIcon,
     ListIcon,
     ListOrderedIcon,
     QuoteIcon,
+    StrikethroughIcon,
 } from "lucide-react";
-import "@ui/styles/tiptap.css";
+import { useEffect } from "react";
+import { Markdown } from "tiptap-markdown";
 
 const lowlight = createLowlight(common);
 const languages = lowlight.listLanguages().sort();
 
-// Custom code block node view with language selector
+import { KatexBlockView } from "./tiptap/KatexBlockView";
+import { MermaidBlockView } from "./tiptap/MermaidBlockView";
+
+// Standard code block node view with language selector
 function CodeBlockView({ node, updateAttributes }: NodeViewProps) {
     return (
         <NodeViewWrapper className="code-block-wrapper">
@@ -66,9 +71,21 @@ function CodeBlockView({ node, updateAttributes }: NodeViewProps) {
     );
 }
 
+/** Dispatches to specialised NodeViews based on the code block language */
+function CodeBlockNodeView(props: NodeViewProps) {
+    const language = (props.node.attrs.language ?? "") as string;
+    if (language === "latex" || language === "math") {
+        return <KatexBlockView {...props} />;
+    }
+    if (language === "mermaid") {
+        return <MermaidBlockView {...props} />;
+    }
+    return <CodeBlockView {...props} />;
+}
+
 const CustomCodeBlock = CodeBlockLowlight.extend({
     addNodeView() {
-        return ReactNodeViewRenderer(CodeBlockView);
+        return ReactNodeViewRenderer(CodeBlockNodeView);
     },
 });
 
@@ -105,40 +122,28 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
     return (
         <div className="editor-toolbar">
             <ToolbarButton
-
-                action={() =>
-                    editor.chain().focus().toggleBold().run()
-                }
+                action={() => editor.chain().focus().toggleBold().run()}
                 isActive={editor.isActive("bold")}
                 title="Bold"
             >
                 <BoldIcon size={14} />
             </ToolbarButton>
             <ToolbarButton
-
-                action={() =>
-                    editor.chain().focus().toggleItalic().run()
-                }
+                action={() => editor.chain().focus().toggleItalic().run()}
                 isActive={editor.isActive("italic")}
                 title="Italic"
             >
                 <ItalicIcon size={14} />
             </ToolbarButton>
             <ToolbarButton
-
-                action={() =>
-                    editor.chain().focus().toggleStrike().run()
-                }
+                action={() => editor.chain().focus().toggleStrike().run()}
                 isActive={editor.isActive("strike")}
                 title="Strikethrough"
             >
                 <StrikethroughIcon size={14} />
             </ToolbarButton>
             <ToolbarButton
-
-                action={() =>
-                    editor.chain().focus().toggleCode().run()
-                }
+                action={() => editor.chain().focus().toggleCode().run()}
                 isActive={editor.isActive("code")}
                 title="Inline code"
             >
@@ -148,13 +153,8 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
             <div className="editor-toolbar-separator" />
 
             <ToolbarButton
-
                 action={() =>
-                    editor
-                        .chain()
-                        .focus()
-                        .toggleHeading({ level: 1 })
-                        .run()
+                    editor.chain().focus().toggleHeading({ level: 1 }).run()
                 }
                 isActive={editor.isActive("heading", { level: 1 })}
                 title="Heading 1"
@@ -162,13 +162,8 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
                 <Heading1Icon size={14} />
             </ToolbarButton>
             <ToolbarButton
-
                 action={() =>
-                    editor
-                        .chain()
-                        .focus()
-                        .toggleHeading({ level: 2 })
-                        .run()
+                    editor.chain().focus().toggleHeading({ level: 2 }).run()
                 }
                 isActive={editor.isActive("heading", { level: 2 })}
                 title="Heading 2"
@@ -176,13 +171,8 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
                 <Heading2Icon size={14} />
             </ToolbarButton>
             <ToolbarButton
-
                 action={() =>
-                    editor
-                        .chain()
-                        .focus()
-                        .toggleHeading({ level: 3 })
-                        .run()
+                    editor.chain().focus().toggleHeading({ level: 3 }).run()
                 }
                 isActive={editor.isActive("heading", { level: 3 })}
                 title="Heading 3"
@@ -193,45 +183,31 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
             <div className="editor-toolbar-separator" />
 
             <ToolbarButton
-
-                action={() =>
-                    editor.chain().focus().toggleBulletList().run()
-                }
+                action={() => editor.chain().focus().toggleBulletList().run()}
                 isActive={editor.isActive("bulletList")}
                 title="Bullet list"
             >
                 <ListIcon size={14} />
             </ToolbarButton>
             <ToolbarButton
-
-                action={() =>
-                    editor.chain().focus().toggleOrderedList().run()
-                }
+                action={() => editor.chain().focus().toggleOrderedList().run()}
                 isActive={editor.isActive("orderedList")}
                 title="Ordered list"
             >
                 <ListOrderedIcon size={14} />
             </ToolbarButton>
             <ToolbarButton
-
-                action={() =>
-                    editor.chain().focus().toggleBlockquote().run()
-                }
+                action={() => editor.chain().focus().toggleBlockquote().run()}
                 isActive={editor.isActive("blockquote")}
                 title="Blockquote"
             >
                 <QuoteIcon size={14} />
             </ToolbarButton>
             <ToolbarButton
-
                 action={() => {
                     const url = window.prompt("URL:");
                     if (url) {
-                        editor
-                            .chain()
-                            .focus()
-                            .setLink({ href: url })
-                            .run();
+                        editor.chain().focus().setLink({ href: url }).run();
                     }
                 }}
                 isActive={editor.isActive("link")}
@@ -289,12 +265,6 @@ export function MarkdownEditor({
             Typography,
         ],
         content,
-        onCreate: ({ editor: ed }) => {
-            onEditorReady?.(ed);
-        },
-        onDestroy: () => {
-            onEditorReady?.(null);
-        },
         onUpdate: ({ editor: ed }) => {
             // tiptap-markdown adds getMarkdown() to editor.storage.markdown,
             // but Tiptap's Storage type is an empty interface that doesn't
@@ -317,6 +287,14 @@ export function MarkdownEditor({
             },
         },
     });
+
+    // Notify parent when the editor instance becomes available (or is destroyed).
+    // Using useEffect instead of onCreate/onDestroy because onCreate fires
+    // synchronously inside the useEditor hook's useState initializer, before
+    // React can process the parent's state update.
+    useEffect(() => {
+        onEditorReady?.(editor ?? null);
+    }, [editor, onEditorReady]);
 
     return <EditorContent editor={editor} />;
 }

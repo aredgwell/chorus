@@ -1,18 +1,19 @@
-import React from "react";
+import { encode } from "html-entities";
 import type { ReactNode } from "react";
+import React from "react";
 import Markdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import rehypeRaw from "rehype-raw";
-import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
+import remarkGfm from "remark-gfm";
+
 import { CodeBlock } from "./CodeBlock";
+import { ImagePreview } from "./ImagePreview";
 import { LatexBlock } from "./LatexBlock";
-import { WebPreview } from "./WebPreview";
-import { ThinkBlock } from "./ThinkBlock";
 import { MermaidPreview } from "./Mermaid";
 import { SVGPreview } from "./SVG";
-import { ImagePreview } from "./ImagePreview";
-import { encode } from "html-entities";
+import { ThinkBlock } from "./ThinkBlock";
+import { WebPreview } from "./WebPreview";
 
 interface ParsedData {
     number: number;

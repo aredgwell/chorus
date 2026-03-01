@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { withRetry } from "./retry";
 
 beforeEach(() => {
@@ -44,9 +45,9 @@ describe("withRetry", () => {
         const authError = { message: "Invalid API key", status: 401 };
         const fn = vi.fn().mockRejectedValue(authError);
 
-        await expect(
-            withRetry(fn, { provider: "anthropic" }),
-        ).rejects.toEqual(authError);
+        await expect(withRetry(fn, { provider: "anthropic" })).rejects.toEqual(
+            authError,
+        );
         expect(fn).toHaveBeenCalledTimes(1);
     });
 
@@ -97,9 +98,9 @@ describe("withRetry", () => {
         };
         const fn = vi.fn().mockRejectedValue(contextError);
 
-        await expect(
-            withRetry(fn, { provider: "anthropic" }),
-        ).rejects.toEqual(contextError);
+        await expect(withRetry(fn, { provider: "anthropic" })).rejects.toEqual(
+            contextError,
+        );
         expect(fn).toHaveBeenCalledTimes(1);
     });
 
@@ -107,9 +108,9 @@ describe("withRetry", () => {
         const authError = { message: "Unauthorized", status: 401 };
         const fn = vi.fn().mockRejectedValue(authError);
 
-        await expect(
-            withRetry(fn, { provider: "openai" }),
-        ).rejects.toEqual(authError);
+        await expect(withRetry(fn, { provider: "openai" })).rejects.toEqual(
+            authError,
+        );
         expect(fn).toHaveBeenCalledTimes(1);
     });
 });

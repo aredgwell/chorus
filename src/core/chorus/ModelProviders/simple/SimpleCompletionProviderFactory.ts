@@ -1,10 +1,11 @@
-import { ApiKeys } from "../../Models";
 import { canProceedWithProvider } from "@core/utilities/ProxyUtils";
+
+import { ApiKeys } from "../../Models";
 import { ISimpleCompletionProvider } from "./ISimpleCompletionProvider";
 import { SimpleCompletionProviderAnthropic } from "./SimpleCompletionProviderAnthropic";
-import { SimpleCompletionProviderOpenRouter } from "./SimpleCompletionProviderOpenRouter";
-import { SimpleCompletionProviderOpenAI } from "./SimpleCompletionProviderOpenAI";
 import { SimpleCompletionProviderGoogle } from "./SimpleCompletionProviderGoogle";
+import { SimpleCompletionProviderOpenAI } from "./SimpleCompletionProviderOpenAI";
+import { SimpleCompletionProviderOpenRouter } from "./SimpleCompletionProviderOpenRouter";
 
 type ProviderConfig = {
     name: string;

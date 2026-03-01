@@ -1,19 +1,20 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useReactQueryAutoSync } from "use-react-query-auto-sync";
-import { LLMMessage } from "../Models";
-import { Chat, chatQueries, useCacheUpdateChat } from "./ChatAPI";
-import * as Prompts from "../prompts/prompts";
-import { produce } from "immer";
-import { useGetMessageSets } from "./MessageAPI";
-import { llmConversation } from "../ChatState";
-import { fetchGCMainMessages } from "./GroupChatAPI";
-import { simpleLLM } from "../simpleLLM";
-import { SimpleCompletionMode } from "../ModelProviders/simple/ISimpleCompletionProvider";
-import _ from "lodash";
-import { db } from "../DB";
-import { useSetSelectedCollectionId } from "./AppMetadataAPI";
 import { invoke } from "@tauri-apps/api/core";
+import { produce } from "immer";
+import _ from "lodash";
+import { useReactQueryAutoSync } from "use-react-query-auto-sync";
+
+import { llmConversation } from "../ChatState";
+import { db } from "../DB";
+import { SimpleCompletionMode } from "../ModelProviders/simple/ISimpleCompletionProvider";
+import { LLMMessage } from "../Models";
+import * as Prompts from "../prompts/prompts";
+import { simpleLLM } from "../simpleLLM";
+import { useSetSelectedCollectionId } from "./AppMetadataAPI";
 import { Attachment, AttachmentDBRow, readAttachment } from "./AttachmentsAPI";
+import { Chat, chatQueries, useCacheUpdateChat } from "./ChatAPI";
+import { fetchGCMainMessages } from "./GroupChatAPI";
+import { useGetMessageSets } from "./MessageAPI";
 
 export const projectKeys = {
     all: () => ["project"] as const,
@@ -36,6 +37,11 @@ const projectContextQueryKeys = {
     all: () => ["projectContext"] as const,
 };
 
+export type SmartCollectionRules = {
+    match: "all" | "any";
+    tagIds: string[];
+};
+
 export type Project = {
     id: string;
     name: string;
@@ -45,6 +51,8 @@ export type Project = {
     contextText?: string;
     magicProjectsEnabled: boolean;
     isImported: boolean;
+    collectionType: "manual" | "smart";
+    smartCollectionRules?: SmartCollectionRules;
     // Cost tracking
     totalCostUsd?: number;
 };
@@ -64,10 +72,22 @@ type ProjectDBRow = {
     magic_projects_enabled: number;
     context_text?: string;
     is_imported: number;
+    collection_type: string;
+    smart_collection_rules: string | null;
     total_cost_usd: number | null;
 };
 
 function readProject(row: ProjectDBRow): Project {
+    let smartCollectionRules: SmartCollectionRules | undefined;
+    if (row.smart_collection_rules) {
+        try {
+            smartCollectionRules = JSON.parse(
+                row.smart_collection_rules,
+            ) as SmartCollectionRules;
+        } catch {
+            // ignore malformed JSON
+        }
+    }
     return {
         id: row.id,
         name: row.name,
@@ -77,6 +97,8 @@ function readProject(row: ProjectDBRow): Project {
         contextText: row.context_text,
         magicProjectsEnabled: row.magic_projects_enabled === 1,
         isImported: row.is_imported === 1,
+        collectionType: row.collection_type === "smart" ? "smart" : "manual",
+        smartCollectionRules,
         totalCostUsd: row.total_cost_usd ?? undefined,
     };
 }
@@ -84,7 +106,7 @@ function readProject(row: ProjectDBRow): Project {
 export async function fetchProjects(): Promise<Project[]> {
     return await db
         .select<ProjectDBRow[]>(
-            `SELECT id, name, updated_at, created_at, is_collapsed, magic_projects_enabled, is_imported, total_cost_usd
+            `SELECT id, name, updated_at, created_at, is_collapsed, magic_projects_enabled, is_imported, collection_type, smart_collection_rules, total_cost_usd
             FROM projects
             ORDER BY updated_at DESC`,
         )
@@ -424,9 +446,7 @@ function useRegenerateProjectContextSummary() {
                     return { skipped: true };
                 }
                 conversationText = llmConversation(messageSets)
-                    .filter(
-                        (m) => m.role === "user" || m.role === "assistant",
-                    ) // Intentionally excludes tool messages — they add noise without improving summary quality
+                    .filter((m) => m.role === "user" || m.role === "assistant") // Intentionally excludes tool messages — they add noise without improving summary quality
                     .map((m) => `${m.role}: ${m.content}`)
                     .join("\n\n");
             }
@@ -724,4 +744,90 @@ export function useToggleProjectIsCollapsed() {
             );
         },
     });
+}
+
+// ── Smart collections ──────────────────────────────────────────────────
+
+export function useCreateSmartCollection() {
+    const queryClient = useQueryClient();
+    const setSelectedCollectionId = useSetSelectedCollectionId();
+
+    return useMutation({
+        mutationKey: ["createSmartCollection"] as const,
+        mutationFn: async ({
+            name,
+            rules,
+        }: {
+            name: string;
+            rules: SmartCollectionRules;
+        }) => {
+            const result = await db.select<{ id: string }[]>(
+                `INSERT INTO projects (id, name, collection_type, smart_collection_rules)
+                 VALUES (lower(hex(randomblob(16))), ?, 'smart', ?)
+                 RETURNING id`,
+                [name, JSON.stringify(rules)],
+            );
+            if (result.length === 0) {
+                throw new Error("Failed to create smart collection");
+            }
+            return result[0].id;
+        },
+        onSuccess: async (projectId) => {
+            await queryClient.invalidateQueries(projectQueries.list());
+            setSelectedCollectionId.mutate(projectId);
+        },
+    });
+}
+
+type SmartCollectionItemRow = {
+    item_type: string;
+    item_id: string;
+    title: string | null;
+    updated_at: string;
+};
+
+export type SmartCollectionItem = {
+    itemType: "chat" | "note";
+    itemId: string;
+    title?: string;
+    updatedAt: string;
+};
+
+/**
+ * Fetches chats and notes matching the smart collection rules (tag-based).
+ * "all" = items must have ALL specified tags; "any" = items must have ANY.
+ */
+export async function fetchSmartCollectionItems(
+    rules: SmartCollectionRules,
+): Promise<SmartCollectionItem[]> {
+    if (rules.tagIds.length === 0) return [];
+
+    const placeholders = rules.tagIds.map(() => "?").join(", ");
+
+    // Use HAVING COUNT to distinguish ALL vs ANY match
+    const havingClause =
+        rules.match === "all"
+            ? `HAVING COUNT(DISTINCT it.tag_id) = ${rules.tagIds.length}`
+            : `HAVING COUNT(DISTINCT it.tag_id) >= 1`;
+
+    const rows = await db.select<SmartCollectionItemRow[]>(
+        `SELECT it.item_type, it.item_id,
+                COALESCE(c.title, n.title) AS title,
+                COALESCE(c.updated_at, n.updated_at) AS updated_at
+         FROM item_tags it
+         LEFT JOIN chats c ON it.item_type = 'chat' AND it.item_id = c.id
+         LEFT JOIN notes n ON it.item_type = 'note' AND it.item_id = n.id
+         WHERE it.tag_id IN (${placeholders})
+         GROUP BY it.item_type, it.item_id
+         ${havingClause}
+         ORDER BY updated_at DESC`,
+        rules.tagIds,
+    );
+
+    return rows.map((row) => ({
+        itemType: row.item_type as "chat" | "note",
+        itemId: row.item_id,
+        title: row.title ?? undefined,
+        updatedAt: row.updated_at,
+    }));
 }

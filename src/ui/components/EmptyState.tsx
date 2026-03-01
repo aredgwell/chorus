@@ -1,6 +1,7 @@
+import { formatQuickChatShortcut } from "@ui/lib/utils";
 import { SplitIcon } from "lucide-react";
 import { useState } from "react";
-import { formatQuickChatShortcut } from "@ui/lib/utils";
+
 import { useSettings } from "./hooks/useSettings";
 
 const getTips = (quickChatShortcut: string) => [
@@ -35,8 +36,8 @@ export function EmptyState() {
     const settings = useSettings();
 
     // get the tipindex separately so that it doesn't change if the tip text changes
-    const [tipIndex] = useState(
-        () => Math.floor(Math.random() * getTips("").length),
+    const [tipIndex] = useState(() =>
+        Math.floor(Math.random() * getTips("").length),
     );
     const randomTip = getTips(
         formatQuickChatShortcut(settings?.quickChat?.shortcut),

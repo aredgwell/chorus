@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { Settings, SettingsManager } from "@core/utilities/Settings";
 import { catchAsyncErrors } from "@core/chorus/utilities";
+import { Settings, SettingsManager } from "@core/utilities/Settings";
+import { useEffect, useState } from "react";
 
 const settingsManager = SettingsManager.getInstance();
 

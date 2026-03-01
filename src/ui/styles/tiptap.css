@@ -5,9 +5,18 @@
     text-align: left;
 }
 
+/* Tag row below the header */
+.note-editor-tags {
+    padding: 4px 24px;
+    border-bottom: 1px solid hsl(var(--border));
+    background: hsl(var(--background));
+    flex-shrink: 0;
+}
+
 /* Apple Notes-like typography for the note editor */
 .note-editor-content .ProseMirror {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 16px;
     line-height: 1.5;
     letter-spacing: -0.01em;
@@ -204,7 +213,9 @@
     background: transparent;
     color: hsl(var(--muted-foreground));
     cursor: pointer;
-    transition: background-color 0.1s, color 0.1s;
+    transition:
+        background-color 0.1s,
+        color 0.1s;
 }
 
 .editor-toolbar-btn:hover {
@@ -222,4 +233,325 @@
     height: 16px;
     background: hsl(var(--border));
     margin: 0 4px;
+}
+
+/* ── Block view shared styles (KaTeX, Mermaid, SVG) ── */
+
+.block-view-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    border-bottom: 1px solid hsl(var(--border));
+    background: hsl(var(--muted));
+    border-radius: var(--radius) var(--radius) 0 0;
+    user-select: none;
+}
+
+.block-view-label {
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: hsl(var(--muted-foreground));
+}
+
+.block-view-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    border: none;
+    background: transparent;
+    color: hsl(var(--muted-foreground));
+    cursor: pointer;
+    transition:
+        background-color 0.1s,
+        color 0.1s;
+}
+
+.block-view-toggle:hover {
+    background: hsl(var(--accent));
+    color: hsl(var(--foreground));
+}
+
+.block-view-source {
+    border: 1px solid hsl(var(--border));
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    padding: 0.75rem 1rem;
+    overflow-x: auto;
+}
+
+.block-view-source code {
+    background: none;
+    padding: 0;
+    font-size: 85%;
+}
+
+.block-view-hidden-content {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+.block-view-empty {
+    display: block;
+    padding: 1rem;
+    text-align: center;
+    color: hsl(var(--muted-foreground) / 0.5);
+    font-style: italic;
+    cursor: pointer;
+}
+
+/* ── KaTeX block ── */
+
+.katex-block-wrapper {
+    position: relative;
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    margin: 0.5em 0;
+}
+
+.katex-block-preview {
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    overflow-x: auto;
+}
+
+.katex-block-preview:hover {
+    background: hsl(var(--muted) / 0.5);
+}
+
+/* ── Mermaid block ── */
+
+.mermaid-block-wrapper {
+    position: relative;
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    margin: 0.5em 0;
+}
+
+.mermaid-block-preview {
+    padding: 1rem;
+    cursor: pointer;
+    overflow-x: auto;
+}
+
+.mermaid-block-preview:hover {
+    background: hsl(var(--muted) / 0.5);
+}
+
+/* ── Tag input ── */
+
+.tag-input-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 9999px;
+    background: hsl(var(--muted));
+    font-size: 11px;
+    color: hsl(var(--muted-foreground));
+    user-select: none;
+    white-space: nowrap;
+}
+
+.tag-chip-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    flex-shrink: 0;
+}
+
+.tag-chip-name {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tag-chip-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    border: none;
+    background: transparent;
+    color: hsl(var(--muted-foreground));
+    cursor: pointer;
+    padding: 0;
+    margin-left: 1px;
+    transition:
+        background-color 0.1s,
+        color 0.1s;
+}
+
+.tag-chip-remove:hover {
+    background: hsl(var(--destructive) / 0.15);
+    color: hsl(var(--destructive));
+}
+
+.tag-add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 9999px;
+    border: 1px dashed hsl(var(--border));
+    background: transparent;
+    color: hsl(var(--muted-foreground));
+    cursor: pointer;
+    padding: 0;
+    transition:
+        background-color 0.1s,
+        color 0.1s,
+        border-color 0.1s;
+}
+
+.tag-add-btn:hover {
+    background: hsl(var(--accent));
+    color: hsl(var(--foreground));
+    border-color: hsl(var(--foreground) / 0.3);
+}
+
+.tag-search-input {
+    width: 100%;
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-size: 12px;
+    outline: none;
+    margin-bottom: 4px;
+}
+
+.tag-search-input:focus {
+    border-color: hsl(var(--ring));
+}
+
+.tag-suggestions {
+    max-height: 160px;
+    overflow-y: auto;
+}
+
+.tag-suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 4px 8px;
+    border: none;
+    border-radius: var(--radius);
+    background: transparent;
+    color: hsl(var(--foreground));
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.1s;
+}
+
+.tag-suggestion-item:hover {
+    background: hsl(var(--accent));
+}
+
+.tag-suggestion-create {
+    color: hsl(var(--muted-foreground));
+    font-style: italic;
+}
+
+.tag-suggestion-empty {
+    padding: 8px;
+    text-align: center;
+    font-size: 11px;
+    color: hsl(var(--muted-foreground));
+}
+
+/* ── Linked items (chat-note links) ── */
+
+.linked-items-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.linked-item-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: var(--radius);
+    background: hsl(var(--muted));
+    font-size: 11px;
+    color: hsl(var(--muted-foreground));
+    user-select: none;
+    white-space: nowrap;
+}
+
+.linked-item-name {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-size: inherit;
+    cursor: pointer;
+    padding: 0;
+}
+
+.linked-item-name:hover {
+    color: hsl(var(--foreground));
+    text-decoration: underline;
+}
+
+.linked-item-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    border: none;
+    background: transparent;
+    color: hsl(var(--muted-foreground));
+    cursor: pointer;
+    padding: 0;
+    margin-left: 1px;
+    transition:
+        background-color 0.1s,
+        color 0.1s;
+}
+
+.linked-item-remove:hover {
+    background: hsl(var(--destructive) / 0.15);
+    color: hsl(var(--destructive));
+}
+
+/* Linked items row in note editor */
+.note-editor-links {
+    padding: 4px 24px;
+    border-bottom: 1px solid hsl(var(--border));
+    background: hsl(var(--background));
+    flex-shrink: 0;
 }

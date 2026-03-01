@@ -3,8 +3,8 @@
 declare module "use-react-query-auto-sync" {
     import {
         QueryKey,
-        UseQueryOptions,
         UseMutationOptions,
+        UseQueryOptions,
     } from "@tanstack/react-query";
 
     interface AutoSaveOptions {

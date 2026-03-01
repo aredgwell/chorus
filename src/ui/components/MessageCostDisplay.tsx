@@ -1,4 +1,5 @@
 import { formatCost } from "@core/chorus/api/CostAPI";
+
 import { useSettings } from "./hooks/useSettings";
 
 interface MessageCostDisplayProps {

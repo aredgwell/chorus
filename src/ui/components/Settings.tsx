@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import {
-    SettingsManager,
-} from "@core/utilities/Settings";
-import { useTheme } from "@ui/hooks/useTheme";
+import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
+import { UNIVERSAL_SYSTEM_PROMPT_DEFAULT } from "@core/chorus/prompts/prompts";
+import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import { SettingsManager } from "@core/utilities/Settings";
+import { useQueryClient } from "@tanstack/react-query";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import {
     Dialog,
     DialogContent,
@@ -10,41 +11,39 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@ui/components/ui/dialog";
-import { Button } from "./ui/button";
-import { Textarea } from "./ui/textarea";
+import { useDatabase } from "@ui/hooks/useDatabase";
+import { useTheme } from "@ui/hooks/useTheme";
+import { cn } from "@ui/lib/utils";
 import {
+    BarChart3,
+    BookOpen,
     ExternalLink,
+    FileText,
     Fullscreen,
+    Globe,
+    Import,
+    Key,
+    Puzzle,
     ShieldCheckIcon,
     User2,
-    Key,
-    FileText,
-    Import,
-    BookOpen,
-    Globe,
-    BarChart3,
-    Puzzle,
 } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { useDatabase } from "@ui/hooks/useDatabase";
-import { UNIVERSAL_SYSTEM_PROMPT_DEFAULT } from "@core/chorus/prompts/prompts";
-import { useQueryClient } from "@tanstack/react-query";
-import { useReactQueryAutoSync } from "use-react-query-auto-sync";
-import { SiOpenai } from "react-icons/si";
+import { useEffect, useState } from "react";
 import { RiClaudeFill } from "react-icons/ri";
-import ImportChatDialog from "./ImportChatDialog";
-import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
-import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
-import { PermissionsTab } from "./PermissionsTab";
+import { SiOpenai } from "react-icons/si";
+import { useSearchParams } from "react-router-dom";
+import { useReactQueryAutoSync } from "use-react-query-auto-sync";
+
 import { CostDashboard } from "./CostDashboard";
-import { cn } from "@ui/lib/utils";
-import GeneralTab from "./settings/GeneralTab";
+import ImportChatDialog from "./ImportChatDialog";
+import { PermissionsTab } from "./PermissionsTab";
 import ApiKeysTab from "./settings/ApiKeysTab";
-import QuickChatTab from "./settings/QuickChatTab";
-import ConnectionsTab from "./settings/ConnectionsTab";
 import BaseUrlTab from "./settings/BaseUrlTab";
+import ConnectionsTab from "./settings/ConnectionsTab";
+import GeneralTab from "./settings/GeneralTab";
+import QuickChatTab from "./settings/QuickChatTab";
 import type { SettingsTabId, TabConfig } from "./settings/types";
+import { Button } from "./ui/button";
+import { Textarea } from "./ui/textarea";
 export type { SettingsTabId } from "./settings/types";
 
 export const SETTINGS_DIALOG_ID = "settings";

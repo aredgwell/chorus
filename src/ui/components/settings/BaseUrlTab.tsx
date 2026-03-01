@@ -27,10 +27,7 @@ export default function BaseUrlTab({
             </div>
             <div className="space-y-4">
                 <div className="space-y-2">
-                    <label
-                        htmlFor="custom-base-url"
-                        className="font-semibold"
-                    >
+                    <label htmlFor="custom-base-url" className="font-semibold">
                         Custom Base URL
                     </label>
                     <Input

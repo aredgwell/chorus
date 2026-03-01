@@ -11,40 +11,44 @@ Semantic search and note-taking serve the same user need: **finding and building
 ### Semantic Search Infrastructure
 
 **Already built:**
-- `sqlite-vec` virtual table (`chat_embeddings`) with 1536-dimension vectors
-- Rust commands: `ensure_vec_table`, `upsert_chat_embedding`, `find_similar_chats`
-- `EmbeddingService.ts`: generates embeddings via OpenAI `text-embedding-3-small`, truncates to 8K chars
-- `SimilarChatsDialog.tsx`: KNN search UI triggered from sidebar sparkle icon
-- Embeddings generated fire-and-forget after chat summary creation
+
+-   `sqlite-vec` virtual table (`chat_embeddings`) with 1536-dimension vectors
+-   Rust commands: `ensure_vec_table`, `upsert_chat_embedding`, `find_similar_chats`
+-   `EmbeddingService.ts`: generates embeddings via OpenAI `text-embedding-3-small`, truncates to 8K chars
+-   `SimilarChatsDialog.tsx`: KNN search UI triggered from sidebar sparkle icon
+-   Embeddings generated fire-and-forget after chat summary creation
 
 **Missing:**
-- Automatic embedding generation (only happens when user manually summarizes)
-- Combined keyword + semantic search
-- Ambient "Related Chats" display (currently dialog-only)
-- Cross-project discovery
-- No local embedding option (requires OpenAI key)
+
+-   Automatic embedding generation (only happens when user manually summarizes)
+-   Combined keyword + semantic search
+-   Ambient "Related Chats" display (currently dialog-only)
+-   Cross-project discovery
+-   No local embedding option (requires OpenAI key)
 
 ### FTS5 Search Infrastructure
 
 **Already built:**
-- `messages_fts` virtual table (migration 140) with Porter stemmer + unicode61 tokenizer
-- 4 sync triggers (insert user msg, update user msg, insert message_parts, delete)
-- `SearchAPI.ts`: `useSearchMessages` and `useFullSearchMessages`
-- `CommandMenu.tsx`: debounced search → FTS5 results with highlight
-- `/search` route: dedicated full-page search view
-- `Cmd+Shift+F` global shortcut
+
+-   `messages_fts` virtual table (migration 140) with Porter stemmer + unicode61 tokenizer
+-   4 sync triggers (insert user msg, update user msg, insert message_parts, delete)
+-   `SearchAPI.ts`: `useSearchMessages` and `useFullSearchMessages`
+-   `CommandMenu.tsx`: debounced search → FTS5 results with highlight
+-   `/search` route: dedicated full-page search view
+-   `Cmd+Shift+F` global shortcut
 
 **Missing:**
-- Semantic results in CommandMenu/SearchView (only FTS5 keyword today)
-- Cross-content-type search (chats only, no notes)
+
+-   Semantic results in CommandMenu/SearchView (only FTS5 keyword today)
+-   Cross-content-type search (chats only, no notes)
 
 ### Summary Pipeline
 
-- `useSummarizeChat()` in MessageAPI.ts
-- Two modes: `"user"` (formatted report) and `"out_of_context"` (verbatim transcript)
-- Summary stored in `chats.summary` column (migration 80)
-- Embedding generated fire-and-forget after summary DB write
-- Triggered manually (header button) or automatically on context limit
+-   `useSummarizeChat()` in MessageAPI.ts
+-   Two modes: `"user"` (formatted report) and `"out_of_context"` (verbatim transcript)
+-   Summary stored in `chats.summary` column (migration 80)
+-   Embedding generated fire-and-forget after summary DB write
+-   Triggered manually (header button) or automatically on context limit
 
 ---
 
@@ -62,12 +66,12 @@ Currently embeddings only exist for manually-summarized chats. Extend to:
 
 ```typescript
 class EmbeddingQueue {
-    private pending = new Map<string, string>();  // chatId → text
+    private pending = new Map<string, string>(); // chatId → text
     private running = 0;
     private readonly MAX_CONCURRENT = 3;
 
     enqueue(chatId: string, text: string): void {
-        this.pending.set(chatId, text);  // latest text wins
+        this.pending.set(chatId, text); // latest text wins
         this.drain();
     }
 
@@ -78,7 +82,10 @@ class EmbeddingQueue {
             this.running++;
             generateAndStoreEmbedding(chatId, text)
                 .catch(console.error)
-                .finally(() => { this.running--; this.drain(); });
+                .finally(() => {
+                    this.running--;
+                    this.drain();
+                });
         }
     }
 }
@@ -102,10 +109,10 @@ User types query
 
 Instead of requiring users to click a sparkle icon:
 
-- Show 2–3 related chat titles in the chat header (subtle, non-intrusive)
-- Only if the current chat has an embedding
-- Click navigates to the related chat
-- Debounce: compute once when entering a chat, cache for the session
+-   Show 2–3 related chat titles in the chat header (subtle, non-intrusive)
+-   Only if the current chat has an embedding
+-   Click navigates to the related chat
+-   Debounce: compute once when entering a chat, cache for the session
 
 ### 4. Cross-Project Discovery
 
@@ -201,16 +208,18 @@ No foreign keys (per project style). The `source_chat_id` enables bidirectional 
 **Lazy loading:** `React.lazy(() => import('./NoteEditor'))` — only loaded when user navigates to `/notes/:noteId`.
 
 **Extensions (MVP):**
-- `StarterKit` (headings, lists, code blocks, bold/italic)
-- `Placeholder` ("Start writing...")
-- `Markdown` (import/export)
-- `CodeBlockLowlight` (reuse existing `react-lowlight` setup)
+
+-   `StarterKit` (headings, lists, code blocks, bold/italic)
+-   `Placeholder` ("Start writing...")
+-   `Markdown` (import/export)
+-   `CodeBlockLowlight` (reuse existing `react-lowlight` setup)
 
 **Extensions (post-MVP):**
-- `TaskList` / `TaskItem`
-- `Table`
-- `Mention` (link to chats or other notes)
-- `MermaidBlock` (custom extension, reuse existing Mermaid renderer)
+
+-   `TaskList` / `TaskItem`
+-   `Table`
+-   `Mention` (link to chats or other notes)
+-   `MermaidBlock` (custom extension, reuse existing Mermaid renderer)
 
 ### Routes
 
@@ -285,7 +294,7 @@ Same pipeline as chat embeddings. On note save (debounced), embed `title + conte
 
 ```typescript
 await invoke("upsert_chat_embedding", {
-    chatId: `note:${noteId}`,  // prefix distinguishes notes from chats
+    chatId: `note:${noteId}`, // prefix distinguishes notes from chats
     embedding,
 });
 ```
@@ -296,18 +305,18 @@ await invoke("upsert_chat_embedding", {
 
 One-click to save an AI response as a note:
 
-- Context menu on any message → "Save as Note"
-- Creates note with `source_chat_id` set
-- Note title = first line of content (or "Note from {chatTitle}")
-- Bidirectional: note shows "From: {chatTitle}" link; chat could show "Note created" indicator
+-   Context menu on any message → "Save as Note"
+-   Creates note with `source_chat_id` set
+-   Note title = first line of content (or "Note from {chatTitle}")
+-   Bidirectional: note shows "From: {chatTitle}" link; chat could show "Note created" indicator
 
 ### 3. Notes as Project Context
 
 Notes in a project folder are automatically included as context (like project attachments):
 
-- `useProjectContext()` query expanded to include notes from the project
-- Notes rendered as markdown in the system prompt (same format as attachment context)
-- Project note count shown in project header
+-   `useProjectContext()` query expanded to include notes from the project
+-   Notes rendered as markdown in the system prompt (same format as attachment context)
+-   Project note count shown in project header
 
 ### 4. Unified Search
 
@@ -330,8 +339,8 @@ CommandMenu shows both chats and notes:
 
 Send note content as context to any model:
 
-- Button in note editor → opens a new chat with note content as a markdown attachment
-- Reuses existing draft attachment infrastructure
+-   Button in note editor → opens a new chat with note content as a markdown attachment
+-   Reuses existing draft attachment infrastructure
 
 ---
 
@@ -339,34 +348,34 @@ Send note content as context to any model:
 
 ### Phase 1: MVP (Notes CRUD)
 
-- Schema migration (notes, note_folders, tags, note_tags, notes_fts)
-- `NotesAPI.ts` with basic CRUD
-- Tiptap editor component (lazy-loaded)
-- Routes: `/notes`, `/notes/:noteId`, `/notes/new`
-- Sidebar "Notes" section (pinned + recent)
-- `Cmd+Shift+N` shortcut
-- FTS5 search for notes
+-   Schema migration (notes, note_folders, tags, note_tags, notes_fts)
+-   `NotesAPI.ts` with basic CRUD
+-   Tiptap editor component (lazy-loaded)
+-   Routes: `/notes`, `/notes/:noteId`, `/notes/new`
+-   Sidebar "Notes" section (pinned + recent)
+-   `Cmd+Shift+N` shortcut
+-   FTS5 search for notes
 
 ### Phase 2: Chat Integration
 
-- "Save as Note" context menu on messages
-- Bidirectional links (note → chat, chat → note indicator)
-- Notes as project context
-- Notes in CommandMenu search results
+-   "Save as Note" context menu on messages
+-   Bidirectional links (note → chat, chat → note indicator)
+-   Notes as project context
+-   Notes in CommandMenu search results
 
 ### Phase 3: Semantic Unification
 
-- Note embeddings (same pipeline as chats)
-- Unified semantic search (chats + notes)
-- Ambient "Related" panels in both chat and note views
-- Automatic embedding generation on title creation
+-   Note embeddings (same pipeline as chats)
+-   Unified semantic search (chats + notes)
+-   Ambient "Related" panels in both chat and note views
+-   Automatic embedding generation on title creation
 
 ### Phase 4: Polish
 
-- Tags UI (tag picker, filter by tag)
-- Folder management (drag-and-drop, nesting)
-- Import/export (markdown files)
-- "Ask About This Note" button
+-   Tags UI (tag picker, filter by tag)
+-   Folder management (drag-and-drop, nesting)
+-   Import/export (markdown files)
+-   "Ask About This Note" button
 
 ---
 

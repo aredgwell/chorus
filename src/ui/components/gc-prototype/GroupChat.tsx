@@ -1,35 +1,36 @@
-import { useParams } from "react-router-dom";
 import { useChat } from "@core/chorus/api/ChatAPI";
 import {
-    useGCMainMessages,
-    useSendGCMessage,
-    useGenerateAIResponses,
     useDeleteGCMessage,
-    useRestoreGCMessage,
-    useGCThreadCounts,
     useGCConductor,
+    useGCMainMessages,
+    useGCThreadCounts,
+    useGenerateAIResponses,
+    useRestoreGCMessage,
+    useSendGCMessage,
 } from "@core/chorus/gc-prototype/APIGC";
-import {
-    Users,
-    Loader2,
-    X,
-    Undo2,
-    Info,
-    MessageSquare,
-    ArrowUpToLine,
-    TriangleAlert,
-} from "lucide-react";
-import { useState, useRef, useEffect, useMemo } from "react";
-import { Button } from "../ui/button";
-import { convertDate, displayDate } from "@ui/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import GroupChatThread from "./GroupChatThread";
-import { CollapsibleMessage } from "./CollapsibleMessage";
 import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
 import {
-    getModelDisplayName,
     getModelAvatar,
+    getModelDisplayName,
 } from "@core/chorus/gc-prototype/UtilsGC";
+import { convertDate, displayDate } from "@ui/lib/utils";
+import {
+    ArrowUpToLine,
+    Info,
+    Loader2,
+    MessageSquare,
+    TriangleAlert,
+    Undo2,
+    Users,
+    X,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
+
+import { Button } from "../ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { CollapsibleMessage } from "./CollapsibleMessage";
+import GroupChatThread from "./GroupChatThread";
 
 // Type for tracking individual model instances
 type ModelInstance = {

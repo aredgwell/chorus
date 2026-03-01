@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { AppContext } from "@ui/context/AppContext";
-import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
+import React, { useEffect, useState } from "react";
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     children,

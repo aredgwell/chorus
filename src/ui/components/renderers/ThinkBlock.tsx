@@ -1,14 +1,14 @@
 import {
-    ChevronDown as ChevronDownIcon,
-    BrainIcon,
-    Loader2,
-} from "lucide-react";
-import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@ui/components/ui/collapsible";
-import { useState, useEffect, useRef } from "react";
+import {
+    BrainIcon,
+    ChevronDown as ChevronDownIcon,
+    Loader2,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 export const ThinkBlock = ({
     content,

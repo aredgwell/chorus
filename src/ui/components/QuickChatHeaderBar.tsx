@@ -1,16 +1,13 @@
+import * as MessageAPI from "@core/chorus/api/MessageAPI";
+import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
+import { PictureInPicture2Icon, SquarePen, XIcon } from "lucide-react";
 import React from "react";
-import { Button } from "./ui/button";
-import {
-    PictureInPicture2Icon,
-    SquarePen,
-    XIcon,
-} from "lucide-react";
-import { TooltipContent, Tooltip, TooltipTrigger } from "./ui/tooltip";
+import { useCallback } from "react";
+
 import { MouseTrackingEye, MouseTrackingEyeRef } from "./MouseTrackingEye";
 import { QuickChatModelSelector } from "./QuickChatModelSelector";
-import { useCallback } from "react";
-import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
-import * as MessageAPI from "@core/chorus/api/MessageAPI";
+import { Button } from "./ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 function ModelSelectorWrapper() {
     const modelConfigsQuery = ModelsAPI.useModelConfigs();
@@ -92,9 +89,7 @@ export function QuickChatHeaderBar({
                                         : "text-foreground/75"
                                 }`}
                             >
-                                <span className="text-sm font-mono">
-                                    ⌘I
-                                </span>{" "}
+                                <span className="text-sm font-mono">⌘I</span>{" "}
                                 {visionModeEnabled && (
                                     <span className="ml-1">
                                         Vision Mode Enabled
@@ -112,10 +107,7 @@ export function QuickChatHeaderBar({
                         {visionModeEnabled ? (
                             <>Chorus can see your screen</>
                         ) : (
-                            <>
-                                Enable vision mode to show Chorus your
-                                screen
-                            </>
+                            <>Enable vision mode to show Chorus your screen</>
                         )}
                     </TooltipContent>
                 </Tooltip>

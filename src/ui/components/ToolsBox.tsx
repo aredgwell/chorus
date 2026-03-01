@@ -1,4 +1,16 @@
+import * as ToolsetsAPI from "@core/chorus/api/ToolsetsAPI";
+import { getToolsetIcon } from "@core/chorus/Toolsets";
+import { Toolset, ToolsetConfig } from "@core/chorus/Toolsets";
+import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import { DotFilledIcon } from "@radix-ui/react-icons";
+import { emit } from "@tauri-apps/api/event";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { Switch } from "@ui/components/ui/switch";
+import { useShortcut } from "@ui/hooks/useShortcut";
 import { LogsIcon, PlugIcon, PlusIcon } from "lucide-react";
+import { ArrowRightIcon, Loader2 } from "lucide-react";
+
+import { Button } from "./ui/button";
 import {
     Command,
     CommandDialog,
@@ -6,22 +18,10 @@ import {
     CommandInput,
     CommandList,
 } from "./ui/command";
-
-import { Switch } from "@ui/components/ui/switch";
-import { Button } from "./ui/button";
-import RetroSpinner from "./ui/retro-spinner";
-import { ArrowRightIcon, Loader2 } from "lucide-react";
-import { getToolsetIcon } from "@core/chorus/Toolsets";
-import { ToolsetConfig, Toolset } from "@core/chorus/Toolsets";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { DotFilledIcon } from "@radix-ui/react-icons";
 import { CommandGroup, CommandItem } from "./ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { emit } from "@tauri-apps/api/event";
+import RetroSpinner from "./ui/retro-spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-import { useShortcut } from "@ui/hooks/useShortcut";
-import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
-import * as ToolsetsAPI from "@core/chorus/api/ToolsetsAPI";
 
 export const TOOLS_BOX_DIALOG_ID = "tools-box";
 

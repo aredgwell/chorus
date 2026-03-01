@@ -1,11 +1,12 @@
-import { useRef, useEffect, useState } from "react";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import * as MessageAPI from "@core/chorus/api/MessageAPI";
+import { filterReplyMessageSets } from "@ui/lib/replyUtils";
+import { useEffect, useRef, useState } from "react";
+
 import { ChatInput } from "./ChatInput";
 import { MouseTrackingEyeRef } from "./MouseTrackingEye";
-import { Skeleton } from "./ui/skeleton";
 import { ToolsMessageView, UserMessageView } from "./MultiChat";
-import { filterReplyMessageSets } from "@ui/lib/replyUtils";
+import { Skeleton } from "./ui/skeleton";
 
 interface ReplyChatProps {
     chatId: string;

@@ -365,11 +365,13 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
                     // Log the display information
                     log::debug!(
                         "Taking screenshot of display at position ({}, {})",
-                        display_info.x, display_info.y
+                        display_info.x,
+                        display_info.y
                     );
                     log::debug!(
                         "Display dimensions: {}x{}",
-                        display_info.width, display_info.height
+                        display_info.width,
+                        display_info.height
                     );
 
                     // Capture this specific screen
@@ -432,11 +434,13 @@ pub fn capture_whole_screen(app_handle: AppHandle) -> Result<String, String> {
     let display_info = screen.display_info;
     log::debug!(
         "Taking screenshot of main display at position ({}, {})",
-        display_info.x, display_info.y
+        display_info.x,
+        display_info.y
     );
     log::debug!(
         "Display dimensions: {}x{}",
-        display_info.width, display_info.height
+        display_info.width,
+        display_info.height
     );
 
     // Capture the screen
@@ -555,7 +559,7 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
 
         #[cfg(not(target_os = "macos"))]
         {
-            use image::{ImageReader, ImageFormat};
+            use image::{ImageFormat, ImageReader};
             log::debug!("Using compression only with quality: {}", quality);
 
             // Parse quality percentage
@@ -628,7 +632,8 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
 
         log::debug!(
             "Original dimensions: {}x{}",
-            original_width, original_height
+            original_width,
+            original_height
         );
 
         // Calculate the area in pixels and estimate the size reduction needed
@@ -646,7 +651,8 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
 
         log::debug!(
             "Using scale factor {:.2}, new width: {}",
-            scale_factor, new_width
+            scale_factor,
+            new_width
         );
 
         // Resize and compress in a single step with high quality
@@ -673,7 +679,7 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
 
     #[cfg(not(target_os = "macos"))]
     {
-        use image::{imageops::FilterType, ImageReader, ImageFormat};
+        use image::{imageops::FilterType, ImageFormat, ImageReader};
 
         // Read the image
         let img = ImageReader::open(input_path)
@@ -687,7 +693,8 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
 
         log::debug!(
             "Original dimensions: {}x{}",
-            original_width, original_height
+            original_width,
+            original_height
         );
 
         // Calculate the area in pixels and estimate the size reduction needed
@@ -706,7 +713,9 @@ pub fn resize_image(file_path: String, target_size_bytes: u64) -> Result<String,
 
         log::debug!(
             "Using scale factor {:.2}, new dimensions: {}x{}",
-            scale_factor, new_width, new_height
+            scale_factor,
+            new_width,
+            new_height
         );
 
         // Resize the image
@@ -761,16 +770,20 @@ pub fn get_instance_name() -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn write_file_async(path: String, content: Option<Vec<u8>>, source_path: Option<String>) -> Result<(), String> {
+pub async fn write_file_async(
+    path: String,
+    content: Option<Vec<u8>>,
+    source_path: Option<String>,
+) -> Result<(), String> {
     use std::path::Path;
-    
+
     // Use Tauri's async runtime to perform the write operation
     tauri::async_runtime::spawn_blocking(move || {
         // Ensure parent directory exists
         if let Some(parent) = Path::new(&path).parent() {
             std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
         }
-        
+
         if let Some(src_path) = source_path {
             // Copy file from source path (avoids IPC for large files)
             std::fs::copy(&src_path, &path).map_err(|e| e.to_string())?;
@@ -780,12 +793,12 @@ pub async fn write_file_async(path: String, content: Option<Vec<u8>>, source_pat
         } else {
             return Err("Either content or source_path must be provided".to_string());
         }
-        
+
         Ok::<(), String>(())
     })
     .await
     .map_err(|e| format!("Task join error: {}", e))??;
-    
+
     Ok(())
 }
 
@@ -1196,12 +1209,9 @@ pub async fn find_similar_items(
         let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
         // Request extra rows to account for excluded/deleted items
         let rows = stmt
-            .query_map(
-                rusqlite::params![embedding.as_bytes(), limit + 5],
-                |row| {
-                    Ok((row.get::<_, String>(0)?, row.get::<_, f64>(1)?))
-                },
-            )
+            .query_map(rusqlite::params![embedding.as_bytes(), limit + 5], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, f64>(1)?))
+            })
             .map_err(|e| e.to_string())?;
 
         let mut results: Vec<serde_json::Value> = Vec::new();
@@ -1267,10 +1277,7 @@ pub async fn find_similar_items(
 
 /// Delete an embedding by its ID.
 #[tauri::command]
-pub async fn delete_embedding(
-    app_handle: AppHandle,
-    id: String,
-) -> Result<(), String> {
+pub async fn delete_embedding(app_handle: AppHandle, id: String) -> Result<(), String> {
     let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || {
@@ -1570,10 +1577,7 @@ pub async fn increment_conductor_turn(
 /// Delete a custom toolset's DB rows in a single transaction.
 /// Keychain deletion stays in JS (not a DB operation).
 #[tauri::command]
-pub async fn delete_custom_toolset(
-    app_handle: AppHandle,
-    name: String,
-) -> Result<(), String> {
+pub async fn delete_custom_toolset(app_handle: AppHandle, name: String) -> Result<(), String> {
     let db_path = db_path(&app_handle)?;
 
     tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {

@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from "react";
-import { Button } from "../ui/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+
+import { Button } from "../ui/button";
 
 // Component for collapsible message content
 export function CollapsibleMessage({ text }: { text: string }) {

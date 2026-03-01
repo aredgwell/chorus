@@ -1,38 +1,74 @@
-import { scan } from "react-scan"; // must import before react
+import "./App.css";
+
+import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
+import { useSelectedCollectionId } from "@core/chorus/api/AppMetadataAPI";
+import * as ChatAPI from "@core/chorus/api/ChatAPI";
+import { cleanupExpiredUngroupedItems } from "@core/chorus/api/CleanupAPI";
+import { stopAllStreamingMessages } from "@core/chorus/api/MessageAPI";
+import * as NoteAPI from "@core/chorus/api/NoteAPI";
+import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
+import * as ToolsetsAPI from "@core/chorus/api/ToolsetsAPI";
+import { config } from "@core/config";
+import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import { SettingsManager } from "@core/utilities/Settings";
+import {
+    DndContext,
+    type DragEndEvent,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from "@dnd-kit/core";
+import {
+    MutationCache,
+    QueryClient,
+    QueryClientProvider,
+    useQuery,
+} from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { getVersion } from "@tauri-apps/api/app";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { homeDir, resourceDir } from "@tauri-apps/api/path";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import {
+    getCurrent as getCurrentDeepLink,
+    onOpenUrl,
+} from "@tauri-apps/plugin-deep-link";
+import { confirm } from "@tauri-apps/plugin-dialog";
+import { openPath, openUrl } from "@tauri-apps/plugin-opener";
+import { arch, platform, version } from "@tauri-apps/plugin-os";
+import { relaunch } from "@tauri-apps/plugin-process";
+import Database from "@tauri-apps/plugin-sql";
+import { check, DownloadEvent, Update } from "@tauri-apps/plugin-updater";
+import { useAppContext } from "@ui/hooks/useAppContext";
+import { useTheme } from "@ui/hooks/useTheme";
+import { AppMetadataProvider } from "@ui/providers/AppMetadataProvider";
+import { ThemeProvider } from "@ui/themes/theme-provider";
+import { X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
     BrowserRouter as Router,
-    useNavigate,
     useLocation,
+    useNavigate,
 } from "react-router-dom";
-import { useCallback, useEffect, useState, useRef } from "react";
-import "./App.css";
-import { AppProvider } from "./providers/AppProvider";
-import { useAppContext } from "@ui/hooks/useAppContext";
-import { useDialogStore, dialogActions } from "@core/infra/DialogStore";
-import ErrorBoundary from "./components/ui/ErrorBoundary";
-import { check, DownloadEvent, Update } from "@tauri-apps/plugin-updater";
+import { scan } from "react-scan"; // must import before react
 import { toast } from "sonner";
 import { Toaster } from "sonner";
-import { useTheme } from "@ui/hooks/useTheme";
+import { v4 as uuidv4 } from "uuid";
+
+import { AppSidebar } from "./components/AppSidebar";
+import { COMMAND_MENU_DIALOG_ID, CommandMenu } from "./components/CommandMenu";
+import { ContentPane } from "./components/ContentPane";
+import { ContextPane } from "./components/ContextPane";
+import Onboarding from "./components/Onboarding";
 import Settings, {
     SETTINGS_DIALOG_ID,
     type SettingsTabId,
 } from "./components/Settings";
-import { SidebarProvider } from "./providers/SidebarProvider";
-import { AppSidebar } from "./components/AppSidebar";
-import { ThemeProvider } from "@ui/themes/theme-provider";
-import { COMMAND_MENU_DIALOG_ID, CommandMenu } from "./components/CommandMenu";
-import Onboarding from "./components/Onboarding";
-import {
-    onOpenUrl,
-    getCurrent as getCurrentDeepLink,
-} from "@tauri-apps/plugin-deep-link";
-import { config } from "@core/config";
-import Database from "@tauri-apps/plugin-sql";
-import { listen } from "@tauri-apps/api/event";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Progress } from "./components/ui/progress";
-import RetroSpinner from "./components/ui/retro-spinner";
+import { SimilarChatsDialog } from "./components/SimilarChatsDialog";
+import { ToolPermissionDialog } from "./components/ToolPermissionDialog";
+import { Alert, AlertDescription, AlertTitle } from "./components/ui/alert";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -42,55 +78,21 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "./components/ui/alert-dialog";
-import { openUrl, openPath } from "@tauri-apps/plugin-opener";
-import { useDatabase } from "./hooks/useDatabase";
-import { stopAllStreamingMessages } from "@core/chorus/api/MessageAPI";
-import { X } from "lucide-react";
-import { getVersion } from "@tauri-apps/api/app";
-import { platform, arch, version } from "@tauri-apps/plugin-os";
-import { confirm } from "@tauri-apps/plugin-dialog";
-import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { resourceDir, homeDir } from "@tauri-apps/api/path";
-import { invoke } from "@tauri-apps/api/core";
-import { v4 as uuidv4 } from "uuid";
-import {
-    MutationCache,
-    QueryClient,
-    QueryClientProvider,
-    useQuery,
-} from "@tanstack/react-query";
-import { AppMetadataProvider } from "@ui/providers/AppMetadataProvider";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { useShortcut } from "./hooks/useShortcut";
 import { Button } from "./components/ui/button";
-import { DatabaseProvider } from "./providers/DatabaseProvider";
-import { Alert, AlertTitle, AlertDescription } from "./components/ui/alert";
-import { relaunch } from "@tauri-apps/plugin-process";
-import { ToolPermissionDialog } from "./components/ToolPermissionDialog";
-import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
-import * as ToolsetsAPI from "@core/chorus/api/ToolsetsAPI";
-import * as ChatAPI from "@core/chorus/api/ChatAPI";
-import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
-import { cleanupExpiredUngroupedItems } from "@core/chorus/api/CleanupAPI";
-import { SettingsManager } from "@core/utilities/Settings";
-import { SimilarChatsDialog } from "./components/SimilarChatsDialog";
-import { ContextPane } from "./components/ContextPane";
-import { ContentPane } from "./components/ContentPane";
-import { useAutoSyncCollection } from "./hooks/useAutoSyncCollection";
+import ErrorBoundary from "./components/ui/ErrorBoundary";
+import { Progress } from "./components/ui/progress";
 import {
-    ResizablePanelGroup,
-    ResizablePanel,
     ResizableHandle,
+    ResizablePanel,
+    ResizablePanelGroup,
 } from "./components/ui/resizable";
-import { useSelectedCollectionId } from "@core/chorus/api/AppMetadataAPI";
-import {
-    DndContext,
-    type DragEndEvent,
-    PointerSensor,
-    useSensor,
-    useSensors,
-} from "@dnd-kit/core";
-import * as NoteAPI from "@core/chorus/api/NoteAPI";
+import RetroSpinner from "./components/ui/retro-spinner";
+import { useAutoSyncCollection } from "./hooks/useAutoSyncCollection";
+import { useDatabase } from "./hooks/useDatabase";
+import { useShortcut } from "./hooks/useShortcut";
+import { AppProvider } from "./providers/AppProvider";
+import { DatabaseProvider } from "./providers/DatabaseProvider";
+import { SidebarProvider } from "./providers/SidebarProvider";
 
 scan({
     enabled: import.meta.env.DEV,
@@ -956,61 +958,58 @@ function AppContent() {
                 className={`select-none ${isQuickChatWindow ? "bg-transparent" : "bg-background"}`}
             >
                 <SidebarProvider>
-                <DndContext sensors={dndSensors} onDragEnd={handleDragEnd}>
-                    {!isQuickChatWindow && <AppSidebar />}
-                    {!isQuickChatWindow && <CommandMenu />}
-                    <main className="flex flex-col flex-1 h-svh min-w-0 overflow-hidden">
-                        <div className="flex-1 min-h-0 relative">
-                            {isQuickChatWindow ? (
-                                <ContentPane />
-                            ) : (
-                                <ResizablePanelGroup
-                                    autoSaveId="three-pane-layout"
-                                    direction="horizontal"
-                                    className="h-full"
-                                >
-                                    <ResizablePanel
-                                        defaultSize={25}
-                                        minSize={15}
-                                        maxSize={40}
+                    <DndContext sensors={dndSensors} onDragEnd={handleDragEnd}>
+                        {!isQuickChatWindow && <AppSidebar />}
+                        {!isQuickChatWindow && <CommandMenu />}
+                        <main className="flex flex-col flex-1 h-svh min-w-0 overflow-hidden">
+                            <div className="flex-1 min-h-0 relative">
+                                {isQuickChatWindow ? (
+                                    <ContentPane />
+                                ) : (
+                                    <ResizablePanelGroup
+                                        autoSaveId="three-pane-layout"
+                                        direction="horizontal"
+                                        className="h-full"
                                     >
-                                        <ContextPane />
-                                    </ResizablePanel>
-                                    <ResizableHandle />
-                                    <ResizablePanel defaultSize={75}>
-                                        <ContentPane />
-                                    </ResizablePanel>
-                                </ResizablePanelGroup>
-                            )}
-                        </div>
-                    </main>
-                    {!isQuickChatWindow && (
-                        <Settings
-                            tab={defaultSettingsTab || "general"}
+                                        <ResizablePanel
+                                            defaultSize={25}
+                                            minSize={15}
+                                            maxSize={40}
+                                        >
+                                            <ContextPane />
+                                        </ResizablePanel>
+                                        <ResizableHandle />
+                                        <ResizablePanel defaultSize={75}>
+                                            <ContentPane />
+                                        </ResizablePanel>
+                                    </ResizablePanelGroup>
+                                )}
+                            </div>
+                        </main>
+                        {!isQuickChatWindow && (
+                            <Settings tab={defaultSettingsTab || "general"} />
+                        )}
+                        <ToolPermissionDialog />
+                        {!isQuickChatWindow && <SimilarChatsDialog />}
+                        <Toaster
+                            theme={
+                                mode === "system"
+                                    ? window.matchMedia(
+                                          "(prefers-color-scheme: dark)",
+                                      ).matches
+                                        ? "dark"
+                                        : "light"
+                                    : mode
+                            }
+                            position="bottom-right"
+                            closeButton
                         />
-                    )}
-                    <ToolPermissionDialog />
-                    {!isQuickChatWindow && <SimilarChatsDialog />}
-                    <Toaster
-                        theme={
-                            mode === "system"
-                                ? window.matchMedia(
-                                      "(prefers-color-scheme: dark)",
-                                  ).matches
-                                    ? "dark"
-                                    : "light"
-                                : mode
-                        }
-                        position="bottom-right"
-                        closeButton
-                    />
-                </DndContext>
+                    </DndContext>
                 </SidebarProvider>
             </div>
         </>
     );
 }
-
 
 async function getDeviceId(): Promise<string> {
     const db = await Database.load(config.dbUrl);

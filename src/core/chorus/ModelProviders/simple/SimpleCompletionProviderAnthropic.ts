@@ -1,8 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
+
 import {
     ISimpleCompletionProvider,
-    SimpleCompletionParams,
     SimpleCompletionMode,
+    SimpleCompletionParams,
 } from "./ISimpleCompletionProvider";
 
 const DEFAULT_TITLE_MODEL = "claude-haiku-4-5";

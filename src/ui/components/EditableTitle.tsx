@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from "react";
-import { Input } from "./ui/input";
 import { Pencil } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+
+import { Input } from "./ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 interface EditableTitleProps {

@@ -154,9 +154,7 @@ export default function GeneralTab({
 
                 <div className="flex items-center justify-between pt-2">
                     <div className="space-y-0.5">
-                        <div className="font-semibold ">
-                            Cautious Enter key
-                        </div>
+                        <div className="font-semibold ">Cautious Enter key</div>
                         <div className=" ">
                             Use Cmd+Enter to send messages instead of Enter
                         </div>

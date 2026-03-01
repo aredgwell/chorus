@@ -1,7 +1,8 @@
+import { deleteEmbedding, embeddingQueue } from "@core/chorus/EmbeddingService";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+
 import { db } from "../DB";
-import { embeddingQueue, deleteEmbedding } from "@core/chorus/EmbeddingService";
 
 const noteKeys = {
     all: () => ["notes"] as const,

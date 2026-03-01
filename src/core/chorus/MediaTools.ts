@@ -1,7 +1,8 @@
-import { fetch } from "@tauri-apps/plugin-http";
-import { writeFile, mkdir } from "@tauri-apps/plugin-fs";
-import { join, appDataDir } from "@tauri-apps/api/path";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { appDataDir, join } from "@tauri-apps/api/path";
+import { mkdir, writeFile } from "@tauri-apps/plugin-fs";
+import { fetch } from "@tauri-apps/plugin-http";
+
 import { ApiKeys } from "./Models";
 
 type ImageGenerationResult = {

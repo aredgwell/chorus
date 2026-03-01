@@ -1,9 +1,10 @@
 import { SettingsManager } from "@core/utilities/Settings";
-import { getSimpleCompletionProvider } from "./ModelProviders/simple/SimpleCompletionProviderFactory";
+
 import {
-    SimpleCompletionParams,
     SimpleCompletionMode,
+    SimpleCompletionParams,
 } from "./ModelProviders/simple/ISimpleCompletionProvider";
+import { getSimpleCompletionProvider } from "./ModelProviders/simple/SimpleCompletionProviderFactory";
 
 const MAX_RETRIES = 1;
 

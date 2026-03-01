@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { openPath, openUrl } from "@tauri-apps/plugin-opener";
+import { Button } from "@ui/components/ui/button";
 import {
     HoverCard,
-    HoverCardTrigger,
     HoverCardContent,
+    HoverCardTrigger,
 } from "@ui/components/ui/hover-card";
-import { Button } from "@ui/components/ui/button";
 import { ExternalLinkIcon, EyeIcon, FileIcon } from "lucide-react";
-import { openUrl, openPath } from "@tauri-apps/plugin-opener";
+import { useState } from "react";
 
 interface WebPreviewProps {
     url: string;

@@ -1,7 +1,7 @@
-import { ReactNode } from "react";
 import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
 import RetroSpinner from "@ui/components/ui/retro-spinner";
 import { AppMetadataContext } from "@ui/context/AppMetadataContext";
+import { ReactNode } from "react";
 
 // ----------------------------------
 // *ensures* app metadata is loaded

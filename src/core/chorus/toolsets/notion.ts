@@ -1,5 +1,5 @@
-import { MCPServer, Toolset } from "@core/chorus/Toolsets";
 import { StdioServerParameters } from "@core/chorus/MCPStdioTauri";
+import { MCPServer, Toolset } from "@core/chorus/Toolsets";
 
 export class MCPServerNotion extends MCPServer {
     protected getExecutionParameters(

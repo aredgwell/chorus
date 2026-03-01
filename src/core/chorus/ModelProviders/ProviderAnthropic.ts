@@ -1,15 +1,16 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { getUserToolNamespacedName, UserToolCall } from "@core/chorus/Toolsets";
+import { canProceedWithProvider } from "@core/utilities/ProxyUtils";
+
 import {
     LLMMessage,
     readImageAttachment,
     readPdfAttachment,
-    StreamResponseParams,
     readTextAttachment,
     readWebpageAttachment,
+    StreamResponseParams,
 } from "../Models";
 import { IProvider } from "./IProvider";
-import { canProceedWithProvider } from "@core/utilities/ProxyUtils";
-import { getUserToolNamespacedName, UserToolCall } from "@core/chorus/Toolsets";
 
 type AcceptedImageType =
     | "image/jpeg"
@@ -193,7 +194,6 @@ async function formatMessageWithAttachments(
         switch (attachment.type) {
             case "text": {
                 attachmentBlocks.push({
-
                     type: "document",
                     source: {
                         type: "text",
@@ -209,7 +209,6 @@ async function formatMessageWithAttachments(
             }
             case "webpage": {
                 attachmentBlocks.push({
-
                     type: "document",
                     source: {
                         type: "text",
@@ -266,7 +265,6 @@ async function formatMessageWithAttachments(
                 );
 
                 attachmentBlocks.push({
-
                     type: "image",
                     source: {
                         type: "base64",
@@ -278,7 +276,6 @@ async function formatMessageWithAttachments(
             }
             case "pdf": {
                 attachmentBlocks.push({
-
                     type: "document",
                     source: {
                         type: "base64",
@@ -364,7 +361,9 @@ function addCacheControlToLastAttachment(
             const blocks = outputMessage.content;
 
             // All content block types we create (text, document, image) support cache_control
-            const lastBlock = blocks[blocks.length - 1] as { cache_control?: { type: "ephemeral" } };
+            const lastBlock = blocks[blocks.length - 1] as {
+                cache_control?: { type: "ephemeral" };
+            };
             lastBlock.cache_control = { type: "ephemeral" };
 
             outputMessages.push({

@@ -45,7 +45,11 @@ export function classifyError(
     const lower = message.toLowerCase();
 
     // Rate limit (429)
-    if (status === 429 || lower.includes("rate limit") || lower.includes("too many requests")) {
+    if (
+        status === 429 ||
+        lower.includes("rate limit") ||
+        lower.includes("too many requests")
+    ) {
         const retryAfterMs = extractRetryAfter(error);
         return {
             type: "rate_limit",

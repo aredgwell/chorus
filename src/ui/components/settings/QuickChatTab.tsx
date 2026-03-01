@@ -1,10 +1,10 @@
-import { Button } from "@ui/components/ui/button";
-import { Switch } from "@ui/components/ui/switch";
-import { Separator } from "@ui/components/ui/separator";
-import { toast } from "sonner";
 import { relaunch } from "@tauri-apps/plugin-process";
-import ShortcutRecorder from "@ui/components/ShortcutRecorder";
 import { AccessibilitySettings } from "@ui/components/AccessibilityCheck";
+import ShortcutRecorder from "@ui/components/ShortcutRecorder";
+import { Button } from "@ui/components/ui/button";
+import { Separator } from "@ui/components/ui/separator";
+import { Switch } from "@ui/components/ui/switch";
+import { toast } from "sonner";
 
 interface QuickChatTabProps {
     quickChatEnabled: boolean;
@@ -73,8 +73,7 @@ export default function QuickChatTab({
                             onClick={() => {
                                 if (!quickChatShortcut.trim()) {
                                     toast.error("Invalid shortcut", {
-                                        description:
-                                            "Shortcut cannot be empty",
+                                        description: "Shortcut cannot be empty",
                                     });
                                     return;
                                 }

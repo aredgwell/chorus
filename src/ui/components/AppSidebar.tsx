@@ -1,15 +1,22 @@
 import {
-    FolderIcon,
-    FolderOpenIcon,
-    FolderPlusIcon,
-    PencilIcon,
-    TrashIcon,
-    Settings,
-    InboxIcon,
-    TagIcon,
-    FilePlusIcon,
-    SquarePlusIcon,
-} from "lucide-react";
+    useSelectedCollectionId,
+    useSetSelectedCollectionId,
+} from "@core/chorus/api/AppMetadataAPI";
+import { chatQueries, useGetOrCreateNewChat } from "@core/chorus/api/ChatAPI";
+import { formatCost } from "@core/chorus/api/CostAPI";
+import { noteQueries, useCreateNote } from "@core/chorus/api/NoteAPI";
+import {
+    projectQueries,
+    useCreateProject,
+    useDeleteProject,
+    useRenameProject,
+} from "@core/chorus/api/ProjectAPI";
+import { useCreateSmartCollection } from "@core/chorus/api/ProjectAPI";
+import { useDeleteTag, useTags } from "@core/chorus/api/TagAPI";
+import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import { useQuery } from "@tanstack/react-query";
+import { invoke } from "@tauri-apps/api/core";
+import { emit } from "@tauri-apps/api/event";
 import {
     Sidebar,
     SidebarContent,
@@ -24,16 +31,25 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@ui/components/ui/tooltip";
-
-import { useEffect, useState, useCallback, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { useSettings } from "./hooks/useSettings";
-import { formatCost } from "@core/chorus/api/CostAPI";
-import RetroSpinner from "./ui/retro-spinner";
-import { emit } from "@tauri-apps/api/event";
 import { projectDisplayName } from "@ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import {
+    FilePlusIcon,
+    FolderIcon,
+    FolderOpenIcon,
+    FolderPlusIcon,
+    InboxIcon,
+    PencilIcon,
+    Settings,
+    SparklesIcon,
+    SquarePlusIcon,
+    TagIcon,
+    TrashIcon,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+
+import Droppable from "./Droppable";
+import { useSettings } from "./hooks/useSettings";
 import { Button } from "./ui/button";
 import {
     Dialog,
@@ -43,20 +59,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "./ui/dialog";
-import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
-import Droppable from "./Droppable";
-import {
-    projectQueries,
-    useCreateProject,
-    useRenameProject,
-    useDeleteProject,
-} from "@core/chorus/api/ProjectAPI";
-import { chatQueries, useGetOrCreateNewChat } from "@core/chorus/api/ChatAPI";
-import { noteQueries, useCreateNote } from "@core/chorus/api/NoteAPI";
-import {
-    useSelectedCollectionId,
-    useSetSelectedCollectionId,
-} from "@core/chorus/api/AppMetadataAPI";
+import RetroSpinner from "./ui/retro-spinner";
 
 function DevModeIndicator() {
     const [instanceName, setInstanceName] = useState<string>("");
@@ -75,6 +78,91 @@ function DevModeIndicator() {
         <div className="px-2 py-1 text-[10px] font-medium bg-yellow-500/10 text-yellow-500">
             {instanceName ? `Instance ${instanceName}` : "DEV MODE"}
         </div>
+    );
+}
+
+function SidebarTagsSection() {
+    const tagsQuery = useTags();
+    const deleteTag = useDeleteTag();
+    const createSmartCollection = useCreateSmartCollection();
+    const tags = tagsQuery.data ?? [];
+
+    const handleCreateSmartCollection = (tagId: string, tagName: string) => {
+        void createSmartCollection.mutateAsync({
+            name: tagName,
+            rules: { match: "any", tagIds: [tagId] },
+        });
+    };
+
+    return (
+        <>
+            <div className="pt-4 flex items-center justify-between">
+                <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
+                    Tags
+                </div>
+            </div>
+            {tags.length === 0 ? (
+                <div className="px-3 py-2 text-sm text-muted-foreground/60 flex items-center gap-2">
+                    <TagIcon className="size-3.5" strokeWidth={1.5} />
+                    Add tags to notes to organize them
+                </div>
+            ) : (
+                <div className="px-1 py-1 space-y-0.5">
+                    {tags.map((tag) => (
+                        <div
+                            key={tag.id}
+                            className="group/tag flex items-center gap-2 px-2 py-1 rounded-md text-sm hover:bg-accent transition-colors"
+                        >
+                            <span
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{
+                                    backgroundColor:
+                                        tag.color ??
+                                        "hsl(var(--muted-foreground))",
+                                }}
+                            />
+                            <span className="truncate flex-1">{tag.name}</span>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        type="button"
+                                        className="opacity-0 group-hover/tag:opacity-100 p-0.5 rounded hover:bg-accent transition-all"
+                                        onClick={() =>
+                                            handleCreateSmartCollection(
+                                                tag.id,
+                                                tag.name,
+                                            )
+                                        }
+                                    >
+                                        <SparklesIcon
+                                            className="size-3"
+                                            strokeWidth={1.5}
+                                        />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Create smart collection
+                                </TooltipContent>
+                            </Tooltip>
+                            <button
+                                type="button"
+                                className="opacity-0 group-hover/tag:opacity-100 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-all"
+                                onClick={() =>
+                                    void deleteTag.mutateAsync({
+                                        tagId: tag.id,
+                                    })
+                                }
+                            >
+                                <TrashIcon
+                                    className="size-3"
+                                    strokeWidth={1.5}
+                                />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </>
     );
 }
 
@@ -120,9 +208,7 @@ function CollectionsNavigator() {
     }
 
     const projects = (projectsQuery.data ?? [])
-        .filter(
-            (project) => !["default", "quick-chat"].includes(project.id),
-        )
+        .filter((project) => !["default", "quick-chat"].includes(project.id))
         .sort((a, b) => a.name.localeCompare(b.name));
 
     // Count items per collection for badges
@@ -198,6 +284,10 @@ function CollectionsNavigator() {
                                                         ? project.totalCostUsd
                                                         : undefined
                                                 }
+                                                isSmart={
+                                                    project.collectionType ===
+                                                    "smart"
+                                                }
                                             />
                                         </Droppable>
                                     ))
@@ -220,8 +310,7 @@ function CollectionsNavigator() {
                                                 className="text-muted-foreground hover:text-foreground p-1 rounded"
                                                 onClick={() =>
                                                     createNote.mutate({
-                                                        projectId:
-                                                            "default",
+                                                        projectId: "default",
                                                     })
                                                 }
                                             >
@@ -240,12 +329,9 @@ function CollectionsNavigator() {
                                             <button
                                                 className="text-muted-foreground hover:text-foreground p-1 rounded"
                                                 onClick={() =>
-                                                    getOrCreateNewChat.mutate(
-                                                        {
-                                                            projectId:
-                                                                "default",
-                                                        },
-                                                    )
+                                                    getOrCreateNewChat.mutate({
+                                                        projectId: "default",
+                                                    })
                                                 }
                                             >
                                                 <SquarePlusIcon
@@ -291,19 +377,8 @@ function CollectionsNavigator() {
                                 </SidebarMenuItem>
                             </Droppable>
 
-                            {/* Tags section (placeholder) */}
-                            <div className="pt-4 flex items-center justify-between">
-                                <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
-                                    Tags
-                                </div>
-                            </div>
-                            <div className="px-3 py-2 text-sm text-muted-foreground/60 flex items-center gap-2">
-                                <TagIcon
-                                    className="size-3.5"
-                                    strokeWidth={1.5}
-                                />
-                                Coming soon
-                            </div>
+                            {/* Tags section */}
+                            <SidebarTagsSection />
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
@@ -349,6 +424,7 @@ function CollectionItem({
     isSelected,
     onSelect,
     cost,
+    isSmart,
 }: {
     projectId: string;
     name: string;
@@ -356,14 +432,14 @@ function CollectionItem({
     isSelected: boolean;
     onSelect: () => void;
     cost?: number;
+    isSmart?: boolean;
 }) {
     const [isRenaming, setIsRenaming] = useState(false);
     const [renameValue, setRenameValue] = useState(name);
     const renameProject = useRenameProject();
     const deleteProject = useDeleteProject();
     const isDeleteDialogOpen = useDialogStore(
-        (state) =>
-            state.activeDialogId === deleteCollectionDialogId(projectId),
+        (state) => state.activeDialogId === deleteCollectionDialogId(projectId),
     );
     const deleteConfirmButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -452,7 +528,12 @@ function CollectionItem({
                 className="flex items-center justify-between mb-0.5 group/collection"
             >
                 <span className="flex items-center gap-2 flex-1 min-w-0">
-                    {isSelected ? (
+                    {isSmart ? (
+                        <SparklesIcon
+                            strokeWidth={1.5}
+                            className="size-4 text-muted-foreground shrink-0"
+                        />
+                    ) : isSelected ? (
                         <FolderOpenIcon
                             strokeWidth={1.5}
                             className="size-4 text-muted-foreground shrink-0"

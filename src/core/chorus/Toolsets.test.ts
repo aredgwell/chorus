@@ -1,11 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+
+import type { UserTool } from "./Toolsets";
 import {
+    getEnvFromJSON,
     getUserToolNamespacedName,
     parseUserToolNamespacedName,
-    getEnvFromJSON,
     TOOL_CALL_INTERRUPTED_MESSAGE,
 } from "./Toolsets";
-import type { UserTool } from "./Toolsets";
 
 describe("getUserToolNamespacedName", () => {
     it("joins toolsetName and displayNameSuffix with underscore", () => {
@@ -23,9 +24,7 @@ describe("getUserToolNamespacedName", () => {
             displayNameSuffix: "do-something",
             inputSchema: {},
         };
-        expect(getUserToolNamespacedName(tool)).toBe(
-            "my-toolset_do-something",
-        );
+        expect(getUserToolNamespacedName(tool)).toBe("my-toolset_do-something");
     });
 });
 

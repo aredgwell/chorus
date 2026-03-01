@@ -1,15 +1,16 @@
-import { useState, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { SearchIcon, ArrowLeftIcon, MessageCircleIcon } from "lucide-react";
-import debounce from "lodash/debounce";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
-import { SidebarTrigger } from "./ui/sidebar";
-import { convertDate, displayDate } from "@ui/lib/utils";
-import { ProviderLogo } from "@ui/components/ui/provider-logo";
-import * as SearchAPI from "@core/chorus/api/SearchAPI";
 import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
 import type { SearchResult } from "@core/chorus/api/SearchAPI";
+import * as SearchAPI from "@core/chorus/api/SearchAPI";
+import { ProviderLogo } from "@ui/components/ui/provider-logo";
+import { convertDate, displayDate } from "@ui/lib/utils";
+import debounce from "lodash/debounce";
+import { ArrowLeftIcon, MessageCircleIcon, SearchIcon } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { SidebarTrigger } from "./ui/sidebar";
 
 const CONTEXT_LENGTH = 200;
 
@@ -17,13 +18,7 @@ function escapeStringRegexp(str: string): string {
     return str.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&");
 }
 
-function HighlightedText({
-    text,
-    query,
-}: {
-    text: string;
-    query: string;
-}) {
+function HighlightedText({ text, query }: { text: string; query: string }) {
     if (!query.trim()) return <>{text}</>;
 
     try {
@@ -102,10 +97,7 @@ function SearchResultItem({
             <div className="flex items-center gap-2 mb-1">
                 {result.title && (
                     <span className="font-medium text-sm truncate flex-1">
-                        <HighlightedText
-                            text={result.title}
-                            query={query}
-                        />
+                        <HighlightedText text={result.title} query={query} />
                     </span>
                 )}
                 <span className="text-xs text-muted-foreground shrink-0">
@@ -238,37 +230,33 @@ export default function SearchView() {
                     </div>
                 )}
 
-                {debouncedQuery &&
-                    !isLoading &&
-                    searchResults.length > 0 && (
-                        <div className="space-y-6 max-w-2xl mx-auto">
-                            <p className="text-xs text-muted-foreground">
-                                {searchResults.length} result
-                                {searchResults.length === 1 ? "" : "s"} in{" "}
-                                {groupedResults.length} conversation
-                                {groupedResults.length === 1 ? "" : "s"}
-                            </p>
-                            {groupedResults.map(
-                                ([chatId, { title, results }]) => (
-                                    <div key={chatId} className="space-y-2">
-                                        {groupedResults.length > 1 && (
-                                            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                                {title} ({results.length})
-                                            </h3>
-                                        )}
-                                        {results.map((result) => (
-                                            <SearchResultItem
-                                                key={result.id}
-                                                result={result}
-                                                query={debouncedQuery}
-                                                getDisplayName={getDisplayName}
-                                            />
-                                        ))}
-                                    </div>
-                                ),
-                            )}
-                        </div>
-                    )}
+                {debouncedQuery && !isLoading && searchResults.length > 0 && (
+                    <div className="space-y-6 max-w-2xl mx-auto">
+                        <p className="text-xs text-muted-foreground">
+                            {searchResults.length} result
+                            {searchResults.length === 1 ? "" : "s"} in{" "}
+                            {groupedResults.length} conversation
+                            {groupedResults.length === 1 ? "" : "s"}
+                        </p>
+                        {groupedResults.map(([chatId, { title, results }]) => (
+                            <div key={chatId} className="space-y-2">
+                                {groupedResults.length > 1 && (
+                                    <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                        {title} ({results.length})
+                                    </h3>
+                                )}
+                                {results.map((result) => (
+                                    <SearchResultItem
+                                        key={result.id}
+                                        result={result}
+                                        query={debouncedQuery}
+                                        getDisplayName={getDisplayName}
+                                    />
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

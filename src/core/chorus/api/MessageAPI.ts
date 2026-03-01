@@ -1,67 +1,68 @@
 import {
-    Message,
-    BlockType,
-    MessageSetDetail,
-    MessageSet,
-    llmConversation,
-    createAIMessage,
     blockIsEmpty,
-    llmConversationForSynthesis,
-    MessagePart,
+    BlockType,
     BrainstormBlock,
-    ToolsBlock,
-    CompareBlock,
     ChatBlock,
+    CompareBlock,
+    createAIMessage,
+    llmConversation,
+    llmConversationForSynthesis,
+    Message,
+    MessagePart,
+    MessageSet,
+    MessageSetDetail,
+    ToolsBlock,
     UserBlock,
 } from "@core/chorus/ChatState";
-import * as Reviews from "../reviews";
+import {
+    embeddingQueue,
+    generateAndStoreEmbedding,
+} from "@core/chorus/EmbeddingService";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { invoke } from "@tauri-apps/api/core";
+import { useAppContext } from "@ui/hooks/useAppContext";
+import { produce } from "immer";
+import _ from "lodash";
+import posthog from "posthog-js";
+import { useNavigate } from "react-router-dom";
+import { v4 as uuidv4 } from "uuid";
+
+import { db } from "../DB";
+import { SimpleCompletionMode } from "../ModelProviders/simple/ISimpleCompletionProvider";
 import { LLMMessage, ModelConfig, UsageData } from "../Models";
 import * as Models from "../Models";
-import { UpdateQueue } from "../UpdateQueue";
-import posthog from "posthog-js";
-import { v4 as uuidv4 } from "uuid";
-import { simpleLLM } from "../simpleLLM";
-import { SimpleCompletionMode } from "../ModelProviders/simple/ISimpleCompletionProvider";
 import * as Prompts from "../prompts/prompts";
-import { useNavigate } from "react-router-dom";
-import { ToolsetsManager } from "../ToolsetsManager";
+import * as Reviews from "../reviews";
+import { simpleLLM } from "../simpleLLM";
 import { UserTool, UserToolCall, UserToolResult } from "../Toolsets";
-import { produce } from "immer";
-import { invoke } from "@tauri-apps/api/core";
-import _ from "lodash";
-import { useAppContext } from "@ui/hooks/useAppContext";
-import { db } from "../DB";
-import { draftKeys } from "./DraftAPI";
-import { chatIsLoadingQueries, chatQueries } from "./ChatAPI";
+import { ToolsetsManager } from "../ToolsetsManager";
+import { UpdateQueue } from "../UpdateQueue";
 import {
     appMetadataKeys,
     getApiKeys,
     getCustomBaseUrl,
 } from "./AppMetadataAPI";
+import { fetchAppMetadata } from "./AppMetadataAPI";
+import { Attachment, AttachmentDBRow, readAttachment } from "./AttachmentsAPI";
+import { chatIsLoadingQueries, chatQueries } from "./ChatAPI";
 import {
     calculateCost,
-    updateChatAndProjectCosts,
     fetchOpenRouterCost,
+    updateChatAndProjectCosts,
 } from "./CostAPI";
+import { draftKeys } from "./DraftAPI";
+import {
+    fetchModelConfigById,
+    modelConfigQueries,
+    useModelConfigs,
+    useModelConfigsPromise,
+} from "./ModelsAPI";
 import {
     projectQueries,
     useGetProjectContextLLMMessage,
     useMarkProjectContextSummaryAsStale,
 } from "./ProjectAPI";
 import { useGetToolsets } from "./ToolsetsAPI";
-import {
-    generateAndStoreEmbedding,
-    embeddingQueue,
-} from "@core/chorus/EmbeddingService";
-import { fetchAppMetadata } from "./AppMetadataAPI";
-import {
-    modelConfigQueries,
-    useModelConfigs,
-    useModelConfigsPromise,
-    fetchModelConfigById,
-} from "./ModelsAPI";
-import { Attachment, AttachmentDBRow, readAttachment } from "./AttachmentsAPI";
 
 // Query keys objects are based on https://tkdodo.eu/blog/effective-react-query-keys
 // although also consider this approach: https://tkdodo.eu/blog/leveraging-the-query-function-context
@@ -324,9 +325,7 @@ export async function fetchMessage(messageId: string): Promise<Message | null> {
     return readMessage(messageRow, messageParts, attachments);
 }
 
-export async function fetchMessageDraft(
-    chatId: string,
-): Promise<string | undefined> {
+export async function fetchMessageDraft(chatId: string): Promise<string> {
     const drafts = await db.select<{ content: string }[]>(
         "SELECT content FROM message_drafts WHERE chat_id = ?",
         [chatId],

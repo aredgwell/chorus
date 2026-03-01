@@ -1,15 +1,16 @@
-import { FolderInputIcon, CornerUpRight, PlusIcon } from "lucide-react";
+import { Project } from "@core/chorus/api/ProjectAPI";
+import { cn, projectDisplayName } from "@ui/lib/utils";
+import { CornerUpRight, FolderInputIcon, PlusIcon } from "lucide-react";
+
 import { Button } from "./ui/button";
 import {
     DropdownMenu,
-    DropdownMenuItem,
     DropdownMenuContent,
+    DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-import { cn, projectDisplayName } from "@ui/lib/utils";
-import { Project } from "@core/chorus/api/ProjectAPI";
 
 interface MoveToProjectDropdownProps {
     chatId: string;

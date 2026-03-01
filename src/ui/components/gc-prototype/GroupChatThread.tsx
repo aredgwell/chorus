@@ -1,21 +1,22 @@
-import { useEffect, useRef, useState, useMemo } from "react";
-import { XIcon, MessageSquare, ArrowUpToLine, Loader2 } from "lucide-react";
 import {
-    useGCThreadMessages,
+    useGCConductor,
     useGCMainMessages,
-    useSendGCMessage,
+    useGCThreadMessages,
     useGenerateAIResponses,
     usePromoteGCMessage,
-    useGCConductor,
+    useSendGCMessage,
 } from "@core/chorus/gc-prototype/APIGC";
-import { CollapsibleMessage } from "./CollapsibleMessage";
+import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
 import {
     getModelAvatar,
     getModelDisplayName,
 } from "@core/chorus/gc-prototype/UtilsGC";
-import { Button } from "../ui/button";
 import { convertDate, displayDate } from "@ui/lib/utils";
-import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
+import { ArrowUpToLine, Loader2, MessageSquare, XIcon } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import { Button } from "../ui/button";
+import { CollapsibleMessage } from "./CollapsibleMessage";
 
 // Type for tracking individual model instances
 type ModelInstance = {

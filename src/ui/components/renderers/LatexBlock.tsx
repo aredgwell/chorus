@@ -1,7 +1,8 @@
-import React, { useState } from "react";
 import "katex/dist/katex.min.css";
-import { InlineMath, BlockMath } from "react-katex";
+
 import { CheckIcon, Copy } from "lucide-react";
+import React, { useState } from "react";
+import { BlockMath, InlineMath } from "react-katex";
 import { useCopyToClipboard } from "usehooks-ts";
 
 const CopyButton = ({
