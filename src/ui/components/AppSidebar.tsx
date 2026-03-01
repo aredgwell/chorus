@@ -9,9 +9,9 @@ import {
     useSidebarSortMode,
     useSetSidebarSortMode,
 } from "@core/chorus/api/AppMetadataAPI";
-import { chatQueries } from "@core/chorus/api/ChatAPI";
+import { chatQueries, useGetOrCreateNewChat } from "@core/chorus/api/ChatAPI";
 import { formatCost } from "@core/chorus/api/CostAPI";
-import { noteQueries } from "@core/chorus/api/NoteAPI";
+import { noteQueries, useCreateNote } from "@core/chorus/api/NoteAPI";
 import {
     projectQueries,
     useCreateProject,
@@ -41,6 +41,7 @@ import { projectDisplayName } from "@ui/lib/utils";
 import {
     ArrowUpDownIcon,
     CheckIcon,
+    FilePlusIcon,
     FolderIcon,
     FolderOpenIcon,
     FolderPlusIcon,
@@ -48,6 +49,7 @@ import {
     PencilIcon,
     Settings,
     SparklesIcon,
+    SquarePlusIcon,
     TagIcon,
     TrashIcon,
 } from "lucide-react";
@@ -267,6 +269,8 @@ function CollectionsNavigator() {
     const chatsQuery = useQuery(chatQueries.list());
     const notesQuery = useQuery(noteQueries.list());
     const createProject = useCreateProject();
+    const createNote = useCreateNote();
+    const getOrCreateNewChat = useGetOrCreateNewChat();
     const selectedCollectionId = useSelectedCollectionId();
     const setSelectedCollectionId = useSetSelectedCollectionId();
     const selectedTagIds = useSelectedTagIds();
@@ -320,6 +324,13 @@ function CollectionsNavigator() {
             setSelectedTagIds.mutate([]);
         }
     };
+
+    // Determine which collection to create new items in
+    const createInProjectId =
+        selectedCollectionId &&
+        selectedCollectionId !== "__all__"
+            ? selectedCollectionId
+            : "default";
 
     return (
         <SidebarContent className="relative h-full pt-5 flex flex-col">
@@ -436,6 +447,46 @@ function CollectionsNavigator() {
             {/* Footer icon row */}
             <div className="relative bg-sidebar z-10">
                 <div className="flex items-center justify-center gap-1 py-2 px-2 border-t">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() =>
+                                    createNote.mutate({
+                                        projectId: createInProjectId,
+                                    })
+                                }
+                                className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
+                            >
+                                <FilePlusIcon
+                                    className="w-4 h-4"
+                                    strokeWidth={1.5}
+                                />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                            New Note
+                        </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() =>
+                                    getOrCreateNewChat.mutate({
+                                        projectId: createInProjectId,
+                                    })
+                                }
+                                className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
+                            >
+                                <SquarePlusIcon
+                                    className="w-4 h-4"
+                                    strokeWidth={1.5}
+                                />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                            New Chat
+                        </TooltipContent>
+                    </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <button

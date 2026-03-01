@@ -8,15 +8,14 @@ import { type Chat } from "@core/chorus/api/ChatAPI";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import { chatQueries } from "@core/chorus/api/ChatAPI";
 import { formatCost } from "@core/chorus/api/CostAPI";
-import * as NoteAPI from "@core/chorus/api/NoteAPI";
 import { type Note } from "@core/chorus/api/NoteAPI";
+import * as NoteAPI from "@core/chorus/api/NoteAPI";
 import { noteQueries } from "@core/chorus/api/NoteAPI";
 import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
 import {
     fetchSmartCollectionItems,
     type SmartCollectionItem,
 } from "@core/chorus/api/ProjectAPI";
-import { useTags } from "@core/chorus/api/TagAPI";
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import { useQuery } from "@tanstack/react-query";
 import { SidebarMenuButton } from "@ui/components/ui/sidebar";
@@ -27,13 +26,9 @@ import {
 } from "@ui/components/ui/tooltip";
 import { projectDisplayName } from "@ui/lib/utils";
 import {
-    FilePlusIcon,
     FileTextIcon,
     PinIcon,
     PinOffIcon,
-    SparklesIcon,
-    SquarePlusIcon,
-    TagIcon,
 } from "lucide-react";
 import React, { forwardRef, useCallback, useEffect, useState } from "react";
 import { useRef } from "react";
@@ -85,9 +80,6 @@ function CollectionView({ collectionId }: { collectionId: string }) {
     const currentNoteId = location.pathname.startsWith("/note/")
         ? location.pathname.split("/").pop()!
         : undefined;
-    const createNote = NoteAPI.useCreateNote();
-    const getOrCreateNewChat = ChatAPI.useGetOrCreateNewChat();
-
     const activeTab = useSidebarContextTab();
     const sortMode = useSidebarSortMode();
 
@@ -171,13 +163,6 @@ function CollectionView({ collectionId }: { collectionId: string }) {
     const sortedChats = sortItems(chatItems, sortMode);
 
     const isAll = collectionId === "__all__";
-    const isDefault = collectionId === "default";
-    const headerTitle = isAll
-        ? "All items"
-        : isDefault
-          ? "Ungrouped"
-          : undefined;
-    const showCreateButtons = !isSmart && !isAll;
 
     // Build project name lookup for collection labels in "All items" view
     const projectNameById = new Map<string, string>();
@@ -192,9 +177,6 @@ function CollectionView({ collectionId }: { collectionId: string }) {
 
     return (
         <div className="flex flex-col h-full bg-sidebar">
-            {/* Header */}
-            <CollectionHeader collectionId={collectionId} title={headerTitle} />
-
             {/* Scrollable items */}
             <div className="flex-1 overflow-y-auto no-scrollbar">
                 {/* Notes section */}
@@ -204,26 +186,6 @@ function CollectionView({ collectionId }: { collectionId: string }) {
                             <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
                                 Notes
                             </div>
-                            {showCreateButtons && (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <button
-                                            className="text-muted-foreground hover:text-foreground p-1 pr-3 rounded"
-                                            onClick={() =>
-                                                createNote.mutate({
-                                                    projectId: collectionId,
-                                                })
-                                            }
-                                        >
-                                            <FilePlusIcon
-                                                className="size-3.5"
-                                                strokeWidth={1.5}
-                                            />
-                                        </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>New Note</TooltipContent>
-                                </Tooltip>
-                            )}
                         </div>
                         {sortedNotes.length > 0 ? (
                             sortedNotes.map((item) => (
@@ -251,26 +213,6 @@ function CollectionView({ collectionId }: { collectionId: string }) {
                             <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
                                 Chats
                             </div>
-                            {showCreateButtons && (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <button
-                                            className="text-muted-foreground hover:text-foreground p-1 pr-3 rounded"
-                                            onClick={() =>
-                                                getOrCreateNewChat.mutate({
-                                                    projectId: collectionId,
-                                                })
-                                            }
-                                        >
-                                            <SquarePlusIcon
-                                                className="size-3.5"
-                                                strokeWidth={1.5}
-                                            />
-                                        </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>New Chat</TooltipContent>
-                                </Tooltip>
-                            )}
                         </div>
                         {sortedChats.length > 0 ? (
                             sortedChats.map((item) => (
@@ -299,7 +241,6 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
     const chatsQuery = useQuery(chatQueries.list());
     const notesQuery = useQuery(noteQueries.list());
     const projectsQuery = useQuery(ProjectAPI.projectQueries.list());
-    const tagsQuery = useTags();
     const location = useLocation();
     const currentChatId = location.pathname.startsWith("/chat/")
         ? location.pathname.split("/").pop()!
@@ -329,7 +270,6 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
 
     const allChats = chatsQuery.data ?? [];
     const allNotes = notesQuery.data ?? [];
-    const tags = tagsQuery.data ?? [];
 
     // Filter by matching smart collection item IDs
     let filteredChats: Chat[] = [];
@@ -363,12 +303,6 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
     const sortedNotes = sortItems(noteItems, sortMode);
     const sortedChats = sortItems(chatItems, sortMode);
 
-    // Build header title from tag names
-    const selectedTagNames = tagIds
-        .map((id) => tags.find((t) => t.id === id)?.name)
-        .filter(Boolean);
-    const headerTitle = selectedTagNames.join(" + ") || "Tagged items";
-
     // Build project name lookup for collection labels
     const projectNameById = new Map<string, string>();
     for (const p of projectsQuery.data ?? []) {
@@ -381,20 +315,6 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
 
     return (
         <div className="flex flex-col h-full bg-sidebar">
-            {/* Header */}
-            <div
-                data-tauri-drag-region
-                className="h-[44px] flex items-center justify-end px-3 border-b shrink-0"
-            >
-                <span className="text-sm font-medium truncate flex items-center gap-1.5">
-                    <TagIcon
-                        className="size-3.5 text-muted-foreground shrink-0"
-                        strokeWidth={1.5}
-                    />
-                    {headerTitle}
-                </span>
-            </div>
-
             {/* Scrollable items */}
             <div className="flex-1 overflow-y-auto no-scrollbar">
                 {/* Notes section */}
@@ -451,40 +371,6 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
                     </>
                 )}
             </div>
-        </div>
-    );
-}
-
-function CollectionHeader({
-    collectionId,
-    title,
-}: {
-    collectionId: string;
-    title?: string;
-}) {
-    const projectsQuery = useQuery(ProjectAPI.projectQueries.list());
-
-    const project = (projectsQuery.data ?? []).find(
-        (p) => p.id === collectionId,
-    );
-    const isSmart = project?.collectionType === "smart";
-    const displayTitle =
-        title ?? projectDisplayName(project?.name ?? "Collection");
-
-    return (
-        <div
-            data-tauri-drag-region
-            className="h-[44px] flex items-center justify-end px-3 border-b shrink-0"
-        >
-            <span className="text-sm font-medium truncate flex items-center gap-1.5">
-                {isSmart && (
-                    <SparklesIcon
-                        className="size-3.5 text-muted-foreground shrink-0"
-                        strokeWidth={1.5}
-                    />
-                )}
-                {displayTitle}
-            </span>
         </div>
     );
 }
