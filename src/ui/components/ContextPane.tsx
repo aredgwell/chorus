@@ -1,6 +1,7 @@
 import {
     type SidebarSortMode,
     useSelectedCollectionId,
+    useSelectedTagIds,
     useSetSidebarSortMode,
     useSidebarSortMode,
 } from "@core/chorus/api/AppMetadataAPI";
@@ -16,6 +17,7 @@ import {
     fetchSmartCollectionItems,
     type SmartCollectionItem,
 } from "@core/chorus/api/ProjectAPI";
+import { useTags } from "@core/chorus/api/TagAPI";
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import { useQuery } from "@tanstack/react-query";
 import { SidebarMenuButton } from "@ui/components/ui/sidebar";
@@ -34,6 +36,7 @@ import {
     PinOffIcon,
     SparklesIcon,
     SquarePlusIcon,
+    TagIcon,
 } from "lucide-react";
 import React, { forwardRef, useCallback, useEffect, useState } from "react";
 import { useRef } from "react";
@@ -63,6 +66,11 @@ import RetroSpinner from "./ui/retro-spinner";
 
 export function ContextPane() {
     const selectedCollectionId = useSelectedCollectionId();
+    const selectedTagIds = useSelectedTagIds();
+
+    if (selectedTagIds.length > 0) {
+        return <TagFilterView tagIds={selectedTagIds} />;
+    }
 
     if (!selectedCollectionId) {
         return (
@@ -174,13 +182,13 @@ function CollectionView({ collectionId }: { collectionId: string }) {
     const sortedNotes = sortItems(noteItems, sortMode);
     const sortedChats = sortItems(chatItems, sortMode);
 
+    const isAll = collectionId === "__all__";
     const isDefault = collectionId === "default";
     const headerTitle = isAll
         ? "All items"
         : isDefault
           ? "Ungrouped"
           : undefined;
-    const isAll = collectionId === "__all__";
     const showCreateButtons = !isSmart && !isAll;
 
     return (
@@ -330,6 +338,214 @@ function CollectionView({ collectionId }: { collectionId: string }) {
                             sortedChats.map((item) => (
                                 <ChatListItem
                                     key={item.data.id + "-ctx"}
+                                    chat={item.data as Chat}
+                                    isActive={currentChatId === item.data.id}
+                                />
+                            ))
+                        ) : (
+                            <div className="px-3 py-2 text-sm text-muted-foreground">
+                                No chats yet
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function TagFilterView({ tagIds }: { tagIds: string[] }) {
+    const chatsQuery = useQuery(chatQueries.list());
+    const notesQuery = useQuery(noteQueries.list());
+    const tagsQuery = useTags();
+    const location = useLocation();
+    const currentChatId = location.pathname.startsWith("/chat/")
+        ? location.pathname.split("/").pop()!
+        : undefined;
+    const currentNoteId = location.pathname.startsWith("/note/")
+        ? location.pathname.split("/").pop()!
+        : undefined;
+
+    const [activeTab, setActiveTab] = useState<ContextTab>("all");
+    const sortMode = useSidebarSortMode();
+    const setSortMode = useSetSidebarSortMode();
+
+    // Fetch items matching ALL selected tags
+    const smartItemsQuery = useQuery({
+        queryKey: ["tagFilterItems", tagIds] as const,
+        queryFn: () =>
+            fetchSmartCollectionItems({ match: "all", tagIds }),
+        enabled: tagIds.length > 0,
+    });
+
+    if (chatsQuery.isPending || notesQuery.isPending) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <RetroSpinner />
+            </div>
+        );
+    }
+
+    const allChats = chatsQuery.data ?? [];
+    const allNotes = notesQuery.data ?? [];
+    const tags = tagsQuery.data ?? [];
+
+    // Filter by matching smart collection item IDs
+    let filteredChats: Chat[] = [];
+    let filteredNotes: Note[] = [];
+
+    if (smartItemsQuery.data) {
+        const matchedChatIds = new Set(
+            smartItemsQuery.data
+                .filter((i: SmartCollectionItem) => i.itemType === "chat")
+                .map((i: SmartCollectionItem) => i.itemId),
+        );
+        const matchedNoteIds = new Set(
+            smartItemsQuery.data
+                .filter((i: SmartCollectionItem) => i.itemType === "note")
+                .map((i: SmartCollectionItem) => i.itemId),
+        );
+        filteredChats = allChats.filter((c) => matchedChatIds.has(c.id));
+        filteredNotes = allNotes.filter((n) => matchedNoteIds.has(n.id));
+    }
+
+    // Build sidebar items
+    const noteItems: SidebarItem[] = filteredNotes.map((note) => ({
+        type: "note" as const,
+        data: note,
+    }));
+    const chatItems: SidebarItem[] = filteredChats.map((chat) => ({
+        type: "chat" as const,
+        data: chat,
+    }));
+
+    const sortedNotes = sortItems(noteItems, sortMode);
+    const sortedChats = sortItems(chatItems, sortMode);
+
+    // Build header title from tag names
+    const selectedTagNames = tagIds
+        .map((id) => tags.find((t) => t.id === id)?.name)
+        .filter(Boolean);
+    const headerTitle = selectedTagNames.join(" + ") || "Tagged items";
+
+    return (
+        <div className="flex flex-col h-full bg-sidebar">
+            {/* Header */}
+            <div
+                data-tauri-drag-region
+                className="h-[44px] flex items-center justify-end px-3 border-b shrink-0"
+            >
+                <span className="text-sm font-medium truncate flex items-center gap-1.5">
+                    <TagIcon
+                        className="size-3.5 text-muted-foreground shrink-0"
+                        strokeWidth={1.5}
+                    />
+                    {headerTitle}
+                </span>
+            </div>
+
+            {/* Tabs + sort */}
+            <div className="flex items-center justify-between px-2 pt-1.5 pb-1 border-b">
+                <div className="flex items-center gap-0.5">
+                    {(
+                        [
+                            { value: "all", label: "All" },
+                            { value: "notes", label: "Notes" },
+                            { value: "chats", label: "Chats" },
+                        ] as const
+                    ).map(({ value, label }) => (
+                        <button
+                            key={value}
+                            onClick={() => setActiveTab(value)}
+                            className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                                activeTab === value
+                                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                                    : "text-muted-foreground hover:text-foreground"
+                            }`}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
+                <DropdownMenu>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                                <button className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors shrink-0">
+                                    <ArrowUpDownIcon
+                                        className="size-3.5"
+                                        strokeWidth={1.5}
+                                    />
+                                </button>
+                            </DropdownMenuTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">Sort</TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent align="end">
+                        {(
+                            [
+                                { value: "date", label: "Date" },
+                                { value: "name", label: "Name" },
+                                { value: "type", label: "Type" },
+                            ] as const
+                        ).map((option) => (
+                            <DropdownMenuItem
+                                key={option.value}
+                                onSelect={() =>
+                                    setSortMode.mutate(
+                                        option.value as SidebarSortMode,
+                                    )
+                                }
+                                className="flex items-center justify-between"
+                            >
+                                {option.label}
+                                {sortMode === option.value && (
+                                    <CheckIcon className="size-3.5 ml-2" />
+                                )}
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+
+            {/* Scrollable items */}
+            <div className="flex-1 overflow-y-auto no-scrollbar">
+                {/* Notes section */}
+                {(activeTab === "all" || activeTab === "notes") && (
+                    <>
+                        <div className="pt-3 flex items-center justify-between">
+                            <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
+                                Notes
+                            </div>
+                        </div>
+                        {sortedNotes.length > 0 ? (
+                            sortedNotes.map((item) => (
+                                <NoteListItem
+                                    key={item.data.id + "-tag"}
+                                    note={item.data as Note}
+                                    isActive={currentNoteId === item.data.id}
+                                />
+                            ))
+                        ) : (
+                            <div className="px-3 py-2 text-sm text-muted-foreground">
+                                No notes yet
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* Chats section */}
+                {(activeTab === "all" || activeTab === "chats") && (
+                    <>
+                        <div className="pt-3 flex items-center justify-between">
+                            <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
+                                Chats
+                            </div>
+                        </div>
+                        {sortedChats.length > 0 ? (
+                            sortedChats.map((item) => (
+                                <ChatListItem
+                                    key={item.data.id + "-tag"}
                                     chat={item.data as Chat}
                                     isActive={currentChatId === item.data.id}
                                 />

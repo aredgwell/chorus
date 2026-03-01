@@ -1,6 +1,8 @@
 import {
     useSelectedCollectionId,
+    useSelectedTagIds,
     useSetSelectedCollectionId,
+    useSetSelectedTagIds,
 } from "@core/chorus/api/AppMetadataAPI";
 import { chatQueries, useGetOrCreateNewChat } from "@core/chorus/api/ChatAPI";
 import { formatCost } from "@core/chorus/api/CostAPI";
@@ -11,7 +13,6 @@ import {
     useDeleteProject,
     useRenameProject,
 } from "@core/chorus/api/ProjectAPI";
-import { useCreateSmartCollection } from "@core/chorus/api/ProjectAPI";
 import { useDeleteTag, useTags } from "@core/chorus/api/TagAPI";
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import { useQuery } from "@tanstack/react-query";
@@ -85,14 +86,24 @@ function DevModeIndicator() {
 function SidebarTagsSection() {
     const tagsQuery = useTags();
     const deleteTag = useDeleteTag();
-    const createSmartCollection = useCreateSmartCollection();
+    const selectedTagIds = useSelectedTagIds();
+    const setSelectedTagIds = useSetSelectedTagIds();
+    const setSelectedCollectionId = useSetSelectedCollectionId();
     const tags = tagsQuery.data ?? [];
 
-    const handleCreateSmartCollection = (tagId: string, tagName: string) => {
-        void createSmartCollection.mutateAsync({
-            name: tagName,
-            rules: { match: "any", tagIds: [tagId] },
-        });
+    const handleToggleTag = (tagId: string) => {
+        const current = [...selectedTagIds];
+        const index = current.indexOf(tagId);
+        if (index >= 0) {
+            current.splice(index, 1);
+        } else {
+            current.push(tagId);
+        }
+        // When selecting tags, clear collection selection
+        if (current.length > 0) {
+            setSelectedCollectionId.mutate(undefined);
+        }
+        setSelectedTagIds.mutate(current);
     };
 
     return (
@@ -109,58 +120,47 @@ function SidebarTagsSection() {
                 </div>
             ) : (
                 <div className="px-1 py-1 space-y-0.5">
-                    {tags.map((tag) => (
-                        <div
-                            key={tag.id}
-                            className="group/tag flex items-center gap-2 px-2 py-1 rounded-md text-sm hover:bg-accent transition-colors"
-                        >
-                            <span
-                                className="w-2 h-2 rounded-full shrink-0"
-                                style={{
-                                    backgroundColor:
-                                        tag.color ??
-                                        "hsl(var(--muted-foreground))",
-                                }}
-                            />
-                            <span className="truncate flex-1">{tag.name}</span>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        type="button"
-                                        className="opacity-0 group-hover/tag:opacity-100 p-0.5 rounded hover:bg-accent transition-all"
-                                        onClick={() =>
-                                            handleCreateSmartCollection(
-                                                tag.id,
-                                                tag.name,
-                                            )
-                                        }
-                                    >
-                                        <SparklesIcon
-                                            className="size-3"
-                                            strokeWidth={1.5}
-                                        />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    Create smart collection
-                                </TooltipContent>
-                            </Tooltip>
-                            <button
-                                type="button"
-                                className="opacity-0 group-hover/tag:opacity-100 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-all"
-                                onClick={() =>
-                                    void deleteTag.mutateAsync({
-                                        tagId: tag.id,
-                                    })
-                                }
+                    {tags.map((tag) => {
+                        const isSelected = selectedTagIds.includes(tag.id);
+                        return (
+                            <div
+                                key={tag.id}
+                                className={`group/tag flex items-center gap-2 px-2 py-1 rounded-md text-sm cursor-pointer transition-colors ${
+                                    isSelected
+                                        ? "bg-accent text-accent-foreground font-medium"
+                                        : "hover:bg-accent"
+                                }`}
+                                onClick={() => handleToggleTag(tag.id)}
                             >
-                                <TrashIcon
-                                    className="size-3"
-                                    strokeWidth={1.5}
+                                <span
+                                    className="w-2 h-2 rounded-full shrink-0"
+                                    style={{
+                                        backgroundColor:
+                                            tag.color ??
+                                            "hsl(var(--muted-foreground))",
+                                    }}
                                 />
-                            </button>
-                        </div>
-                    ))}
+                                <span className="truncate flex-1">
+                                    {tag.name}
+                                </span>
+                                <button
+                                    type="button"
+                                    className="opacity-0 group-hover/tag:opacity-100 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-all"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        void deleteTag.mutateAsync({
+                                            tagId: tag.id,
+                                        });
+                                    }}
+                                >
+                                    <TrashIcon
+                                        className="size-3"
+                                        strokeWidth={1.5}
+                                    />
+                                </button>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </>
@@ -189,6 +189,8 @@ function CollectionsNavigator() {
     const getOrCreateNewChat = useGetOrCreateNewChat();
     const selectedCollectionId = useSelectedCollectionId();
     const setSelectedCollectionId = useSetSelectedCollectionId();
+    const selectedTagIds = useSelectedTagIds();
+    const setSelectedTagIds = useSetSelectedTagIds();
     const settings = useSettings();
     const showCost = settings?.showCost ?? false;
 
@@ -234,6 +236,13 @@ function CollectionsNavigator() {
                 c.projectId !== "quick-chat" && !c.isNewChat,
         ).length + allNotes.length;
 
+    const selectCollection = (collectionId: string) => {
+        setSelectedCollectionId.mutate(collectionId);
+        if (selectedTagIds.length > 0) {
+            setSelectedTagIds.mutate([]);
+        }
+    };
+
     return (
         <SidebarContent className="relative h-full pt-5 flex flex-col">
             <div className="overflow-y-auto flex-1 no-scrollbar">
@@ -245,12 +254,11 @@ function CollectionsNavigator() {
                                 <SidebarMenuButton
                                     isActive={
                                         selectedCollectionId ===
-                                        "__all__"
+                                            "__all__" &&
+                                        selectedTagIds.length === 0
                                     }
                                     onClick={() =>
-                                        setSelectedCollectionId.mutate(
-                                            "__all__",
-                                        )
+                                        selectCollection("__all__")
                                     }
                                     className="flex items-center justify-between"
                                 >
@@ -313,7 +321,7 @@ function CollectionsNavigator() {
                                                     project.id
                                                 }
                                                 onSelect={() =>
-                                                    setSelectedCollectionId.mutate(
+                                                    selectCollection(
                                                         project.id,
                                                     )
                                                 }
@@ -391,9 +399,7 @@ function CollectionsNavigator() {
                                             selectedCollectionId === "default"
                                         }
                                         onClick={() =>
-                                            setSelectedCollectionId.mutate(
-                                                "default",
-                                            )
+                                            selectCollection("default")
                                         }
                                         className="flex items-center justify-between"
                                     >
