@@ -358,11 +358,17 @@ pub fn run() {
                         let store = app.store("settings");
                         let quick_chat_enabled = store
                             .ok()
-                            .and_then(|store: std::sync::Arc<tauri_plugin_store::Store<tauri::Wry>>| store.get("settings"))
+                            .and_then(
+                                |store: std::sync::Arc<tauri_plugin_store::Store<tauri::Wry>>| {
+                                    store.get("settings")
+                                },
+                            )
                             .and_then(|settings: serde_json::Value| {
                                 settings
                                     .as_object()
-                                    .and_then(|s: &serde_json::Map<String, serde_json::Value>| s.get("quickChat"))
+                                    .and_then(|s: &serde_json::Map<String, serde_json::Value>| {
+                                        s.get("quickChat")
+                                    })
                                     .and_then(|t: &serde_json::Value| t.get("enabled"))
                                     .and_then(|e: &serde_json::Value| e.as_bool())
                             })

@@ -3,8 +3,7 @@
 
 #[cfg(target_os = "macos")]
 use tauri_nspanel::{
-    tauri_panel, PanelHandle, PanelLevel, StyleMask,
-    WebviewWindowExt as PanelWebviewWindowExt,
+    tauri_panel, PanelHandle, PanelLevel, StyleMask, WebviewWindowExt as PanelWebviewWindowExt,
 };
 
 #[cfg(target_os = "macos")]
@@ -69,20 +68,15 @@ pub fn setup_spotlight_panel(
 
     panel.set_level(PanelLevel::Status.into());
 
-    panel.set_style_mask(
-        StyleMask::empty()
-            .nonactivating_panel()
-            .resizable()
-            .into(),
-    );
+    panel.set_style_mask(StyleMask::empty().nonactivating_panel().resizable().into());
 
     // Use raw bit flags matching the old working configuration:
     // CanJoinAllSpaces(1<<0) | Transient(1<<3) | Stationary(1<<4) |
     // IgnoresCycle(1<<6) | FullScreenAuxiliary(1<<8)
     let behavior_bits: usize = (1 << 0) | (1 << 3) | (1 << 4) | (1 << 6) | (1 << 8);
-    panel.set_collection_behavior(
-        objc2_app_kit::NSWindowCollectionBehavior::from_bits_retain(behavior_bits),
-    );
+    panel.set_collection_behavior(objc2_app_kit::NSWindowCollectionBehavior::from_bits_retain(
+        behavior_bits,
+    ));
 
     panel.set_hides_on_deactivate(false);
 
@@ -101,17 +95,11 @@ pub fn setup_spotlight_panel(
     let label_key = label.clone();
 
     handler.window_did_become_key(move |_notification| {
-        let _ = app_handle_key.emit(
-            format!("{}_panel_did_become_key", label_key).as_str(),
-            (),
-        );
+        let _ = app_handle_key.emit(format!("{}_panel_did_become_key", label_key).as_str(), ());
     });
 
     handler.window_did_resign_key(move |_notification| {
-        let _ = app_handle.emit(
-            format!("{}_panel_did_resign_key", label).as_str(),
-            (),
-        );
+        let _ = app_handle.emit(format!("{}_panel_did_resign_key", label).as_str(), ());
     });
 
     panel.set_event_handler(Some(handler.as_ref()));
