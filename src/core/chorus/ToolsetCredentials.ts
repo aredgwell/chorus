@@ -1,7 +1,7 @@
 import {
+    deleteCredential,
     getCredential,
     setCredential,
-    deleteCredential,
 } from "./CredentialService";
 
 // Built-in toolset secrets: "toolset:{toolsetName}:{parameterId}"

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
 import { cn } from "@ui/lib/utils";
+import { useEffect,useState } from "react";
 
 interface RetroSpinnerProps {
     speed?: number;

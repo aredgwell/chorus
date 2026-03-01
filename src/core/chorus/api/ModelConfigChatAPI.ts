@@ -1,8 +1,9 @@
 // Saved model config hooks
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { db } from "../DB";
 import { v4 as uuidv4 } from "uuid";
+
+import { db } from "../DB";
 
 const modelConfigChatKeys = {
     savedModelConfigChat: (chatId: string) =>

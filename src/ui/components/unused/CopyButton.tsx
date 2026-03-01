@@ -1,5 +1,5 @@
-import { useState, forwardRef } from "react";
-import { CopyIcon, CheckIcon } from "lucide-react";
+import { CheckIcon,CopyIcon } from "lucide-react";
+import { forwardRef,useState } from "react";
 import { toast } from "sonner";
 
 const SimpleCopyButton = forwardRef<

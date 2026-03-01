@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { v4 as uuidv4 } from "uuid";
 import * as DB from "@core/chorus/DB";
 import { UserToolCall, UserToolResult } from "@core/chorus/Toolsets";
+import { v4 as uuidv4 } from "uuid";
+
 import {
     createChat,
     createMessageSet,

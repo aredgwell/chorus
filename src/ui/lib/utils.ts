@@ -1,12 +1,12 @@
 import { Chat } from "@core/chorus/api/ChatAPI";
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-import { toast } from "sonner";
 import {
     isPermissionGranted,
     requestPermission,
     sendNotification,
 } from "@tauri-apps/plugin-notification";
+import { type ClassValue, clsx } from "clsx";
+import { toast } from "sonner";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));

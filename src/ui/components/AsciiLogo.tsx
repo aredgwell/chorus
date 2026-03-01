@@ -1,5 +1,5 @@
 import { cn } from "@ui/lib/utils";
-import { useState, useEffect } from "react";
+import { useEffect,useState } from "react";
 
 const Ascii = ({ className }: { className?: string }) => {
     const [text, setText] = useState("");

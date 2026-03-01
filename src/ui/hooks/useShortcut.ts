@@ -1,6 +1,6 @@
-import { useEffect, useCallback } from "react";
 import { useDialogStore } from "@core/infra/DialogStore";
 import { useInputStore } from "@core/infra/InputStore";
+import { useCallback,useEffect } from "react";
 
 type ShortcutHandler = (event: KeyboardEvent) => void;
 

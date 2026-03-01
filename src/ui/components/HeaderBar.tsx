@@ -1,6 +1,6 @@
-import { ReactNode } from "react";
 import { SidebarTrigger } from "@ui/components/ui/sidebar";
 import { useSidebar } from "@ui/hooks/useSidebar";
+import { ReactNode } from "react";
 
 interface HeaderBarProps {
     /** Actions for the right side (buttons, menus, etc.) */

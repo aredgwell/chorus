@@ -1,9 +1,10 @@
+import { Check, Copy, Loader2,RefreshCcw } from "lucide-react";
 import * as React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { toast } from "sonner";
+
 import { MessageMarkdown } from "./renderers/MessageMarkdown";
 import { Button } from "./ui/button";
-import { Copy, Check, RefreshCcw, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 
 interface SummaryDialogProps {
     summary: string;

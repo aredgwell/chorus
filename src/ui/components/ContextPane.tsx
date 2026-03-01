@@ -1,34 +1,58 @@
 import {
-    FileTextIcon,
-    FilePlusIcon,
-    SquarePlusIcon,
-    PinIcon,
-    PinOffIcon,
-    ArrowUpDownIcon,
-    CheckIcon,
-    SparklesIcon,
-} from "lucide-react";
+    type SidebarSortMode,
+    useSelectedCollectionId,
+    useSetSidebarSortMode,
+    useSidebarSortMode,
+} from "@core/chorus/api/AppMetadataAPI";
+import { type Chat } from "@core/chorus/api/ChatAPI";
+import * as ChatAPI from "@core/chorus/api/ChatAPI";
+import { chatQueries } from "@core/chorus/api/ChatAPI";
+import { formatCost } from "@core/chorus/api/CostAPI";
+import * as NoteAPI from "@core/chorus/api/NoteAPI";
+import { type Note } from "@core/chorus/api/NoteAPI";
+import { noteQueries } from "@core/chorus/api/NoteAPI";
+import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
+import {
+    fetchSmartCollectionItems,
+    type SmartCollectionItem,
+} from "@core/chorus/api/ProjectAPI";
+import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import { useQuery } from "@tanstack/react-query";
 import { SidebarMenuButton } from "@ui/components/ui/sidebar";
-
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from "@ui/components/ui/tooltip";
-import { useNavigate, useLocation } from "react-router-dom";
-
+import { projectDisplayName } from "@ui/lib/utils";
+import {
+    ArrowUpDownIcon,
+    CheckIcon,
+    FilePlusIcon,
+    FileTextIcon,
+    PinIcon,
+    PinOffIcon,
+    SparklesIcon,
+    SquarePlusIcon,
+} from "lucide-react";
 import React, {
-    useState,
+    forwardRef,
     useCallback,
     useEffect,
-    forwardRef,
+    useState,
 } from "react";
 import { useRef } from "react";
-import { Button } from "./ui/button";
-import { EditableTitle } from "./EditableTitle";
-import { type Chat } from "@core/chorus/api/ChatAPI";
-import { useSettings } from "./hooks/useSettings";
+import { useLocation,useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+
+import Draggable from "./Draggable";
+import { EditableTitle } from "./EditableTitle";
+import { useSettings } from "./hooks/useSettings";
+import {
+    type SidebarItem,
+    sortItems,
+} from "./sidebar/ItemListHelpers";
+import { Button } from "./ui/button";
 import {
     Dialog,
     DialogContent,
@@ -37,38 +61,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from "./ui/dialog";
-import * as ChatAPI from "@core/chorus/api/ChatAPI";
-import * as NoteAPI from "@core/chorus/api/NoteAPI";
-import { type Note } from "@core/chorus/api/NoteAPI";
-import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
-import {
-    fetchSmartCollectionItems,
-    type SmartCollectionItem,
-} from "@core/chorus/api/ProjectAPI";
-import { formatCost } from "@core/chorus/api/CostAPI";
-import RetroSpinner from "./ui/retro-spinner";
-import { projectDisplayName } from "@ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import Draggable from "./Draggable";
-import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { chatQueries } from "@core/chorus/api/ChatAPI";
-import { noteQueries } from "@core/chorus/api/NoteAPI";
-import {
-    useSelectedCollectionId,
-    useSidebarSortMode,
-    useSetSidebarSortMode,
-    type SidebarSortMode,
-} from "@core/chorus/api/AppMetadataAPI";
-import {
-    type SidebarItem,
-    sortItems,
-} from "./sidebar/ItemListHelpers";
+import RetroSpinner from "./ui/retro-spinner";
 
 export function ContextPane() {
     const selectedCollectionId = useSelectedCollectionId();

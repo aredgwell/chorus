@@ -1,12 +1,14 @@
-import React, { useState, useRef } from "react";
-import { useCopyToClipboard } from "usehooks-ts";
-import { CheckIcon, Copy, Play, Terminal, X } from "lucide-react";
-import { Command } from "@tauri-apps/plugin-shell";
-import RetroSpinner from "../ui/retro-spinner";
-import { Button } from "../ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import Lowlight from "react-lowlight";
 import "react-lowlight/all";
+
+import { Command } from "@tauri-apps/plugin-shell";
+import { CheckIcon, Copy, Play, Terminal, X } from "lucide-react";
+import React, { useRef,useState } from "react";
+import Lowlight from "react-lowlight";
+import { useCopyToClipboard } from "usehooks-ts";
+
+import { Button } from "../ui/button";
+import RetroSpinner from "../ui/retro-spinner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 interface CodeBlockProps {
     className?: string;

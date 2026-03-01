@@ -1,5 +1,5 @@
-import Database from "@tauri-apps/plugin-sql";
 import { config } from "@core/config";
+import Database from "@tauri-apps/plugin-sql";
 
 // Get database instance
 const db = await Database.load(config.dbUrl);

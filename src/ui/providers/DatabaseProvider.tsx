@@ -1,6 +1,6 @@
-import { ReactNode } from "react";
 import Database from "@tauri-apps/plugin-sql";
 import { DatabaseContext } from "@ui/context/DatabaseContext";
+import { ReactNode } from "react";
 
 // ----------------------------------
 // Database provider

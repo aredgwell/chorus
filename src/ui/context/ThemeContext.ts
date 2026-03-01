@@ -1,8 +1,6 @@
 import { ThemeMode, ThemeName } from "@ui/themes";
-
-import { createContext } from "react";
-
 import { themes } from "@ui/themes";
+import { createContext } from "react";
 
 type ThemeProviderState = {
     mode: ThemeMode;

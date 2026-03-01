@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import * as Models from "../Models";
-import { db } from "../DB";
 import { v4 as uuidv4 } from "uuid";
-import { projectContextQueries } from "./ProjectAPI";
+
+import { db } from "../DB";
+import * as Models from "../Models";
 import { draftKeys } from "./DraftAPI";
+import { projectContextQueries } from "./ProjectAPI";
 
 export const attachmentKeys = {
-    attachmentContents: (attachmentPath: string) =>
-        ["attachmentContents", attachmentPath] as const,
+    attachmentContents: (attachmentPath: string, attachmentType?: string) =>
+        ["attachmentContents", attachmentPath, attachmentType] as const,
 };
 
 export type AttachmentDBRow = {
@@ -41,7 +42,7 @@ export function readAttachment(row: AttachmentDBRow): Attachment {
 
 export function useAttachmentContents(attachment: Attachment) {
     return useQuery({
-        queryKey: attachmentKeys.attachmentContents(attachment.id),
+        queryKey: attachmentKeys.attachmentContents(attachment.id, attachment.type),
         queryFn: () => {
             switch (attachment.type) {
                 case "text": {

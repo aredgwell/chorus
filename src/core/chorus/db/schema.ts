@@ -1,10 +1,10 @@
 import {
+    index,
+    integer,
+    primaryKey,
+    real,
     sqliteTable,
     text,
-    integer,
-    real,
-    primaryKey,
-    index,
 } from "drizzle-orm/sqlite-core";
 
 // ── app_metadata ──────────────────────────────────────────────────────────────

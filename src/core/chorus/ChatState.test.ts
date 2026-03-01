@@ -1,14 +1,15 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { afterEach,describe, expect, it, vi } from "vitest";
+
+import type { Message, MessagePart,MessageSetDetail } from "./ChatState";
 import {
+    blockIsEmpty,
     createAIMessage,
     createUserMessage,
-    isBlockType,
     getBlockTypeDisplayName,
-    blockIsEmpty,
+    isBlockType,
     llmConversation,
     llmConversationForSynthesis,
 } from "./ChatState";
-import type { MessageSetDetail, Message, MessagePart } from "./ChatState";
 
 afterEach(() => {
     vi.restoreAllMocks();

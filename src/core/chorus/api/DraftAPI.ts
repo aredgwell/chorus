@@ -1,13 +1,14 @@
-import { useReactQueryAutoSync } from "use-react-query-auto-sync";
-import { db } from "../DB";
-import { fetchMessageDraft } from "./MessageAPI";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useReactQueryAutoSync } from "use-react-query-auto-sync";
+
+import { db } from "../DB";
 import {
     Attachment,
     AttachmentAssociationDraft,
     AttachmentDBRow,
     readAttachment,
 } from "./AttachmentsAPI";
+import { fetchMessageDraft } from "./MessageAPI";
 
 export const draftKeys = {
     messageDraft: (chatId: string) => ["messageDraft", chatId] as const,

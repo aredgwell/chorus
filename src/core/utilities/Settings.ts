@@ -1,10 +1,10 @@
-import { getStore } from "@core/infra/Store";
-import { emit } from "@tauri-apps/api/event";
 import {
+    deleteCredential,
     getCredential,
     setCredential,
-    deleteCredential,
 } from "@core/chorus/CredentialService";
+import { getStore } from "@core/infra/Store";
+import { emit } from "@tauri-apps/api/event";
 
 export interface Settings {
     defaultEditor: string;

@@ -1,16 +1,22 @@
 import {
-    FolderIcon,
-    FolderOpenIcon,
-    FolderPlusIcon,
-    PencilIcon,
-    TrashIcon,
-    Settings,
-    InboxIcon,
-    TagIcon,
-    FilePlusIcon,
-    SquarePlusIcon,
-    SparklesIcon,
-} from "lucide-react";
+    useSelectedCollectionId,
+    useSetSelectedCollectionId,
+} from "@core/chorus/api/AppMetadataAPI";
+import { chatQueries, useGetOrCreateNewChat } from "@core/chorus/api/ChatAPI";
+import { formatCost } from "@core/chorus/api/CostAPI";
+import { noteQueries, useCreateNote } from "@core/chorus/api/NoteAPI";
+import {
+    projectQueries,
+    useCreateProject,
+    useDeleteProject,
+    useRenameProject,
+} from "@core/chorus/api/ProjectAPI";
+import { useCreateSmartCollection } from "@core/chorus/api/ProjectAPI";
+import { useDeleteTag,useTags } from "@core/chorus/api/TagAPI";
+import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import { useQuery } from "@tanstack/react-query";
+import { invoke } from "@tauri-apps/api/core";
+import { emit } from "@tauri-apps/api/event";
 import {
     Sidebar,
     SidebarContent,
@@ -25,16 +31,25 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@ui/components/ui/tooltip";
-
-import { useEffect, useState, useCallback, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { useSettings } from "./hooks/useSettings";
-import { formatCost } from "@core/chorus/api/CostAPI";
-import RetroSpinner from "./ui/retro-spinner";
-import { emit } from "@tauri-apps/api/event";
 import { projectDisplayName } from "@ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import {
+    FilePlusIcon,
+    FolderIcon,
+    FolderOpenIcon,
+    FolderPlusIcon,
+    InboxIcon,
+    PencilIcon,
+    Settings,
+    SparklesIcon,
+    SquarePlusIcon,
+    TagIcon,
+    TrashIcon,
+} from "lucide-react";
+import { useCallback, useEffect, useRef,useState } from "react";
 import { toast } from "sonner";
+
+import Droppable from "./Droppable";
+import { useSettings } from "./hooks/useSettings";
 import { Button } from "./ui/button";
 import {
     Dialog,
@@ -44,22 +59,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "./ui/dialog";
-import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
-import Droppable from "./Droppable";
-import {
-    projectQueries,
-    useCreateProject,
-    useRenameProject,
-    useDeleteProject,
-} from "@core/chorus/api/ProjectAPI";
-import { chatQueries, useGetOrCreateNewChat } from "@core/chorus/api/ChatAPI";
-import { noteQueries, useCreateNote } from "@core/chorus/api/NoteAPI";
-import { useTags, useDeleteTag } from "@core/chorus/api/TagAPI";
-import { useCreateSmartCollection } from "@core/chorus/api/ProjectAPI";
-import {
-    useSelectedCollectionId,
-    useSetSelectedCollectionId,
-} from "@core/chorus/api/AppMetadataAPI";
+import RetroSpinner from "./ui/retro-spinner";
 
 function DevModeIndicator() {
     const [instanceName, setInstanceName] = useState<string>("");

@@ -1,10 +1,11 @@
-import OpenAI from "openai";
-import _ from "lodash";
-import { StreamResponseParams } from "../Models";
-import { IProvider, ModelDisabled } from "./IProvider";
 import OpenAICompletionsAPIUtils from "@core/chorus/OpenAICompletionsAPIUtils";
 import { canProceedWithProvider } from "@core/utilities/ProxyUtils";
 import JSON5 from "json5";
+import _ from "lodash";
+import OpenAI from "openai";
+
+import { StreamResponseParams } from "../Models";
+import { IProvider, ModelDisabled } from "./IProvider";
 
 interface ProviderError {
     message: string;

@@ -1,6 +1,6 @@
-import React, { forwardRef, useCallback } from "react";
 import { Textarea } from "@ui/components/ui/textarea";
 import { cn } from "@ui/lib/utils";
+import React, { forwardRef, useCallback } from "react";
 
 interface AutoExpandingTextareaProps
     extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {

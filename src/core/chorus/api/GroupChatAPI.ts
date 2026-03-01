@@ -1,38 +1,38 @@
-import {
-    QueryClient,
-    useMutation,
-    useQuery,
-    useQueryClient,
-} from "@tanstack/react-query";
-import { produce } from "immer";
-import { v4 as uuidv4 } from "uuid";
-import { db } from "@core/chorus/DB";
-import { invoke } from "@tauri-apps/api/core";
+import { getApiKeys } from "@core/chorus/api/AppMetadataAPI";
 import { chatQueries } from "@core/chorus/api/ChatAPI";
 import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
-import { getApiKeys } from "@core/chorus/api/AppMetadataAPI";
+import { useGetToolsets } from "@core/chorus/api/ToolsetsAPI";
+import { db } from "@core/chorus/DB";
+import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
+import {
+    getChatFormatPrompt,
+    getConductorPrompt,
+    getConductorReminder,
+    getNonConductorPrompt,
+} from "@core/chorus/gc-prototype/PromptsGC";
 import {
     LLMMessage,
     ModelConfig,
-    UsageData,
     streamResponse,
+    UsageData,
 } from "@core/chorus/Models";
+import { simpleLLM } from "@core/chorus/simpleLLM";
 import {
     UserTool,
     UserToolCall,
     UserToolResult,
 } from "@core/chorus/Toolsets";
 import { ToolsetsManager } from "@core/chorus/ToolsetsManager";
-import { useGetToolsets } from "@core/chorus/api/ToolsetsAPI";
-import { simpleLLM } from "@core/chorus/simpleLLM";
-import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
-import {
-    getChatFormatPrompt,
-    getNonConductorPrompt,
-    getConductorPrompt,
-    getConductorReminder,
-} from "@core/chorus/gc-prototype/PromptsGC";
 import { UpdateQueue } from "@core/chorus/UpdateQueue";
+import {
+    QueryClient,
+    useMutation,
+    useQuery,
+    useQueryClient,
+} from "@tanstack/react-query";
+import { invoke } from "@tauri-apps/api/core";
+import { produce } from "immer";
+import { v4 as uuidv4 } from "uuid";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1035,7 +1035,7 @@ export function useGCThreadCounts(chatId: string) {
 export function useGCConductor(chatId: string, scopeId?: string) {
     return useQuery({
         queryKey: gcMessageKeys.conductor(chatId, scopeId),
-        queryFn: () => fetchActiveConductor(chatId, scopeId),
+        queryFn: async () => (await fetchActiveConductor(chatId, scopeId)) ?? null,
         enabled: !!chatId,
     });
 }

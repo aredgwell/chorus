@@ -1,17 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { db } from "../DB";
 import { invoke } from "@tauri-apps/api/core";
-import { CustomToolsetConfig, ToolPermissionType } from "../Toolsets";
-import { ToolsetsManager } from "../ToolsetsManager";
 import { homeDir, join } from "@tauri-apps/api/path";
 import { exists, readTextFile } from "@tauri-apps/plugin-fs";
+
+import { db } from "../DB";
 import {
-    getToolsetCredential,
-    setToolsetCredential,
-    getCustomToolsetEnv,
-    setCustomToolsetEnv,
     deleteCustomToolsetEnv,
+    getCustomToolsetEnv,
+    getToolsetCredential,
+    setCustomToolsetEnv,
+    setToolsetCredential,
 } from "../ToolsetCredentials";
+import { CustomToolsetConfig, ToolPermissionType } from "../Toolsets";
+import { ToolsetsManager } from "../ToolsetsManager";
 
 export const toolsetsKeys = {
     // toolset configs

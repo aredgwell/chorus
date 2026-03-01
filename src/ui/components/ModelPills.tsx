@@ -1,8 +1,9 @@
 import { ModelConfig } from "@core/chorus/Models";
+import { dialogActions } from "@core/infra/DialogStore";
+import { BoxIcon } from "lucide-react";
+
 import { ProviderLogo } from "./ui/provider-logo";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-import { BoxIcon } from "lucide-react";
-import { dialogActions } from "@core/infra/DialogStore";
 
 export function ManageModelsButtonCompare({
     selectedModelConfigs,

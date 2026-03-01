@@ -1,14 +1,19 @@
-import { Button } from "./ui/button";
+import { Project } from "@core/chorus/api/ProjectAPI";
+import type { SimilarChat } from "@core/chorus/api/SearchAPI";
+import { catchAsyncErrors } from "@core/chorus/utilities";
+import { convertDate, displayDate } from "@ui/lib/utils";
 import {
-    FileTextIcon,
-    ShareIcon,
-    SearchIcon,
     DownloadIcon,
+    FileTextIcon,
     Loader2,
+    SearchIcon,
+    ShareIcon,
     SparklesIcon,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { TooltipContent, Tooltip, TooltipTrigger } from "./ui/tooltip";
+
+import { MoveToProjectDropdown } from "./MoveToProjectDropdown";
+import { Button } from "./ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -20,11 +25,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "./ui/popover";
-import { catchAsyncErrors } from "@core/chorus/utilities";
-import { MoveToProjectDropdown } from "./MoveToProjectDropdown";
-import { Project } from "@core/chorus/api/ProjectAPI";
-import type { SimilarChat } from "@core/chorus/api/SearchAPI";
-import { convertDate, displayDate } from "@ui/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 export function ChatHeaderActions({
     hasMessages,

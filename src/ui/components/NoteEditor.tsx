@@ -1,6 +1,19 @@
-import { useState, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import * as ChatAPI from "@core/chorus/api/ChatAPI";
+import * as NoteAPI from "@core/chorus/api/NoteAPI";
+import { useCreateLink } from "@core/chorus/api/NoteChatLinkAPI";
+import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import type { Editor } from "@tiptap/core";
+import _ from "lodash";
+import { MessageSquareIcon,TrashIcon } from "lucide-react";
+import { useCallback,useState } from "react";
+import { useNavigate,useParams } from "react-router-dom";
 import { toast } from "sonner";
+
+import { HeaderBar } from "./HeaderBar";
+import { LinkedItems } from "./LinkedItems";
+import { EditorToolbar,MarkdownEditor } from "./MarkdownEditor";
+import { TagInput } from "./TagInput";
+import { Button } from "./ui/button";
 import {
     Dialog,
     DialogContent,
@@ -9,21 +22,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from "./ui/dialog";
-import { Button } from "./ui/button";
-import { TrashIcon, MessageSquareIcon } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-import type { Editor } from "@tiptap/core";
-
-import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import RetroSpinner from "./ui/retro-spinner";
-import * as NoteAPI from "@core/chorus/api/NoteAPI";
-import * as ChatAPI from "@core/chorus/api/ChatAPI";
-import { useCreateLink } from "@core/chorus/api/NoteChatLinkAPI";
-import { MarkdownEditor, EditorToolbar } from "./MarkdownEditor";
-import { HeaderBar } from "./HeaderBar";
-import { TagInput } from "./TagInput";
-import { LinkedItems } from "./LinkedItems";
-import _ from "lodash";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 const deleteNoteDialogId = (noteId: string) =>
     `delete-note-dialog-${noteId}`;

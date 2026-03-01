@@ -1,5 +1,5 @@
-import { MessageSetDetail } from "@core/chorus/ChatState";
 import { Chat } from "@core/chorus/api/ChatAPI";
+import { MessageSetDetail } from "@core/chorus/ChatState";
 
 export function filterReplyMessageSets(
     messageSets: MessageSetDetail[] | undefined,

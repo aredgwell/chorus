@@ -1,10 +1,11 @@
+import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
+import { SettingsManager } from "@core/utilities/Settings";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
+
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { SettingsManager } from "@core/utilities/Settings";
-import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
-import { useQueryClient } from "@tanstack/react-query";
 
 export default function Onboarding({ onComplete }: { onComplete: () => void }) {
     const onboardingStep = AppMetadataAPI.useOnboardingStep();

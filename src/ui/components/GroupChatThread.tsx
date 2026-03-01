@@ -1,19 +1,19 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Loader2, X, ArrowUpFromLine, MessageSquare } from "lucide-react";
-import { MessageMarkdown } from "@ui/components/renderers/MessageMarkdown";
-import { ProviderLogo } from "@ui/components/ui/provider-logo";
-import Composer from "@ui/components/Composer";
 import {
+    type GCMessage,
     useGCMainMessages,
     useGCThreadMessages,
-    useSendGCMessage,
     useGenerateAIResponses,
     usePromoteGCMessage,
-    type GCMessage,
+    useSendGCMessage,
 } from "@core/chorus/api/GroupChatAPI";
 import { useMarkProjectContextSummaryAsStale } from "@core/chorus/api/ProjectAPI";
 import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
 import { getModelDisplayName } from "@core/chorus/gc-prototype/UtilsGC";
+import Composer from "@ui/components/Composer";
+import { MessageMarkdown } from "@ui/components/renderers/MessageMarkdown";
+import { ProviderLogo } from "@ui/components/ui/provider-logo";
+import { ArrowUpFromLine, Loader2, MessageSquare,X } from "lucide-react";
+import { useCallback,useEffect, useRef, useState } from "react";
 
 // NOTE: useRef is used here for auto-scroll (standard DOM pattern, same as GroupChat.tsx).
 

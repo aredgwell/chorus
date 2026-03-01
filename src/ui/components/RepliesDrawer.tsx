@@ -1,8 +1,9 @@
-import { useEffect } from "react";
-import { XIcon } from "lucide-react";
-import ReplyChat from "./ReplyChat";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import { useSidebar } from "@ui/hooks/useSidebar";
+import { XIcon } from "lucide-react";
+import { useEffect } from "react";
+
+import ReplyChat from "./ReplyChat";
 
 interface RepliesDrawerProps {
     onOpenChange: (open: boolean) => void;

@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { llmConversation } from "../ChatState";
 import { db } from "../DB";
-import { simpleLLM } from "../simpleLLM";
 import { SimpleCompletionMode } from "../ModelProviders/simple/ISimpleCompletionProvider";
 import { CHAT_SUMMARY_TO_NOTE_PROMPT } from "../prompts/prompts";
-import { llmConversation } from "../ChatState";
-import { useGetMessageSets } from "./MessageAPI";
+import { simpleLLM } from "../simpleLLM";
 import { chatQueries } from "./ChatAPI";
+import { useGetMessageSets } from "./MessageAPI";
 import { noteQueries } from "./NoteAPI";
 
 // ── Types ──────────────────────────────────────────────────────────────

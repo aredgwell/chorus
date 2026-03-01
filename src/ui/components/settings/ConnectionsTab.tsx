@@ -1,5 +1,15 @@
-import { useState, useEffect } from "react";
+import * as ToolsetsAPI from "@core/chorus/api/ToolsetsAPI";
+import { CustomToolsetConfig, getEnvFromJSON } from "@core/chorus/Toolsets";
+import { getToolsetIcon } from "@core/chorus/Toolsets";
+import { ToolsetsManager } from "@core/chorus/ToolsetsManager";
+import { InfoCircledIcon } from "@radix-ui/react-icons";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { Button } from "@ui/components/ui/button";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@ui/components/ui/collapsible";
 import { Input } from "@ui/components/ui/input";
 import { Separator } from "@ui/components/ui/separator";
 import {
@@ -8,42 +18,32 @@ import {
     TooltipTrigger,
 } from "@ui/components/ui/tooltip";
 import {
-    Loader2,
-    ExternalLinkIcon,
-    Pencil,
-    Trash2,
-    Plus,
-    LinkIcon,
-    Flame,
-    Search,
     CheckIcon,
+    ExternalLinkIcon,
+    Flame,
+    LinkIcon,
+    Loader2,
+    Pencil,
+    Plus,
+    Search,
     Settings2,
+    Trash2,
 } from "lucide-react";
+import { useEffect,useState } from "react";
 import { RiClaudeFill, RiSupabaseFill } from "react-icons/ri";
 import {
-    SiStripe,
-    SiElevenlabs,
-    SiSentry,
-    SiVercel,
-    SiPostgresql,
-    SiSlack,
-    SiBrave,
     SiAmazonwebservices,
+    SiBrave,
     SiCloudflare,
+    SiElevenlabs,
     SiGithub,
+    SiPostgresql,
+    SiSentry,
+    SiSlack,
+    SiStripe,
+    SiVercel,
 } from "react-icons/si";
-import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { toast } from "sonner";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { CustomToolsetConfig, getEnvFromJSON } from "@core/chorus/Toolsets";
-import * as ToolsetsAPI from "@core/chorus/api/ToolsetsAPI";
-import { ToolsetsManager } from "@core/chorus/ToolsetsManager";
-import { getToolsetIcon } from "@core/chorus/Toolsets";
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "@ui/components/ui/collapsible";
 
 // ---------------------------------------------------------------------------
 // Recommended integrations registry (alphabetical)

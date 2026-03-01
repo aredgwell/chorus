@@ -1,10 +1,7 @@
-import { ProviderLogo } from "./ui/provider-logo";
-import { CheckIcon } from "lucide-react";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@ui/components/ui/popover";
+import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
+import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
+import { getProviderName, ModelConfig } from "@core/chorus/Models";
+import { hasApiKey } from "@core/utilities/ProxyUtils";
 import {
     Command,
     CommandEmpty,
@@ -12,13 +9,17 @@ import {
     CommandItem,
     CommandList,
 } from "@ui/components/ui/command";
-import { getProviderName, ModelConfig } from "@core/chorus/Models";
-import { useState } from "react";
-import { usePostHog } from "posthog-js/react";
-import { hasApiKey } from "@core/utilities/ProxyUtils";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@ui/components/ui/popover";
 import { ALLOWED_MODEL_IDS_FOR_QUICK_CHAT } from "@ui/lib/models";
-import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
-import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
+import { CheckIcon } from "lucide-react";
+import { usePostHog } from "posthog-js/react";
+import { useState } from "react";
+
+import { ProviderLogo } from "./ui/provider-logo";
 
 interface ModelSelectorProps {
     onModelSelect: (modelId: string) => void;

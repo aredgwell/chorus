@@ -1,52 +1,53 @@
+import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
+import * as MessageAPI from "@core/chorus/api/MessageAPI";
+import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
 import {
-    useState,
-    useCallback,
-    useMemo,
-    useRef,
-    useLayoutEffect,
-    useEffect,
-} from "react";
-import {
-    DragDropContext,
-    Droppable,
-    Draggable,
-    DropResult,
-    DraggableProvided,
-    DraggableStateSnapshot,
-    DraggableRubric,
-} from "@hello-pangea/dnd";
-import { useNavigate } from "react-router-dom";
-import {
-    ModelConfig,
     getProviderLabel,
     getProviderName,
+    ModelConfig,
 } from "@core/chorus/Models";
+import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import { hasApiKey } from "@core/utilities/ProxyUtils";
 import {
+    DragDropContext,
+    Draggable,
+    DraggableProvided,
+    DraggableRubric,
+    DraggableStateSnapshot,
+    Droppable,
+    DropResult,
+} from "@hello-pangea/dnd";
+import { emit } from "@tauri-apps/api/event";
+import {
+    ArrowBigUpIcon,
+    ChevronUpIcon,
+    CircleCheckIcon,
     PlusIcon,
     RefreshCcwIcon,
     XIcon,
-    ArrowBigUpIcon,
-    CircleCheckIcon,
-    ChevronUpIcon,
 } from "lucide-react";
-import { ProviderLogo } from "./ui/provider-logo";
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
+import { useNavigate } from "react-router-dom";
+
+import { useSettings } from "./hooks/useSettings";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 import {
     CommandDialog,
+    CommandEmpty,
     CommandGroup,
     CommandInput,
     CommandItem,
     CommandList,
-    CommandEmpty,
 } from "./ui/command";
-import { Button } from "./ui/button";
-import { emit } from "@tauri-apps/api/event";
-import { Badge } from "./ui/badge";
-import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
-import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
-import { hasApiKey } from "@core/utilities/ProxyUtils";
-import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
-import * as MessageAPI from "@core/chorus/api/MessageAPI";
-import { useSettings } from "./hooks/useSettings";
+import { ProviderLogo } from "./ui/provider-logo";
 
 // Helper function to filter models by search terms
 const filterBySearch = (models: ModelConfig[], searchTerms: string[]) => {

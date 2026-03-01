@@ -1,23 +1,23 @@
-import { allowedExtensions } from "@core/chorus/Models";
+import * as AttachmentsAPI from "@core/chorus/api/AttachmentsAPI";
+import * as DraftAPI from "@core/chorus/api/DraftAPI";
+import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
 import {
+    canScrape,
     fileTypeToAttachmentType,
     generateStorePath,
+    getScreenshotAttachment,
     resizeAndStoreFileData,
-    canScrape,
     scrapeTimestamps,
     scrapeUrlAndWriteToPath,
-    getScreenshotAttachment,
 } from "@core/chorus/AttachmentsHelpers";
-import { useMutation } from "@tanstack/react-query";
 import { storeFile } from "@core/chorus/AttachmentsHelpers";
-import * as AttachmentsAPI from "@core/chorus/api/AttachmentsAPI";
+import { allowedExtensions } from "@core/chorus/Models";
+import { captureWholeScreenCompressed } from "@core/chorus/screenshot";
+import { SettingsManager } from "@core/utilities/Settings";
+import { useMutation } from "@tanstack/react-query";
+import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { toast } from "sonner";
-import { captureWholeScreenCompressed } from "@core/chorus/screenshot";
-import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
-import * as DraftAPI from "@core/chorus/api/DraftAPI";
-import { invoke } from "@tauri-apps/api/core";
-import { SettingsManager } from "@core/utilities/Settings";
 
 export function useFilePaste({
     association,

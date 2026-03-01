@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { NodeViewWrapper, NodeViewContent } from "@tiptap/react";
-import type { NodeViewProps } from "@tiptap/core";
-import { BlockMath } from "react-katex";
-import { CodeIcon, EyeIcon } from "lucide-react";
 import "katex/dist/katex.min.css";
+
+import type { NodeViewProps } from "@tiptap/core";
+import { NodeViewContent,NodeViewWrapper } from "@tiptap/react";
+import { CodeIcon, EyeIcon } from "lucide-react";
+import { useState } from "react";
+import { BlockMath } from "react-katex";
 
 /**
  * Tiptap NodeView for ```latex / ```math code blocks.

@@ -1,9 +1,4 @@
-import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
-import { VariantProps, cva } from "class-variance-authority";
-import { PanelLeft } from "lucide-react";
-
-import { cn } from "@ui/lib/utils";
 import { Button } from "@ui/components/ui/button";
 import { Input } from "@ui/components/ui/input";
 import { Separator } from "@ui/components/ui/separator";
@@ -15,6 +10,11 @@ import {
     TooltipTrigger,
 } from "@ui/components/ui/tooltip";
 import { useSidebar } from "@ui/hooks/useSidebar";
+import { cn } from "@ui/lib/utils";
+import { cva,VariantProps } from "class-variance-authority";
+import { PanelLeft } from "lucide-react";
+import * as React from "react";
+
 import { SIDEBAR_WIDTH_MOBILE } from "../../providers/SidebarProvider";
 
 const Sidebar = React.forwardRef<

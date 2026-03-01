@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo } from "react";
-import { produce } from "immer";
-import { useNavigate } from "react-router-dom";
-import { db } from "../DB";
 import { getVersion } from "@tauri-apps/api/app";
+import { produce } from "immer";
 import { usePostHog } from "posthog-js/react";
+import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+
+import { db } from "../DB";
 
 const chatKeys = {
     all: () => ["chats"] as const,

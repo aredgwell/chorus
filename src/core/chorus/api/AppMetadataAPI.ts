@@ -1,6 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { db } from "../DB";
 import { SettingsManager } from "@core/utilities/Settings";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { db } from "../DB";
 import * as Models from "../Models";
 
 export const appMetadataKeys = {

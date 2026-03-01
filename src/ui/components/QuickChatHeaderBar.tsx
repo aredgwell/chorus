@@ -1,16 +1,17 @@
-import React from "react";
-import { Button } from "./ui/button";
+import * as MessageAPI from "@core/chorus/api/MessageAPI";
+import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
 import {
     PictureInPicture2Icon,
     SquarePen,
     XIcon,
 } from "lucide-react";
-import { TooltipContent, Tooltip, TooltipTrigger } from "./ui/tooltip";
+import React from "react";
+import { useCallback } from "react";
+
 import { MouseTrackingEye, MouseTrackingEyeRef } from "./MouseTrackingEye";
 import { QuickChatModelSelector } from "./QuickChatModelSelector";
-import { useCallback } from "react";
-import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
-import * as MessageAPI from "@core/chorus/api/MessageAPI";
+import { Button } from "./ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 function ModelSelectorWrapper() {
     const modelConfigsQuery = ModelsAPI.useModelConfigs();

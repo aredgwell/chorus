@@ -1,25 +1,25 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
     StdioClientTransportChorus,
     StdioServerParameters,
 } from "@core/chorus/MCPStdioTauri";
+import { getToolsetCredential } from "@core/chorus/ToolsetCredentials";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import _ from "lodash";
 import {
-    GlobeIcon,
-    TerminalIcon,
-    GithubIcon,
-    SlackIcon,
     AppleIcon,
-    MessageCircleIcon,
-    WrenchIcon,
-    CodeIcon,
-    ImageIcon,
     BookOpenIcon,
+    CodeIcon,
+    GithubIcon,
+    GlobeIcon,
+    ImageIcon,
+    MessageCircleIcon,
+    SlackIcon,
+    TerminalIcon,
+    WrenchIcon,
 } from "lucide-react";
 import React from "react";
-import _ from "lodash";
 import { SiElevenlabs, SiLinear, SiStripe, SiSupabase } from "react-icons/si";
-import { getToolsetCredential } from "@core/chorus/ToolsetCredentials";
 
 /**
  * ### Notes on the Toolsets system

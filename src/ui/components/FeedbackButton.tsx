@@ -1,5 +1,5 @@
-import { ReactNode } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { ReactNode } from "react";
 
 export default function FeedbackButton({
     className,

@@ -1,5 +1,5 @@
-import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import * as React from "react";
 
 import { cn } from "../../lib/utils";
 
@@ -104,13 +104,13 @@ FileDialogDescription.displayName = DialogPrimitive.Description.displayName;
 
 export {
     FileDialog,
-    FileDialogPortal,
-    FileDialogOverlay,
     FileDialogClose,
-    FileDialogTrigger,
     FileDialogContent,
-    FileDialogHeader,
-    FileDialogFooter,
-    FileDialogTitle,
     FileDialogDescription,
+    FileDialogFooter,
+    FileDialogHeader,
+    FileDialogOverlay,
+    FileDialogPortal,
+    FileDialogTitle,
+    FileDialogTrigger,
 };

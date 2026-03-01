@@ -1,14 +1,15 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useShortcut } from "@ui/hooks/useShortcut";
 import {
+    ChevronDownIcon,
+    ChevronUpIcon,
     SearchIcon,
     XIcon,
-    ChevronUpIcon,
-    ChevronDownIcon,
 } from "lucide-react";
+import { useCallback, useEffect, useRef,useState } from "react";
+
 import { Button } from "./ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-import { useShortcut } from "@ui/hooks/useShortcut";
 import { Input } from "./ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function FindInPage({ dependencies = [] }: { dependencies?: any[] }) {

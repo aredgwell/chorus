@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+
 import { db } from "../DB";
 
 /**
@@ -206,7 +207,7 @@ export function useRelatedChats(
     summary: string | undefined,
 ) {
     return useQuery({
-        queryKey: ["relatedChats", chatId] as const,
+        queryKey: ["relatedChats", chatId, summary] as const,
         queryFn: (): Promise<SimilarChat[]> => {
             if (!summary) return Promise.resolve([]);
             return findSimilarChats(summary, 3, chatId);

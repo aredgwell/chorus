@@ -1,8 +1,9 @@
-import { Input } from "./ui/input";
 import { ProviderName } from "@core/chorus/Models";
-import { ProviderLogo } from "./ui/provider-logo";
-import { ExternalLinkIcon, FlameIcon, GlobeIcon } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { ExternalLinkIcon, FlameIcon, GlobeIcon } from "lucide-react";
+
+import { Input } from "./ui/input";
+import { ProviderLogo } from "./ui/provider-logo";
 
 interface ApiKeysFormProps {
     apiKeys: Record<string, string>;

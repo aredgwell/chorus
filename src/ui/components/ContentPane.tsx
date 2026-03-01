@@ -1,11 +1,12 @@
 import { Route, Routes } from "react-router-dom";
+
 import Home from "./Home";
+import ListPrompts from "./ListPrompts";
 import MultiChat from "./MultiChat";
+import NewPrompt from "./NewPrompt";
 import NoteEditor from "./NoteEditor";
 import ProjectView from "./ProjectView";
 import SearchView from "./SearchView";
-import NewPrompt from "./NewPrompt";
-import ListPrompts from "./ListPrompts";
 
 export function ContentPane() {
     return (

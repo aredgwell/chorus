@@ -1,15 +1,16 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { getUserToolNamespacedName, UserToolCall } from "@core/chorus/Toolsets";
+import { canProceedWithProvider } from "@core/utilities/ProxyUtils";
+
 import {
     LLMMessage,
     readImageAttachment,
     readPdfAttachment,
-    StreamResponseParams,
     readTextAttachment,
     readWebpageAttachment,
+    StreamResponseParams,
 } from "../Models";
 import { IProvider } from "./IProvider";
-import { canProceedWithProvider } from "@core/utilities/ProxyUtils";
-import { getUserToolNamespacedName, UserToolCall } from "@core/chorus/Toolsets";
 
 type AcceptedImageType =
     | "image/jpeg"

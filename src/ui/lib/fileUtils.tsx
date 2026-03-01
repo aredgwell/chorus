@@ -1,12 +1,12 @@
 import { FileIcon } from "lucide-react";
 import {
-    siTypescript,
-    siJavascript,
     siCss,
     siHtml5,
+    siJavascript,
     siJson,
     siMarkdown,
     SimpleIcon,
+    siTypescript,
 } from "simple-icons";
 
 export function getFileIcon(filePath: string, className?: string) {

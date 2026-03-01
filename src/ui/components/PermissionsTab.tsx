@@ -1,23 +1,23 @@
-import React from "react";
-import { Card, CardContent } from "@ui/components/ui/card";
-import { Button } from "@ui/components/ui/button";
-import { Label } from "@ui/components/ui/label";
-import { Badge } from "@ui/components/ui/badge";
-import { Trash2, DoorOpenIcon, BanIcon, CheckIcon } from "lucide-react";
-import { getToolsetIcon } from "@core/chorus/Toolsets";
-import * as ToolPermissionsAPI from "@core/chorus/api/ToolPermissionsAPI";
 import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
-import { Separator } from "@ui/components/ui/separator";
-import { Switch } from "@ui/components/ui/switch";
+import * as ToolPermissionsAPI from "@core/chorus/api/ToolPermissionsAPI";
+import { getToolsetIcon } from "@core/chorus/Toolsets";
+import { ToolPermissionType } from "@core/chorus/Toolsets";
+import { QuestionMarkCircledIcon } from "@radix-ui/react-icons";
+import { Badge } from "@ui/components/ui/badge";
+import { Button } from "@ui/components/ui/button";
+import { Card, CardContent } from "@ui/components/ui/card";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@ui/components/ui/dropdown-menu";
-import { ToolPermissionType } from "@core/chorus/Toolsets";
+import { Label } from "@ui/components/ui/label";
+import { Separator } from "@ui/components/ui/separator";
+import { Switch } from "@ui/components/ui/switch";
 import { cn } from "@ui/lib/utils";
-import { QuestionMarkCircledIcon } from "@radix-ui/react-icons";
+import { BanIcon, CheckIcon,DoorOpenIcon, Trash2 } from "lucide-react";
+import React from "react";
 
 export const PermissionsTab: React.FC = () => {
     const { data: permissions, isLoading } =

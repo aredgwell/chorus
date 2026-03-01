@@ -1,27 +1,28 @@
 import {
-    UserToolCall,
-    UserToolResult,
-    Toolset,
-    parseUserToolNamespacedName,
-    CustomToolsetConfig,
-    ToolPermissionType,
-} from "./Toolsets";
-import { CustomToolset } from "./toolsets/custom";
-import { checkToolPermission } from "./api/ToolPermissionsAPI";
-import { fetchAppMetadata } from "./api/AppMetadataAPI";
-import {
     toolPermissionActions,
     ToolPermissionRequest,
 } from "@core/infra/ToolPermissionStore";
 import { v4 as uuidv4 } from "uuid";
-import { ToolsetWeb } from "./toolsets/web";
+
+import { fetchAppMetadata } from "./api/AppMetadataAPI";
+import { checkToolPermission } from "./api/ToolPermissionsAPI";
+import {
+    CustomToolsetConfig,
+    parseUserToolNamespacedName,
+    ToolPermissionType,
+    Toolset,
+    UserToolCall,
+    UserToolResult,
+} from "./Toolsets";
+import { CustomToolset } from "./toolsets/custom";
+// import { ToolsetCoder } from "./toolsets/coder";
+import { ToolsetGithub } from "./toolsets/github";
+import { ToolsetKnowledgeBase } from "./toolsets/knowledgebase";
+import { ToolsetLinear } from "./toolsets/linear";
 import { ToolsetMedia } from "./toolsets/media";
 // import { ToolsetSlack } from "./toolsets/slack";
 import { ToolsetTerminal } from "./toolsets/terminal";
-// import { ToolsetCoder } from "./toolsets/coder";
-import { ToolsetGithub } from "./toolsets/github";
-import { ToolsetLinear } from "./toolsets/linear";
-import { ToolsetKnowledgeBase } from "./toolsets/knowledgebase";
+import { ToolsetWeb } from "./toolsets/web";
 // import { ToolsetNotion } from "./toolsets/notion";
 // import { ToolsetFiles } from "./toolsets/files";
 // import { ToolsetMessages } from "./toolsets/messages";

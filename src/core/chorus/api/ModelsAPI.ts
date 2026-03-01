@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import * as Models from "../Models";
+
 import { db } from "../DB";
+import * as Models from "../Models";
 import { ModelConfig } from "../Models";
 import { getApiKeys } from "./AppMetadataAPI";
 

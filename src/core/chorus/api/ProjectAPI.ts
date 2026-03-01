@@ -1,19 +1,20 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useReactQueryAutoSync } from "use-react-query-auto-sync";
-import { LLMMessage } from "../Models";
-import { Chat, chatQueries, useCacheUpdateChat } from "./ChatAPI";
-import * as Prompts from "../prompts/prompts";
-import { produce } from "immer";
-import { useGetMessageSets } from "./MessageAPI";
-import { llmConversation } from "../ChatState";
-import { fetchGCMainMessages } from "./GroupChatAPI";
-import { simpleLLM } from "../simpleLLM";
-import { SimpleCompletionMode } from "../ModelProviders/simple/ISimpleCompletionProvider";
-import _ from "lodash";
-import { db } from "../DB";
-import { useSetSelectedCollectionId } from "./AppMetadataAPI";
 import { invoke } from "@tauri-apps/api/core";
+import { produce } from "immer";
+import _ from "lodash";
+import { useReactQueryAutoSync } from "use-react-query-auto-sync";
+
+import { llmConversation } from "../ChatState";
+import { db } from "../DB";
+import { SimpleCompletionMode } from "../ModelProviders/simple/ISimpleCompletionProvider";
+import { LLMMessage } from "../Models";
+import * as Prompts from "../prompts/prompts";
+import { simpleLLM } from "../simpleLLM";
+import { useSetSelectedCollectionId } from "./AppMetadataAPI";
 import { Attachment, AttachmentDBRow, readAttachment } from "./AttachmentsAPI";
+import { Chat, chatQueries, useCacheUpdateChat } from "./ChatAPI";
+import { fetchGCMainMessages } from "./GroupChatAPI";
+import { useGetMessageSets } from "./MessageAPI";
 
 export const projectKeys = {
     all: () => ["project"] as const,

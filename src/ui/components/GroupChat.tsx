@@ -1,59 +1,58 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useChat } from "@core/chorus/api/ChatAPI";
 import {
-    Loader2,
-    X,
-    Undo2,
-    Users,
-    RefreshCcwIcon,
-    Maximize2Icon,
-    RemoveFormattingIcon,
-    ChevronDownIcon,
-    WrenchIcon,
-    MessageSquareIcon,
-} from "lucide-react";
-
+    type GCMessage,
+    useClearConductor,
+    useDeleteGCMessage,
+    useGCConductor,
+    useGCMainMessages,
+    useGCThreadCounts,
+    useGenerateAIResponses,
+    useGenerateGCChatTitle,
+    useRegenerateGCMessage,
+    useRestoreGCMessage,
+    useSendGCMessage,
+} from "@core/chorus/api/GroupChatAPI";
+import { useMarkProjectContextSummaryAsStale } from "@core/chorus/api/ProjectAPI";
+import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
+import { getModelDisplayName } from "@core/chorus/gc-prototype/UtilsGC";
+import { type UserToolCall } from "@core/chorus/Toolsets";
+import { dialogActions } from "@core/infra/DialogStore";
+import Composer from "@ui/components/Composer";
+import GroupChatThread from "@ui/components/GroupChatThread";
 import { MessageMarkdown } from "@ui/components/renderers/MessageMarkdown";
-import { ProviderLogo } from "@ui/components/ui/provider-logo";
-import SimpleCopyButton from "@ui/components/unused/CopyButton";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@ui/components/ui/collapsible";
 import {
     Dialog,
     DialogContent,
     DialogTitle,
     DialogTrigger,
 } from "@ui/components/ui/dialog";
+import { ProviderLogo } from "@ui/components/ui/provider-logo";
 import { Toggle } from "@ui/components/ui/toggle";
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from "@ui/components/ui/tooltip";
+import SimpleCopyButton from "@ui/components/unused/CopyButton";
 import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "@ui/components/ui/collapsible";
-import Composer from "@ui/components/Composer";
-import GroupChatThread from "@ui/components/GroupChatThread";
-import { dialogActions } from "@core/infra/DialogStore";
-import {
-    useGCMainMessages,
-    useGCThreadCounts,
-    useGCConductor,
-    useClearConductor,
-    useSendGCMessage,
-    useGenerateAIResponses,
-    useDeleteGCMessage,
-    useRestoreGCMessage,
-    useRegenerateGCMessage,
-    useGenerateGCChatTitle,
-    type GCMessage,
-} from "@core/chorus/api/GroupChatAPI";
-import { useChat } from "@core/chorus/api/ChatAPI";
-import { useMarkProjectContextSummaryAsStale } from "@core/chorus/api/ProjectAPI";
-import { type UserToolCall } from "@core/chorus/Toolsets";
-import { modelThinkingTracker } from "@core/chorus/gc-prototype/ModelThinkingTracker";
-import { getModelDisplayName } from "@core/chorus/gc-prototype/UtilsGC";
+    ChevronDownIcon,
+    Loader2,
+    Maximize2Icon,
+    MessageSquareIcon,
+    RefreshCcwIcon,
+    RemoveFormattingIcon,
+    Undo2,
+    Users,
+    WrenchIcon,
+    X,
+} from "lucide-react";
+import { useCallback,useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
 
 // NOTE: useRef is used here for auto-scroll (standard DOM pattern).
 // useState is used for thinking state tracking (event-driven from ModelThinkingTracker).
@@ -277,7 +276,7 @@ function GCToolCallView({ toolCall }: { toolCall: UserToolCall }) {
     return (
         <Collapsible className="my-2 rounded-md text-muted-foreground text-sm py-1.5 px-1.5 border w-fit max-w-full">
             <CollapsibleTrigger className="group font-mono text-xs text-left flex items-center justify-left hover:text-foreground">
-                <WrenchIcon className="w-3 h-3 mr-2 flex-shrink-0" />
+                <WrenchIcon className="w-3 h-3 mr-2 shrink-0" />
                 {label}
                 <ChevronDownIcon className="w-3 h-3 ml-2 transition-transform group-data-[state=open]:rotate-180" />
             </CollapsibleTrigger>
@@ -718,7 +717,7 @@ export default function GroupChat() {
                 )}
 
                 {/* Message list */}
-                <div className={`flex-1 overflow-y-auto ${conductor ? "" : "pt-[52px]"} pb-4`}>
+                <div className={`flex-1 overflow-y-auto ${conductor ? "" : "pt-13"} pb-4`}>
                     <div className="max-w-3xl mx-auto">
                         {messages.map((message) => (
                             <GCMessageView
@@ -771,7 +770,7 @@ export default function GroupChat() {
 
             {/* Thread panel */}
             {openThreadId && chatId && (
-                <div className="w-96 border-l flex-shrink-0">
+                <div className="w-96 border-l shrink-0">
                     <GroupChatThread
                         chatId={chatId}
                         threadRootMessageId={openThreadId}

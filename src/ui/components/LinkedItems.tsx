@@ -1,15 +1,15 @@
-import { XIcon, FileTextIcon, MessageSquareIcon, LinkIcon } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import {
-    useLinksForNote,
-    useLinksForChat,
-    useDeleteLink,
-} from "@core/chorus/api/NoteChatLinkAPI";
-import { chatQueries } from "@core/chorus/api/ChatAPI";
-import { noteQueries } from "@core/chorus/api/NoteAPI";
 import type { Chat } from "@core/chorus/api/ChatAPI";
+import { chatQueries } from "@core/chorus/api/ChatAPI";
 import type { Note } from "@core/chorus/api/NoteAPI";
+import { noteQueries } from "@core/chorus/api/NoteAPI";
+import {
+    useDeleteLink,
+    useLinksForChat,
+    useLinksForNote,
+} from "@core/chorus/api/NoteChatLinkAPI";
+import { useQuery } from "@tanstack/react-query";
+import { FileTextIcon, LinkIcon,MessageSquareIcon, XIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface LinkedItemsProps {
     noteId?: string;

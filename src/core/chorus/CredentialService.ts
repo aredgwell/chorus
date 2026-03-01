@@ -1,7 +1,7 @@
 import {
+    deletePassword,
     getPassword,
     setPassword,
-    deletePassword,
 } from "tauri-plugin-keyring-api";
 
 const SERVICE = "sh.chorus.app";

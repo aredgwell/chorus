@@ -1,20 +1,39 @@
-import { useState, useRef, useEffect, forwardRef, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import * as ChatAPI from "@core/chorus/api/ChatAPI";
+import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
 import {
     PROJECT_TEMPLATE_COACH,
-    PROJECT_TEMPLATE_PAIR_PROGRAMMER,
-    PROJECT_TEMPLATE_HAMEL_WRITING_GUIDE,
     PROJECT_TEMPLATE_DECISION_ADVISOR,
+    PROJECT_TEMPLATE_HAMEL_WRITING_GUIDE,
+    PROJECT_TEMPLATE_PAIR_PROGRAMMER,
 } from "@core/chorus/prompts/prompts";
+import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import { useQuery } from "@tanstack/react-query";
+import {
+    useAttachUrl,
+    useFileDrop,
+    useFilePaste,
+    useFileSelect,
+} from "@ui/hooks/useAttachments";
+import {
+    handleInputPasteWithAttachments,
+    projectDisplayName,
+} from "@ui/lib/utils";
+import _ from "lodash";
 import {
     AtSignIcon,
     SquarePlusIcon,
     TrashIcon,
 } from "lucide-react";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { forwardRef, useCallback,useEffect, useRef, useState } from "react";
+import { useNavigate,useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import RetroSpinner from "./ui/retro-spinner";
+
+import { AttachmentDropArea } from "./AttachmentsViews";
+import AutoExpandingTextarea from "./AutoExpandingTextarea";
+import { HeaderBar } from "./HeaderBar";
+import { useSettings } from "./hooks/useSettings";
+import { Button } from "./ui/button";
 import {
     Dialog,
     DialogContent,
@@ -23,29 +42,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from "./ui/dialog";
-import { AttachmentDropArea } from "./AttachmentsViews";
-import _ from "lodash";
-import AutoExpandingTextarea from "./AutoExpandingTextarea";
-import {
-    useFileSelect,
-    useFileDrop,
-    useAttachUrl,
-    useFilePaste,
-} from "@ui/hooks/useAttachments";
-import {
-    handleInputPasteWithAttachments,
-    projectDisplayName,
-} from "@ui/lib/utils";
-
-import { HeaderBar } from "./HeaderBar";
-import { useQuery } from "@tanstack/react-query";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { Input } from "./ui/input";
+import RetroSpinner from "./ui/retro-spinner";
 import { Switch } from "./ui/switch";
-import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
-import { useSettings } from "./hooks/useSettings";
-import { Link } from "react-router-dom";
-import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
-import * as ChatAPI from "@core/chorus/api/ChatAPI";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 const deleteProjectDialogId = (projectId: string) =>
     `delete-project-dialog-${projectId}`;

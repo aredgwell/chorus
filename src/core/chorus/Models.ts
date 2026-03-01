@@ -5,27 +5,28 @@
 //   on top of the default models.
 // - Every model comes with a default config that shares its id and has no system prompt.
 
-import { ProviderOpenAI } from "./ModelProviders/ProviderOpenAI";
-import { ProviderAnthropic } from "./ModelProviders/ProviderAnthropic";
-import { ProviderOpenRouter } from "./ModelProviders/ProviderOpenRouter";
-import { ProviderPerplexity } from "./ModelProviders/ProviderPerplexity";
-import { IProvider } from "./ModelProviders/IProvider";
-import Database from "@tauri-apps/plugin-sql";
-import { readFile } from "@tauri-apps/plugin-fs";
-import { ProviderGoogle } from "./ModelProviders/ProviderGoogle";
-import { ollamaClient } from "./OllamaClient";
-import { ProviderOllama } from "./ModelProviders/ProviderOllama";
-import { ProviderLMStudio } from "./ModelProviders/ProviderLMStudio";
-import { ProviderGrok } from "./ModelProviders/ProviderGrok";
-import { ProviderCustomOpenAI } from "./ModelProviders/ProviderCustomOpenAI";
 import { SettingsManager } from "@core/utilities/Settings";
+import { readFile } from "@tauri-apps/plugin-fs";
+import Database from "@tauri-apps/plugin-sql";
 import posthog from "posthog-js";
-import { UserTool, UserToolCall, UserToolResult } from "./Toolsets";
+
 import { Attachment } from "./api/AttachmentsAPI";
 import {
     classifyError,
     detectContextLimitError as _detectContextLimitError,
 } from "./errors";
+import { IProvider } from "./ModelProviders/IProvider";
+import { ProviderAnthropic } from "./ModelProviders/ProviderAnthropic";
+import { ProviderCustomOpenAI } from "./ModelProviders/ProviderCustomOpenAI";
+import { ProviderGoogle } from "./ModelProviders/ProviderGoogle";
+import { ProviderGrok } from "./ModelProviders/ProviderGrok";
+import { ProviderLMStudio } from "./ModelProviders/ProviderLMStudio";
+import { ProviderOllama } from "./ModelProviders/ProviderOllama";
+import { ProviderOpenAI } from "./ModelProviders/ProviderOpenAI";
+import { ProviderOpenRouter } from "./ModelProviders/ProviderOpenRouter";
+import { ProviderPerplexity } from "./ModelProviders/ProviderPerplexity";
+import { ollamaClient } from "./OllamaClient";
+import { UserTool, UserToolCall, UserToolResult } from "./Toolsets";
 
 /// ------------------------------------------------------------------------------------------------
 /// Basic Types

@@ -1,6 +1,6 @@
-import OpenAI from "openai";
-import { invoke } from "@tauri-apps/api/core";
 import { getApiKeys } from "@core/chorus/api/AppMetadataAPI";
+import { invoke } from "@tauri-apps/api/core";
+import OpenAI from "openai";
 
 export interface SimilarChat {
     chatId: string;

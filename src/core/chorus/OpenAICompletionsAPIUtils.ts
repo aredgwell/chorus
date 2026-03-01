@@ -1,10 +1,10 @@
-import OpenAI from "openai";
+import { convertPdfToPng } from "@core/chorus/AttachmentsHelpers";
 import {
+    attachmentMissingFlag,
+    encodeTextAttachment,
+    encodeWebpageAttachment,
     LLMMessage,
     readImageAttachment,
-    encodeTextAttachment,
-    attachmentMissingFlag,
-    encodeWebpageAttachment,
 } from "@core/chorus/Models";
 import {
     getUserToolNamespacedName,
@@ -12,7 +12,7 @@ import {
     UserToolCall,
 } from "@core/chorus/Toolsets";
 import _ from "lodash";
-import { convertPdfToPng } from "@core/chorus/AttachmentsHelpers";
+import OpenAI from "openai";
 import { v4 as uuidv4 } from "uuid";
 
 function convertToolDefinitions(

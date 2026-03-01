@@ -1,15 +1,16 @@
-import { useState, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { SearchIcon, ArrowLeftIcon, MessageCircleIcon } from "lucide-react";
-import debounce from "lodash/debounce";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
-import { SidebarTrigger } from "./ui/sidebar";
-import { convertDate, displayDate } from "@ui/lib/utils";
-import { ProviderLogo } from "@ui/components/ui/provider-logo";
-import * as SearchAPI from "@core/chorus/api/SearchAPI";
 import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
 import type { SearchResult } from "@core/chorus/api/SearchAPI";
+import * as SearchAPI from "@core/chorus/api/SearchAPI";
+import { ProviderLogo } from "@ui/components/ui/provider-logo";
+import { convertDate, displayDate } from "@ui/lib/utils";
+import debounce from "lodash/debounce";
+import { ArrowLeftIcon, MessageCircleIcon,SearchIcon } from "lucide-react";
+import { useMemo,useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { SidebarTrigger } from "./ui/sidebar";
 
 const CONTEXT_LENGTH = 200;
 

@@ -1,5 +1,5 @@
-import Mermaid from "react-mermaid2";
 import { useTheme } from "@ui/hooks/useTheme";
+import Mermaid from "react-mermaid2";
 
 export function MermaidPreview({ content }: { content: string }) {
     const { mode } = useTheme();

@@ -1,24 +1,25 @@
-import { useEffect, useState } from "react";
-import { getCurrentWebview } from "@tauri-apps/api/webview";
+import * as AttachmentsAPI from "@core/chorus/api/AttachmentsAPI";
+import { Attachment } from "@core/chorus/api/AttachmentsAPI";
+import { dialogActions } from "@core/infra/DialogStore";
+import { useDialogStore } from "@core/infra/DialogStore";
+import { QuestionMarkCircledIcon } from "@radix-ui/react-icons";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { cn } from "@ui/lib/utils";
 import {
     FileTextIcon,
     GlobeIcon,
-    X,
     Loader2,
     PaperclipIcon,
     Upload,
+    X,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+
+import SimpleCopyButton from "./CopyButton";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
-import * as AttachmentsAPI from "@core/chorus/api/AttachmentsAPI";
-import { Attachment } from "@core/chorus/api/AttachmentsAPI";
-import { QuestionMarkCircledIcon } from "@radix-ui/react-icons";
-import { dialogActions } from "@core/infra/DialogStore";
-import { useDialogStore } from "@core/infra/DialogStore";
-import { cn } from "@ui/lib/utils";
-import SimpleCopyButton from "./CopyButton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 function truncate(text: string | undefined, maxLength: number = 35) {
     if (!text) return "";

@@ -1,13 +1,17 @@
+import { Chat } from "@core/chorus/api/ChatAPI";
+import * as ChatAPI from "@core/chorus/api/ChatAPI";
+import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
+import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
+import * as SearchAPI from "@core/chorus/api/SearchAPI";
+import { dialogActions } from "@core/infra/DialogStore";
+import { useQuery } from "@tanstack/react-query";
+import { invoke } from "@tauri-apps/api/core";
 import {
-    Command,
-    CommandDialog,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-    CommandShortcut,
-} from "./ui/command";
+    convertDate,
+    displayDate,
+    formatQuickChatShortcut,
+} from "@ui/lib/utils";
+import debounce from "lodash/debounce";
 import {
     ArrowLeft,
     ArrowRight,
@@ -20,25 +24,22 @@ import {
     Settings,
     SparklesIcon,
 } from "lucide-react";
-import { useState, useMemo, ReactNode } from "react";
+import { ReactNode,useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import debounce from "lodash/debounce";
-import { DialogTitle } from "./ui/dialog";
-import { invoke } from "@tauri-apps/api/core";
+
 import { useSettings } from "./hooks/useSettings";
-import {
-    convertDate,
-    displayDate,
-    formatQuickChatShortcut,
-} from "@ui/lib/utils";
 import { SETTINGS_DIALOG_ID } from "./Settings";
-import { useQuery } from "@tanstack/react-query";
-import { dialogActions } from "@core/infra/DialogStore";
-import { Chat } from "@core/chorus/api/ChatAPI";
-import * as ChatAPI from "@core/chorus/api/ChatAPI";
-import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
-import * as SearchAPI from "@core/chorus/api/SearchAPI";
-import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
+import {
+    Command,
+    CommandDialog,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+    CommandShortcut,
+} from "./ui/command";
+import { DialogTitle } from "./ui/dialog";
 
 export const COMMAND_MENU_DIALOG_ID = "command-menu";
 

@@ -1,12 +1,12 @@
-import { IProvider } from "./IProvider";
 import {
     LLMMessage,
-    StreamResponseParams,
     llmMessageToString,
     readTextAttachment,
     readWebpageAttachment,
+    StreamResponseParams,
 } from "../Models";
 import { ollamaClient } from "../OllamaClient";
+import { IProvider } from "./IProvider";
 
 interface FormattedOllamaMessage {
     role: "user" | "assistant";

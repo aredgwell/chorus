@@ -1,7 +1,8 @@
-import { useAppContext } from "@ui/hooks/useAppContext";
-import RetroSpinner from "./ui/retro-spinner";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
+import { useAppContext } from "@ui/hooks/useAppContext";
 import { useEffect } from "react";
+
+import RetroSpinner from "./ui/retro-spinner";
 
 export default function Home() {
     const { isQuickChatWindow } = useAppContext();

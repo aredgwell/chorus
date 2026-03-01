@@ -1,8 +1,8 @@
-import { useState, useDeferredValue, useEffect } from "react";
-import { NodeViewWrapper, NodeViewContent } from "@tiptap/react";
 import type { NodeViewProps } from "@tiptap/core";
+import { NodeViewContent,NodeViewWrapper } from "@tiptap/react";
 import { CodeIcon, EyeIcon } from "lucide-react";
 import mermaid from "mermaid";
+import { useDeferredValue, useEffect,useState } from "react";
 
 let mermaidIdCounter = 0;
 

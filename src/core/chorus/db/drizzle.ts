@@ -1,4 +1,5 @@
 import { drizzle } from "drizzle-orm/sqlite-proxy";
+
 import { db as tauriDb } from "../DB";
 import * as schema from "./schema";
 

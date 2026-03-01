@@ -1,15 +1,16 @@
-import { useState } from "react";
-import { XIcon, TagIcon } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import {
-    useTags,
-    useItemTags,
-    useCreateTag,
-    useAddTagToItem,
-    useRemoveTagFromItem,
     type ItemType,
     type Tag,
+    useAddTagToItem,
+    useCreateTag,
+    useItemTags,
+    useRemoveTagFromItem,
+    useTags,
 } from "@core/chorus/api/TagAPI";
+import { TagIcon,XIcon } from "lucide-react";
+import { useState } from "react";
+
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
 interface TagInputProps {
     itemType: ItemType;

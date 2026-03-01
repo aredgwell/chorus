@@ -1,6 +1,7 @@
 import { Toolset as Toolset } from "@core/chorus/Toolsets";
-import { MediaTools } from "../MediaTools";
+
 import { getApiKeys } from "../api/AppMetadataAPI";
+import { MediaTools } from "../MediaTools";
 
 export class ToolsetMedia extends Toolset {
     constructor() {

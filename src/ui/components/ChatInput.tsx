@@ -1,27 +1,18 @@
-import { useEffect, useState } from "react";
-import React from "react";
-import { useAppContext } from "@ui/hooks/useAppContext";
-import AutoExpandingTextarea from "./AutoExpandingTextarea";
-import { AttachmentAddPill, AttachmentDropArea } from "./AttachmentsViews";
-import {
-    MANAGE_MODELS_COMPARE_DIALOG_ID,
-    ManageModelsBox,
-} from "./ManageModelsBox";
-import { MessageSetDetail } from "@core/chorus/ChatState";
+import * as DraftAPI from "@core/chorus/api/DraftAPI";
 import * as MessageAPI from "@core/chorus/api/MessageAPI";
-import { useSettings } from "./hooks/useSettings";
-import { toast } from "sonner";
-import { usePostHog } from "posthog-js/react";
-import { getVersion } from "@tauri-apps/api/app";
+import * as ModelConfigChatAPI from "@core/chorus/api/ModelConfigChatAPI";
+import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
+import { fetchNote } from "@core/chorus/api/NoteAPI";
+import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
+import { MessageSetDetail } from "@core/chorus/ChatState";
 import { createUserMessage } from "@core/chorus/ChatState";
-import { MouseTrackingEyeRef } from "./MouseTrackingEye";
-import { useWaitForAppMetadata } from "@ui/hooks/useWaitForAppMetadata";
-import { ManageModelsButtonCompare } from "./ModelPills";
-import { listen } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/core";
+import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import { inputActions, useInputStore } from "@core/infra/InputStore";
 import { useMutation } from "@tanstack/react-query";
-import ToolsBox from "./ToolsBox";
-import { useShortcut } from "@ui/hooks/useShortcut";
+import { getVersion } from "@tauri-apps/api/app";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { useAppContext } from "@ui/hooks/useAppContext";
 import {
     useAttachScreenshotEphemeral,
     useAttachUrl,
@@ -29,19 +20,29 @@ import {
     useFilePaste,
     useFileSelect,
 } from "@ui/hooks/useAttachments";
-import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
-import { ChatSuggestions } from "./ChatSuggestions";
-import { ArrowUp, ChevronDownIcon } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-import { EmptyState } from "./EmptyState";
+import { useShortcut } from "@ui/hooks/useShortcut";
+import { useWaitForAppMetadata } from "@ui/hooks/useWaitForAppMetadata";
 import { handleInputPasteWithAttachments } from "@ui/lib/utils";
-import { inputActions, useInputStore } from "@core/infra/InputStore";
+import { ArrowUp, ChevronDownIcon } from "lucide-react";
+import { usePostHog } from "posthog-js/react";
+import { useEffect, useState } from "react";
+import React from "react";
 import { useSearchParams } from "react-router-dom";
-import * as ModelsAPI from "@core/chorus/api/ModelsAPI";
-import * as DraftAPI from "@core/chorus/api/DraftAPI";
-import * as ModelConfigChatAPI from "@core/chorus/api/ModelConfigChatAPI";
-import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
-import { fetchNote } from "@core/chorus/api/NoteAPI";
+import { toast } from "sonner";
+
+import { AttachmentAddPill, AttachmentDropArea } from "./AttachmentsViews";
+import AutoExpandingTextarea from "./AutoExpandingTextarea";
+import { ChatSuggestions } from "./ChatSuggestions";
+import { EmptyState } from "./EmptyState";
+import { useSettings } from "./hooks/useSettings";
+import {
+    MANAGE_MODELS_COMPARE_DIALOG_ID,
+    ManageModelsBox,
+} from "./ManageModelsBox";
+import { ManageModelsButtonCompare } from "./ModelPills";
+import { MouseTrackingEyeRef } from "./MouseTrackingEye";
+import ToolsBox from "./ToolsBox";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 const DEFAULT_CHAT_INPUT_ID = "default-chat-input";
 const REPLY_CHAT_INPUT_ID = "reply-chat-input";

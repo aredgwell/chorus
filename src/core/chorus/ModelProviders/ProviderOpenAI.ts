@@ -1,20 +1,21 @@
+import { O3_DEEP_RESEARCH_SYSTEM_PROMPT } from "@core/chorus/prompts/prompts";
+import { getUserToolNamespacedName,UserToolCall } from "@core/chorus/Toolsets";
+import { canProceedWithProvider } from "@core/utilities/ProxyUtils";
 import OpenAI from "openai";
+
 import {
-    StreamResponseParams,
-    ModelFlags,
-    LLMMessage,
-    readImageAttachment,
-    encodeTextAttachment,
     attachmentMissingFlag,
+    encodeTextAttachment,
     encodeWebpageAttachment,
-    readPdfAttachment,
-    LLMMessageUser,
+    LLMMessage,
     LLMMessageAssistant,
+    LLMMessageUser,
+    ModelFlags,
+    readImageAttachment,
+    readPdfAttachment,
+    StreamResponseParams,
 } from "../Models";
 import { IProvider } from "./IProvider";
-import { canProceedWithProvider } from "@core/utilities/ProxyUtils";
-import { UserToolCall, getUserToolNamespacedName } from "@core/chorus/Toolsets";
-import { O3_DEEP_RESEARCH_SYSTEM_PROMPT } from "@core/chorus/prompts/prompts";
 
 /**
  * Checks whether a JSON Schema is compatible with OpenAI's strict mode.

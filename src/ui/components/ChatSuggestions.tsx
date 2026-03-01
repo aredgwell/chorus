@@ -1,11 +1,12 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import * as DraftAPI from "@core/chorus/api/DraftAPI";
+import * as MessageAPI from "@core/chorus/api/MessageAPI";
 import { llmConversation } from "@core/chorus/ChatState";
 import { llmMessageToString } from "@core/chorus/Models";
 import { simpleLLM } from "@core/chorus/simpleLLM";
+import { useCallback, useEffect, useRef,useState } from "react";
+
 import { Button } from "./ui/button";
-import * as ChatAPI from "@core/chorus/api/ChatAPI";
-import * as MessageAPI from "@core/chorus/api/MessageAPI";
 
 interface ChatSuggestionsProps {
     chatId: string;

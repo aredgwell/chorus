@@ -1,9 +1,10 @@
-import { Component, ErrorInfo, ReactNode } from "react";
-import { Button } from "./button";
-import posthog from "posthog-js";
-import FeedbackButton from "../FeedbackButton";
-import { getVersion } from "@tauri-apps/api/app";
 import { config } from "@core/config";
+import { getVersion } from "@tauri-apps/api/app";
+import posthog from "posthog-js";
+import { Component, ErrorInfo, ReactNode } from "react";
+
+import FeedbackButton from "../FeedbackButton";
+import { Button } from "./button";
 
 interface Props {
     children: ReactNode;

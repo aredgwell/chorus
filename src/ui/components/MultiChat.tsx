@@ -1,52 +1,53 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
+import * as ChatAPI from "@core/chorus/api/ChatAPI";
+import * as MessageAPI from "@core/chorus/api/MessageAPI";
+import { useSummarizeChatToNote } from "@core/chorus/api/NoteChatLinkAPI";
+import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
+import { MessageSetDetail } from "@core/chorus/ChatState";
+import { catchAsyncErrors } from "@core/chorus/utilities";
+import { dialogActions } from "@core/infra/DialogStore";
+import { useQuery } from "@tanstack/react-query";
+import { invoke } from "@tauri-apps/api/core";
+import {
+    ResizableHandle,
+    ResizablePanel,
+    ResizablePanelGroup,
+} from "@ui/components/ui/resizable";
+import { useAppContext } from "@ui/hooks/useAppContext";
+import { useShareChat } from "@ui/hooks/useShareChat";
+import { useShortcut } from "@ui/hooks/useShortcut";
+import { useWaitForAppMetadata } from "@ui/hooks/useWaitForAppMetadata";
+import { FileTextIcon, Loader2,SplitIcon } from "lucide-react";
+import { useCallback,useEffect, useRef, useState } from "react";
 import React from "react";
 import {
-    useParams,
-    useNavigate,
     useLocation,
+    useNavigate,
+    useParams,
     useSearchParams,
 } from "react-router-dom";
 import { toast } from "sonner";
-import { SplitIcon, FileTextIcon, Loader2 } from "lucide-react";
-import { useAppContext } from "@ui/hooks/useAppContext";
-import { VirtualizedMessageSet } from "./VirtualizedMessageSet";
-import { invoke } from "@tauri-apps/api/core";
-import { catchAsyncErrors } from "@core/chorus/utilities";
-import GroupChat from "./GroupChat";
-import { MouseTrackingEyeRef } from "./MouseTrackingEye";
-import { MessageSetDetail } from "@core/chorus/ChatState";
-import { useShareChat } from "@ui/hooks/useShareChat";
-import { Skeleton } from "./ui/skeleton";
-import { ChatInput } from "./ChatInput";
-import { useWaitForAppMetadata } from "@ui/hooks/useWaitForAppMetadata";
-import { FindInPage } from "./FindInPage";
-import { useShortcut } from "@ui/hooks/useShortcut";
-import { useQuery } from "@tanstack/react-query";
-import RepliesDrawer from "./RepliesDrawer";
 import { checkScreenRecordingPermission } from "tauri-plugin-macos-permissions-api";
-import { dialogActions } from "@core/infra/DialogStore";
-import {
-    ResizablePanelGroup,
-    ResizablePanel,
-    ResizableHandle,
-} from "@ui/components/ui/resizable";
-import * as MessageAPI from "@core/chorus/api/MessageAPI";
-import * as ChatAPI from "@core/chorus/api/ChatAPI";
-import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
-import * as AppMetadataAPI from "@core/chorus/api/AppMetadataAPI";
+
+import { ChatInput } from "./ChatInput";
 import { MessageSetView } from "./ChatMessageViews";
-import {
-    ShareChatDialog,
-    SHARE_CHAT_DIALOG_ID,
-} from "./ShareChatDialog";
-import { QuickChatHeaderBar } from "./QuickChatHeaderBar";
-import { useSummarizeChatToNote } from "@core/chorus/api/NoteChatLinkAPI";
+import { FindInPage } from "./FindInPage";
+import GroupChat from "./GroupChat";
 import { LinkedItems } from "./LinkedItems";
+import { MouseTrackingEyeRef } from "./MouseTrackingEye";
+import { QuickChatHeaderBar } from "./QuickChatHeaderBar";
+import RepliesDrawer from "./RepliesDrawer";
+import {
+    SHARE_CHAT_DIALOG_ID,
+    ShareChatDialog,
+} from "./ShareChatDialog";
 import { Button } from "./ui/button";
+import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { VirtualizedMessageSet } from "./VirtualizedMessageSet";
 
 // Re-export sub-components that other files (e.g. ReplyChat.tsx) import from MultiChat
-export { UserMessageView, ToolsMessageView } from "./ChatMessageViews";
+export { ToolsMessageView,UserMessageView } from "./ChatMessageViews";
 export { SHARE_CHAT_DIALOG_ID } from "./ShareChatDialog";
 
 // Module-level scroll position cache: saves scroll position per chat
