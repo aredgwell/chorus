@@ -186,7 +186,7 @@ function SidebarFilterBar() {
     const setSortMode = useSetSidebarSortMode();
 
     return (
-        <div className="flex items-center justify-between px-2 py-1.5 border-t shrink-0">
+        <div className="flex items-center justify-between px-2 py-1.5 border-b shrink-0">
             <div className="flex items-center gap-0.5">
                 {(
                     [
@@ -401,6 +401,8 @@ function CollectionsNavigator() {
                 </div>
             </div>
 
+            <SidebarFilterBar />
+
             <div className="overflow-y-auto flex-1 no-scrollbar">
                 <SidebarGroup className="min-h-0">
                     <SidebarGroupContent>
@@ -508,8 +510,6 @@ function CollectionsNavigator() {
                     </SidebarGroupContent>
                 </SidebarGroup>
             </div>
-
-            <SidebarFilterBar />
         </SidebarContent>
     );
 }
