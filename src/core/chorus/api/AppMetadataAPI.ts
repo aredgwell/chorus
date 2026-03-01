@@ -384,6 +384,33 @@ export function useSetSelectedTagIds() {
     });
 }
 
+export type ContextTab = "all" | "notes" | "chats";
+
+export function useSidebarContextTab(): ContextTab {
+    const { data: appMetadata } = useAppMetadata();
+    const value = appMetadata?.["sidebar_context_tab"];
+    if (value === "notes" || value === "chats") return value;
+    return "all";
+}
+
+export function useSetSidebarContextTab() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ["setSidebarContextTab"] as const,
+        mutationFn: async (tab: ContextTab) => {
+            await db.execute(
+                "INSERT OR REPLACE INTO app_metadata (key, value) VALUES (?, ?)",
+                ["sidebar_context_tab", tab],
+            );
+        },
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({
+                queryKey: appMetadataKeys.appMetadata(),
+            });
+        },
+    });
+}
+
 export type SidebarSortMode = "date" | "name" | "type";
 
 export function useSidebarSortMode(): SidebarSortMode {

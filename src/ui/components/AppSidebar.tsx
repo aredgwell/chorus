@@ -1,12 +1,17 @@
 import {
+    type SidebarSortMode,
     useSelectedCollectionId,
     useSelectedTagIds,
     useSetSelectedCollectionId,
     useSetSelectedTagIds,
+    useSidebarContextTab,
+    useSetSidebarContextTab,
+    useSidebarSortMode,
+    useSetSidebarSortMode,
 } from "@core/chorus/api/AppMetadataAPI";
-import { chatQueries, useGetOrCreateNewChat } from "@core/chorus/api/ChatAPI";
+import { chatQueries } from "@core/chorus/api/ChatAPI";
 import { formatCost } from "@core/chorus/api/CostAPI";
-import { noteQueries, useCreateNote } from "@core/chorus/api/NoteAPI";
+import { noteQueries } from "@core/chorus/api/NoteAPI";
 import {
     projectQueries,
     useCreateProject,
@@ -34,16 +39,15 @@ import {
 } from "@ui/components/ui/tooltip";
 import { projectDisplayName } from "@ui/lib/utils";
 import {
-    FilePlusIcon,
+    ArrowUpDownIcon,
+    CheckIcon,
     FolderIcon,
     FolderOpenIcon,
     FolderPlusIcon,
-    InboxIcon,
     LayersIcon,
     PencilIcon,
     Settings,
     SparklesIcon,
-    SquarePlusIcon,
     TagIcon,
     TrashIcon,
 } from "lucide-react";
@@ -53,6 +57,12 @@ import { toast } from "sonner";
 import Droppable from "./Droppable";
 import { useSettings } from "./hooks/useSettings";
 import { Button } from "./ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import {
     Dialog,
     DialogContent,
@@ -167,6 +177,78 @@ function SidebarTagsSection() {
     );
 }
 
+function SidebarFilterBar() {
+    const activeTab = useSidebarContextTab();
+    const setActiveTab = useSetSidebarContextTab();
+    const sortMode = useSidebarSortMode();
+    const setSortMode = useSetSidebarSortMode();
+
+    return (
+        <div className="flex items-center justify-between px-2 py-1.5 border-t shrink-0">
+            <div className="flex items-center gap-0.5">
+                {(
+                    [
+                        { value: "all", label: "All" },
+                        { value: "notes", label: "Notes" },
+                        { value: "chats", label: "Chats" },
+                    ] as const
+                ).map(({ value, label }) => (
+                    <button
+                        key={value}
+                        onClick={() => setActiveTab.mutate(value)}
+                        className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                            activeTab === value
+                                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                                : "text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
+            <DropdownMenu>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                            <button className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors shrink-0">
+                                <ArrowUpDownIcon
+                                    className="size-3.5"
+                                    strokeWidth={1.5}
+                                />
+                            </button>
+                        </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Sort</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="end">
+                    {(
+                        [
+                            { value: "date", label: "Date" },
+                            { value: "name", label: "Name" },
+                            { value: "type", label: "Type" },
+                        ] as const
+                    ).map((option) => (
+                        <DropdownMenuItem
+                            key={option.value}
+                            onSelect={() =>
+                                setSortMode.mutate(
+                                    option.value as SidebarSortMode,
+                                )
+                            }
+                            className="flex items-center justify-between"
+                        >
+                            {option.label}
+                            {sortMode === option.value && (
+                                <CheckIcon className="size-3.5 ml-2" />
+                            )}
+                        </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
+    );
+}
+
 export function AppSidebar() {
     return (
         <Sidebar
@@ -185,8 +267,6 @@ function CollectionsNavigator() {
     const chatsQuery = useQuery(chatQueries.list());
     const notesQuery = useQuery(noteQueries.list());
     const createProject = useCreateProject();
-    const createNote = useCreateNote();
-    const getOrCreateNewChat = useGetOrCreateNewChat();
     const selectedCollectionId = useSelectedCollectionId();
     const setSelectedCollectionId = useSetSelectedCollectionId();
     const selectedTagIds = useSelectedTagIds();
@@ -228,8 +308,6 @@ function CollectionsNavigator() {
         return chatCount + noteCount;
     };
 
-    const ungroupedCount = countForProject("default");
-
     const totalItemCount =
         allChats.filter(
             (c) =>
@@ -250,34 +328,36 @@ function CollectionsNavigator() {
                     <SidebarGroupContent>
                         <SidebarMenu className="truncate">
                             {/* All items */}
-                            <SidebarMenuItem>
-                                <SidebarMenuButton
-                                    isActive={
-                                        selectedCollectionId ===
-                                            "__all__" &&
-                                        selectedTagIds.length === 0
-                                    }
-                                    onClick={() =>
-                                        selectCollection("__all__")
-                                    }
-                                    className="flex items-center justify-between"
-                                >
-                                    <span className="flex items-center gap-2">
-                                        <LayersIcon
-                                            className="size-4 text-muted-foreground"
-                                            strokeWidth={1.5}
-                                        />
-                                        <span className="text-base">
-                                            All items
+                            <Droppable id="default">
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton
+                                        isActive={
+                                            selectedCollectionId ===
+                                                "__all__" &&
+                                            selectedTagIds.length === 0
+                                        }
+                                        onClick={() =>
+                                            selectCollection("__all__")
+                                        }
+                                        className="flex items-center justify-between"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <LayersIcon
+                                                className="size-4 text-muted-foreground"
+                                                strokeWidth={1.5}
+                                            />
+                                            <span className="text-base">
+                                                All items
+                                            </span>
                                         </span>
-                                    </span>
-                                    {totalItemCount > 0 && (
-                                        <span className="text-xs text-muted-foreground">
-                                            {totalItemCount}
-                                        </span>
-                                    )}
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
+                                        {totalItemCount > 0 && (
+                                            <span className="text-xs text-muted-foreground">
+                                                {totalItemCount}
+                                            </span>
+                                        )}
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            </Droppable>
 
                             {/* Collections section */}
                             <div className="pt-2 flex items-center justify-between group/projects">
@@ -344,89 +424,14 @@ function CollectionsNavigator() {
                                 )}
                             </div>
 
-                            {/* Ungrouped section */}
-                            <div className="pt-4 flex items-center justify-between group/ungrouped">
-                                <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
-                                    Ungrouped
-                                </div>
-                                <div className="flex items-center gap-0.5 pr-3">
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <button
-                                                className="text-muted-foreground hover:text-foreground p-1 rounded"
-                                                onClick={() =>
-                                                    createNote.mutate({
-                                                        projectId: "default",
-                                                    })
-                                                }
-                                            >
-                                                <FilePlusIcon
-                                                    className="size-3.5"
-                                                    strokeWidth={1.5}
-                                                />
-                                            </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            New Note
-                                        </TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <button
-                                                className="text-muted-foreground hover:text-foreground p-1 rounded"
-                                                onClick={() =>
-                                                    getOrCreateNewChat.mutate({
-                                                        projectId: "default",
-                                                    })
-                                                }
-                                            >
-                                                <SquarePlusIcon
-                                                    className="size-3.5"
-                                                    strokeWidth={1.5}
-                                                />
-                                            </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            New Chat
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </div>
-                            </div>
-                            <Droppable id="default">
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton
-                                        isActive={
-                                            selectedCollectionId === "default"
-                                        }
-                                        onClick={() =>
-                                            selectCollection("default")
-                                        }
-                                        className="flex items-center justify-between"
-                                    >
-                                        <span className="flex items-center gap-2">
-                                            <InboxIcon
-                                                className="size-4 text-muted-foreground"
-                                                strokeWidth={1.5}
-                                            />
-                                            <span className="text-base">
-                                                All ungrouped items
-                                            </span>
-                                        </span>
-                                        {ungroupedCount > 0 && (
-                                            <span className="text-xs text-muted-foreground">
-                                                {ungroupedCount}
-                                            </span>
-                                        )}
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            </Droppable>
-
                             {/* Tags section */}
                             <SidebarTagsSection />
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
             </div>
+
+            <SidebarFilterBar />
 
             {/* Footer icon row */}
             <div className="relative bg-sidebar z-10">

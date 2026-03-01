@@ -1,8 +1,7 @@
 import {
-    type SidebarSortMode,
     useSelectedCollectionId,
     useSelectedTagIds,
-    useSetSidebarSortMode,
+    useSidebarContextTab,
     useSidebarSortMode,
 } from "@core/chorus/api/AppMetadataAPI";
 import { type Chat } from "@core/chorus/api/ChatAPI";
@@ -28,8 +27,6 @@ import {
 } from "@ui/components/ui/tooltip";
 import { projectDisplayName } from "@ui/lib/utils";
 import {
-    ArrowUpDownIcon,
-    CheckIcon,
     FilePlusIcon,
     FileTextIcon,
     PinIcon,
@@ -56,12 +53,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from "./ui/dialog";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
 import RetroSpinner from "./ui/retro-spinner";
 
 export function ContextPane() {
@@ -83,8 +74,6 @@ export function ContextPane() {
     return <CollectionView collectionId={selectedCollectionId} />;
 }
 
-type ContextTab = "all" | "notes" | "chats";
-
 function CollectionView({ collectionId }: { collectionId: string }) {
     const chatsQuery = useQuery(chatQueries.list());
     const notesQuery = useQuery(noteQueries.list());
@@ -99,9 +88,8 @@ function CollectionView({ collectionId }: { collectionId: string }) {
     const createNote = NoteAPI.useCreateNote();
     const getOrCreateNewChat = ChatAPI.useGetOrCreateNewChat();
 
-    const [activeTab, setActiveTab] = useState<ContextTab>("all");
+    const activeTab = useSidebarContextTab();
     const sortMode = useSidebarSortMode();
-    const setSortMode = useSetSidebarSortMode();
 
     // Detect smart collection
     const project = (projectsQuery.data ?? []).find(
@@ -191,74 +179,21 @@ function CollectionView({ collectionId }: { collectionId: string }) {
           : undefined;
     const showCreateButtons = !isSmart && !isAll;
 
+    // Build project name lookup for collection labels in "All items" view
+    const projectNameById = new Map<string, string>();
+    for (const p of projectsQuery.data ?? []) {
+        projectNameById.set(p.id, projectDisplayName(p.name));
+    }
+    const getCollectionLabel = (projectId: string): string | undefined => {
+        if (!isAll) return undefined;
+        if (projectId === "default") return "Ungrouped";
+        return projectNameById.get(projectId);
+    };
+
     return (
         <div className="flex flex-col h-full bg-sidebar">
             {/* Header */}
             <CollectionHeader collectionId={collectionId} title={headerTitle} />
-
-            {/* Tabs + sort */}
-            <div className="flex items-center justify-between px-2 pt-1.5 pb-1 border-b">
-                <div className="flex items-center gap-0.5">
-                    {(
-                        [
-                            { value: "all", label: "All" },
-                            { value: "notes", label: "Notes" },
-                            { value: "chats", label: "Chats" },
-                        ] as const
-                    ).map(({ value, label }) => (
-                        <button
-                            key={value}
-                            onClick={() => setActiveTab(value)}
-                            className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
-                                activeTab === value
-                                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                                    : "text-muted-foreground hover:text-foreground"
-                            }`}
-                        >
-                            {label}
-                        </button>
-                    ))}
-                </div>
-                <DropdownMenu>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <DropdownMenuTrigger asChild>
-                                <button className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors shrink-0">
-                                    <ArrowUpDownIcon
-                                        className="size-3.5"
-                                        strokeWidth={1.5}
-                                    />
-                                </button>
-                            </DropdownMenuTrigger>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">Sort</TooltipContent>
-                    </Tooltip>
-                    <DropdownMenuContent align="end">
-                        {(
-                            [
-                                { value: "date", label: "Date" },
-                                { value: "name", label: "Name" },
-                                { value: "type", label: "Type" },
-                            ] as const
-                        ).map((option) => (
-                            <DropdownMenuItem
-                                key={option.value}
-                                onSelect={() =>
-                                    setSortMode.mutate(
-                                        option.value as SidebarSortMode,
-                                    )
-                                }
-                                className="flex items-center justify-between"
-                            >
-                                {option.label}
-                                {sortMode === option.value && (
-                                    <CheckIcon className="size-3.5 ml-2" />
-                                )}
-                            </DropdownMenuItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
 
             {/* Scrollable items */}
             <div className="flex-1 overflow-y-auto no-scrollbar">
@@ -296,6 +231,9 @@ function CollectionView({ collectionId }: { collectionId: string }) {
                                     key={item.data.id + "-ctx"}
                                     note={item.data as Note}
                                     isActive={currentNoteId === item.data.id}
+                                    collectionLabel={getCollectionLabel(
+                                        (item.data as Note).projectId,
+                                    )}
                                 />
                             ))
                         ) : (
@@ -340,6 +278,9 @@ function CollectionView({ collectionId }: { collectionId: string }) {
                                     key={item.data.id + "-ctx"}
                                     chat={item.data as Chat}
                                     isActive={currentChatId === item.data.id}
+                                    collectionLabel={getCollectionLabel(
+                                        (item.data as Chat).projectId,
+                                    )}
                                 />
                             ))
                         ) : (
@@ -357,6 +298,7 @@ function CollectionView({ collectionId }: { collectionId: string }) {
 function TagFilterView({ tagIds }: { tagIds: string[] }) {
     const chatsQuery = useQuery(chatQueries.list());
     const notesQuery = useQuery(noteQueries.list());
+    const projectsQuery = useQuery(ProjectAPI.projectQueries.list());
     const tagsQuery = useTags();
     const location = useLocation();
     const currentChatId = location.pathname.startsWith("/chat/")
@@ -366,9 +308,8 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
         ? location.pathname.split("/").pop()!
         : undefined;
 
-    const [activeTab, setActiveTab] = useState<ContextTab>("all");
+    const activeTab = useSidebarContextTab();
     const sortMode = useSidebarSortMode();
-    const setSortMode = useSetSidebarSortMode();
 
     // Fetch items matching ALL selected tags
     const smartItemsQuery = useQuery({
@@ -428,6 +369,16 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
         .filter(Boolean);
     const headerTitle = selectedTagNames.join(" + ") || "Tagged items";
 
+    // Build project name lookup for collection labels
+    const projectNameById = new Map<string, string>();
+    for (const p of projectsQuery.data ?? []) {
+        projectNameById.set(p.id, projectDisplayName(p.name));
+    }
+    const getCollectionLabel = (projectId: string): string | undefined => {
+        if (projectId === "default") return "Ungrouped";
+        return projectNameById.get(projectId);
+    };
+
     return (
         <div className="flex flex-col h-full bg-sidebar">
             {/* Header */}
@@ -442,70 +393,6 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
                     />
                     {headerTitle}
                 </span>
-            </div>
-
-            {/* Tabs + sort */}
-            <div className="flex items-center justify-between px-2 pt-1.5 pb-1 border-b">
-                <div className="flex items-center gap-0.5">
-                    {(
-                        [
-                            { value: "all", label: "All" },
-                            { value: "notes", label: "Notes" },
-                            { value: "chats", label: "Chats" },
-                        ] as const
-                    ).map(({ value, label }) => (
-                        <button
-                            key={value}
-                            onClick={() => setActiveTab(value)}
-                            className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
-                                activeTab === value
-                                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                                    : "text-muted-foreground hover:text-foreground"
-                            }`}
-                        >
-                            {label}
-                        </button>
-                    ))}
-                </div>
-                <DropdownMenu>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <DropdownMenuTrigger asChild>
-                                <button className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors shrink-0">
-                                    <ArrowUpDownIcon
-                                        className="size-3.5"
-                                        strokeWidth={1.5}
-                                    />
-                                </button>
-                            </DropdownMenuTrigger>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">Sort</TooltipContent>
-                    </Tooltip>
-                    <DropdownMenuContent align="end">
-                        {(
-                            [
-                                { value: "date", label: "Date" },
-                                { value: "name", label: "Name" },
-                                { value: "type", label: "Type" },
-                            ] as const
-                        ).map((option) => (
-                            <DropdownMenuItem
-                                key={option.value}
-                                onSelect={() =>
-                                    setSortMode.mutate(
-                                        option.value as SidebarSortMode,
-                                    )
-                                }
-                                className="flex items-center justify-between"
-                            >
-                                {option.label}
-                                {sortMode === option.value && (
-                                    <CheckIcon className="size-3.5 ml-2" />
-                                )}
-                            </DropdownMenuItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
             </div>
 
             {/* Scrollable items */}
@@ -524,6 +411,9 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
                                     key={item.data.id + "-tag"}
                                     note={item.data as Note}
                                     isActive={currentNoteId === item.data.id}
+                                    collectionLabel={getCollectionLabel(
+                                        (item.data as Note).projectId,
+                                    )}
                                 />
                             ))
                         ) : (
@@ -548,6 +438,9 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
                                     key={item.data.id + "-tag"}
                                     chat={item.data as Chat}
                                     isActive={currentChatId === item.data.id}
+                                    collectionLabel={getCollectionLabel(
+                                        (item.data as Chat).projectId,
+                                    )}
                                 />
                             ))
                         ) : (
@@ -635,7 +528,15 @@ const SplitOptimized = forwardRef<
 
 const deleteNoteDialogId = (noteId: string) => `delete-note-dialog-${noteId}`;
 
-function NoteListItem({ note, isActive }: { note: Note; isActive: boolean }) {
+function NoteListItem({
+    note,
+    isActive,
+    collectionLabel,
+}: {
+    note: Note;
+    isActive: boolean;
+    collectionLabel?: string;
+}) {
     const navigate = useNavigate();
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const renameNote = NoteAPI.useRenameNote();
@@ -689,6 +590,11 @@ function NoteListItem({ note, isActive }: { note: Note; isActive: boolean }) {
                             onStartEdit={() => setIsEditingTitle(true)}
                             onStopEdit={() => setIsEditingTitle(false)}
                         />
+                        {collectionLabel && (
+                            <span className="text-[10px] text-muted-foreground/50 truncate ml-auto pl-1 shrink-0">
+                                {collectionLabel}
+                            </span>
+                        )}
                     </div>
 
                     {/* Gradient overlay on hover */}
@@ -781,7 +687,15 @@ function NoteListItem({ note, isActive }: { note: Note; isActive: boolean }) {
 
 const deleteChatDialogId = (chatId: string) => `delete-chat-dialog-${chatId}`;
 
-function ChatListItem({ chat, isActive }: { chat: Chat; isActive: boolean }) {
+function ChatListItem({
+    chat,
+    isActive,
+    collectionLabel,
+}: {
+    chat: Chat;
+    isActive: boolean;
+    collectionLabel?: string;
+}) {
     const isDeleteChatDialogOpen = useDialogStore(
         (state) => state.activeDialogId === deleteChatDialogId(chat.id),
     );
@@ -888,6 +802,11 @@ function ChatListItem({ chat, isActive }: { chat: Chat; isActive: boolean }) {
                             onStopEdit={() => setIsEditingTitle(false)}
                         />
                         <ChatLoadingIndicator chatId={chat.id} />
+                        {collectionLabel && (
+                            <span className="text-[10px] text-muted-foreground/50 truncate ml-auto pl-1 shrink-0">
+                                {collectionLabel}
+                            </span>
+                        )}
                         {showCost &&
                             chat.totalCostUsd !== undefined &&
                             chat.totalCostUsd > 0 && (
