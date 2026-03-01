@@ -371,6 +371,22 @@
     white-space: nowrap;
 }
 
+.tag-chip-dot-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 9999px;
+    flex-shrink: 0;
+}
+
+.tag-chip-dot-btn:hover {
+    background: hsl(var(--accent));
+}
+
 .tag-chip-dot {
     width: 6px;
     height: 6px;

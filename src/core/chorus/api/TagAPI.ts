@@ -189,3 +189,60 @@ export function useRemoveTagFromItem() {
         },
     });
 }
+
+// ── Color palette ─────────────────────────────────────────────────────
+
+export const TAG_COLOR_PALETTE = [
+    "#ef4444", // red
+    "#f97316", // orange
+    "#eab308", // yellow
+    "#22c55e", // green
+    "#14b8a6", // teal
+    "#3b82f6", // blue
+    "#6366f1", // indigo
+    "#a855f7", // purple
+    "#ec4899", // pink
+    "#78716c", // stone
+] as const;
+
+// ── Update tag ────────────────────────────────────────────────────────
+
+export function useUpdateTag() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationKey: ["updateTag"] as const,
+        mutationFn: async ({
+            tagId,
+            name,
+            color,
+        }: {
+            tagId: string;
+            name?: string;
+            color?: string | null;
+        }) => {
+            const updates: string[] = [];
+            const params: (string | null)[] = [];
+
+            if (name !== undefined) {
+                updates.push("name = ?");
+                params.push(name);
+            }
+            if (color !== undefined) {
+                updates.push("color = ?");
+                params.push(color);
+            }
+
+            if (updates.length === 0) return;
+
+            params.push(tagId);
+            await db.execute(
+                `UPDATE tags SET ${updates.join(", ")} WHERE id = ?`,
+                params,
+            );
+        },
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: tagKeys.all() });
+        },
+    });
+}

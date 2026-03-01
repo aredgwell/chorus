@@ -1,11 +1,13 @@
 import {
     type ItemType,
     type Tag,
+    TAG_COLOR_PALETTE,
     useAddTagToItem,
     useCreateTag,
     useItemTags,
     useRemoveTagFromItem,
     useTags,
+    useUpdateTag,
 } from "@core/chorus/api/TagAPI";
 import { TagIcon, XIcon } from "lucide-react";
 import { useState } from "react";
@@ -27,6 +29,7 @@ export function TagInput({ itemType, itemId }: TagInputProps) {
     const createTag = useCreateTag();
     const addTag = useAddTagToItem();
     const removeTag = useRemoveTagFromItem();
+    const updateTag = useUpdateTag();
 
     const allTags = allTagsQuery.data ?? [];
     const itemTags = itemTagsQuery.data ?? [];
@@ -85,12 +88,53 @@ export function TagInput({ itemType, itemId }: TagInputProps) {
         <div className="tag-input-container">
             {itemTags.map((tag) => (
                 <span key={tag.id} className="tag-chip">
-                    {tag.color && (
-                        <span
-                            className="tag-chip-dot"
-                            style={{ backgroundColor: tag.color }}
-                        />
-                    )}
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <button
+                                type="button"
+                                className="tag-chip-dot-btn"
+                            >
+                                <span
+                                    className="tag-chip-dot"
+                                    style={{
+                                        backgroundColor:
+                                            tag.color ??
+                                            "hsl(var(--muted-foreground))",
+                                    }}
+                                />
+                            </button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                            className="w-auto p-2"
+                            align="start"
+                        >
+                            <div className="flex gap-1 flex-wrap max-w-[130px]">
+                                {TAG_COLOR_PALETTE.map((color) => (
+                                    <button
+                                        key={color}
+                                        type="button"
+                                        className={`w-5 h-5 rounded-full border-2 transition-all ${
+                                            tag.color === color
+                                                ? "border-foreground scale-110"
+                                                : "border-transparent hover:border-muted-foreground/50"
+                                        }`}
+                                        style={{
+                                            backgroundColor: color,
+                                        }}
+                                        onClick={() => {
+                                            void updateTag.mutateAsync({
+                                                tagId: tag.id,
+                                                color:
+                                                    tag.color === color
+                                                        ? null
+                                                        : color,
+                                            });
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                     <span className="tag-chip-name">{tag.name}</span>
                     <button
                         type="button"
