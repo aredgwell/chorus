@@ -17,6 +17,7 @@ import { useDeleteTag, useTags } from "@core/chorus/api/TagAPI";
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
+import { emit } from "@tauri-apps/api/event";
 import {
     Sidebar,
     SidebarContent,
@@ -39,6 +40,7 @@ import {
     FolderPlusIcon,
     LayersIcon,
     PencilIcon,
+    Settings,
     SparklesIcon,
     SquarePlusIcon,
     TagIcon,
@@ -290,6 +292,43 @@ function CollectionsNavigator() {
                             New Chat
                         </TooltipContent>
                     </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() => createProject.mutate()}
+                                className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
+                            >
+                                <FolderPlusIcon
+                                    className="w-4 h-4"
+                                    strokeWidth={1.5}
+                                />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                            New Collection
+                        </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    void emit("open_settings", {
+                                        tab: "general",
+                                    });
+                                }}
+                                className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
+                            >
+                                <Settings
+                                    className="w-4 h-4"
+                                    strokeWidth={1.5}
+                                />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                            Settings <kbd>⌘,</kbd>
+                        </TooltipContent>
+                    </Tooltip>
                 </div>
             </div>
 
@@ -330,28 +369,10 @@ function CollectionsNavigator() {
                             </Droppable>
 
                             {/* Collections section */}
-                            <div className="pt-2 flex items-center justify-between group/projects">
+                            <div className="pt-2 flex items-center">
                                 <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
                                     Collections
                                 </div>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <button
-                                            className="text-muted-foreground hover:text-foreground p-1 pr-3 rounded"
-                                            onClick={() =>
-                                                createProject.mutate()
-                                            }
-                                        >
-                                            <FolderPlusIcon
-                                                className="size-3.5"
-                                                strokeWidth={1.5}
-                                            />
-                                        </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        New Collection
-                                    </TooltipContent>
-                                </Tooltip>
                             </div>
                             <div className="flex flex-col">
                                 {projects.length ? (
