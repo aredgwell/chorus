@@ -32,6 +32,7 @@ import {
     ArrowUpDownIcon,
     CheckIcon,
     FileTextIcon,
+    MessageSquareIcon,
     PinIcon,
     PinOffIcon,
 } from "lucide-react";
@@ -241,9 +242,15 @@ function CollectionView({ collectionId }: { collectionId: string }) {
         data: chat,
     }));
 
-    // Sort notes and chats
-    const sortedNotes = sortItems(noteItems, sortMode);
-    const sortedChats = sortItems(chatItems, sortMode);
+    // Filter by active tab and sort into a single flat list
+    const visibleItems: SidebarItem[] = [];
+    if (activeTab === "all" || activeTab === "notes") {
+        visibleItems.push(...noteItems);
+    }
+    if (activeTab === "all" || activeTab === "chats") {
+        visibleItems.push(...chatItems);
+    }
+    const sortedItems = sortItems(visibleItems, sortMode);
 
     const isAll = collectionId === "__all__";
 
@@ -263,59 +270,33 @@ function CollectionView({ collectionId }: { collectionId: string }) {
             <ContextFilterBar />
 
             {/* Scrollable items */}
-            <div className="flex-1 overflow-y-auto no-scrollbar">
-                {/* Notes section */}
-                {(activeTab === "all" || activeTab === "notes") && (
-                    <>
-                        <div className="pt-3 flex items-center justify-between">
-                            <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
-                                Notes
-                            </div>
-                        </div>
-                        {sortedNotes.length > 0 ? (
-                            sortedNotes.map((item) => (
-                                <NoteListItem
-                                    key={item.data.id + "-ctx"}
-                                    note={item.data as Note}
-                                    isActive={currentNoteId === item.data.id}
-                                    collectionLabel={getCollectionLabel(
-                                        (item.data as Note).projectId,
-                                    )}
-                                />
-                            ))
+            <div className="flex-1 overflow-y-auto no-scrollbar pt-1">
+                {sortedItems.length > 0 ? (
+                    sortedItems.map((item) =>
+                        item.type === "note" ? (
+                            <NoteListItem
+                                key={item.data.id + "-ctx"}
+                                note={item.data as Note}
+                                isActive={currentNoteId === item.data.id}
+                                collectionLabel={getCollectionLabel(
+                                    (item.data as Note).projectId,
+                                )}
+                            />
                         ) : (
-                            <div className="px-3 py-2 text-sm text-muted-foreground">
-                                No notes yet
-                            </div>
-                        )}
-                    </>
-                )}
-
-                {/* Chats section */}
-                {(activeTab === "all" || activeTab === "chats") && (
-                    <>
-                        <div className="pt-3 flex items-center justify-between">
-                            <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
-                                Chats
-                            </div>
-                        </div>
-                        {sortedChats.length > 0 ? (
-                            sortedChats.map((item) => (
-                                <ChatListItem
-                                    key={item.data.id + "-ctx"}
-                                    chat={item.data as Chat}
-                                    isActive={currentChatId === item.data.id}
-                                    collectionLabel={getCollectionLabel(
-                                        (item.data as Chat).projectId,
-                                    )}
-                                />
-                            ))
-                        ) : (
-                            <div className="px-3 py-2 text-sm text-muted-foreground">
-                                No chats yet
-                            </div>
-                        )}
-                    </>
+                            <ChatListItem
+                                key={item.data.id + "-ctx"}
+                                chat={item.data as Chat}
+                                isActive={currentChatId === item.data.id}
+                                collectionLabel={getCollectionLabel(
+                                    (item.data as Chat).projectId,
+                                )}
+                            />
+                        ),
+                    )
+                ) : (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                        No items yet
+                    </div>
                 )}
             </div>
         </div>
@@ -385,8 +366,15 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
         data: chat,
     }));
 
-    const sortedNotes = sortItems(noteItems, sortMode);
-    const sortedChats = sortItems(chatItems, sortMode);
+    // Filter by active tab and sort into a single flat list
+    const visibleItems: SidebarItem[] = [];
+    if (activeTab === "all" || activeTab === "notes") {
+        visibleItems.push(...noteItems);
+    }
+    if (activeTab === "all" || activeTab === "chats") {
+        visibleItems.push(...chatItems);
+    }
+    const sortedItems = sortItems(visibleItems, sortMode);
 
     // Build project name lookup for collection labels
     const projectNameById = new Map<string, string>();
@@ -403,59 +391,33 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
             <ContextFilterBar />
 
             {/* Scrollable items */}
-            <div className="flex-1 overflow-y-auto no-scrollbar">
-                {/* Notes section */}
-                {(activeTab === "all" || activeTab === "notes") && (
-                    <>
-                        <div className="pt-3 flex items-center justify-between">
-                            <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
-                                Notes
-                            </div>
-                        </div>
-                        {sortedNotes.length > 0 ? (
-                            sortedNotes.map((item) => (
-                                <NoteListItem
-                                    key={item.data.id + "-tag"}
-                                    note={item.data as Note}
-                                    isActive={currentNoteId === item.data.id}
-                                    collectionLabel={getCollectionLabel(
-                                        (item.data as Note).projectId,
-                                    )}
-                                />
-                            ))
+            <div className="flex-1 overflow-y-auto no-scrollbar pt-1">
+                {sortedItems.length > 0 ? (
+                    sortedItems.map((item) =>
+                        item.type === "note" ? (
+                            <NoteListItem
+                                key={item.data.id + "-tag"}
+                                note={item.data as Note}
+                                isActive={currentNoteId === item.data.id}
+                                collectionLabel={getCollectionLabel(
+                                    (item.data as Note).projectId,
+                                )}
+                            />
                         ) : (
-                            <div className="px-3 py-2 text-sm text-muted-foreground">
-                                No notes yet
-                            </div>
-                        )}
-                    </>
-                )}
-
-                {/* Chats section */}
-                {(activeTab === "all" || activeTab === "chats") && (
-                    <>
-                        <div className="pt-3 flex items-center justify-between">
-                            <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
-                                Chats
-                            </div>
-                        </div>
-                        {sortedChats.length > 0 ? (
-                            sortedChats.map((item) => (
-                                <ChatListItem
-                                    key={item.data.id + "-tag"}
-                                    chat={item.data as Chat}
-                                    isActive={currentChatId === item.data.id}
-                                    collectionLabel={getCollectionLabel(
-                                        (item.data as Chat).projectId,
-                                    )}
-                                />
-                            ))
-                        ) : (
-                            <div className="px-3 py-2 text-sm text-muted-foreground">
-                                No chats yet
-                            </div>
-                        )}
-                    </>
+                            <ChatListItem
+                                key={item.data.id + "-tag"}
+                                chat={item.data as Chat}
+                                isActive={currentChatId === item.data.id}
+                                collectionLabel={getCollectionLabel(
+                                    (item.data as Chat).projectId,
+                                )}
+                            />
+                        ),
+                    )
+                ) : (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                        No items yet
+                    </div>
                 )}
             </div>
         </div>
@@ -541,30 +503,32 @@ function NoteListItem({
                     onClick={() => navigate(`/note/${note.id}`)}
                     className="data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground text-sidebar-foreground truncate group/chat-button flex justify-between mb-0.5 font-[350] relative"
                 >
-                    <div className="truncate flex items-center text-base w-full">
-                        <FileTextIcon
-                            className="size-3.5 mr-2 text-muted-foreground shrink-0"
-                            strokeWidth={1.5}
-                        />
-                        <EditableTitle
-                            title={note.title || ""}
-                            onUpdate={async (newTitle) => {
-                                await renameNote.mutateAsync({
-                                    noteId: note.id,
-                                    newTitle,
-                                });
-                            }}
-                            className="flex-1 truncate"
-                            editClassName={`h-auto text-base px-0 py-0 ${isActive ? "bg-sidebar-accent" : ""} group-hover/chat-button:bg-sidebar-accent border-0 focus:ring-0 focus:outline-hidden shadow-none`}
-                            placeholder="Untitled note"
-                            showEditIcon={false}
-                            clickToEdit={false}
-                            isEditing={isEditingTitle}
-                            onStartEdit={() => setIsEditingTitle(true)}
-                            onStopEdit={() => setIsEditingTitle(false)}
-                        />
+                    <div className="truncate flex flex-col w-full">
+                        <div className="flex items-center text-base w-full">
+                            <FileTextIcon
+                                className="size-3.5 mr-2 text-muted-foreground shrink-0"
+                                strokeWidth={1.5}
+                            />
+                            <EditableTitle
+                                title={note.title || ""}
+                                onUpdate={async (newTitle) => {
+                                    await renameNote.mutateAsync({
+                                        noteId: note.id,
+                                        newTitle,
+                                    });
+                                }}
+                                className="flex-1 truncate"
+                                editClassName={`h-auto text-base px-0 py-0 ${isActive ? "bg-sidebar-accent" : ""} group-hover/chat-button:bg-sidebar-accent border-0 focus:ring-0 focus:outline-hidden shadow-none`}
+                                placeholder="Untitled note"
+                                showEditIcon={false}
+                                clickToEdit={false}
+                                isEditing={isEditingTitle}
+                                onStartEdit={() => setIsEditingTitle(true)}
+                                onStopEdit={() => setIsEditingTitle(false)}
+                            />
+                        </div>
                         {collectionLabel && (
-                            <span className="text-[10px] text-muted-foreground/50 truncate ml-auto pl-1 shrink-0">
+                            <span className="text-[10px] text-muted-foreground/50 truncate pl-[calc(0.875rem+0.5rem)]">
                                 {collectionLabel}
                             </span>
                         )}
@@ -729,77 +693,83 @@ function ChatListItem({
                     className="data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground text-sidebar-foreground truncate group/chat-button flex justify-between mb-0.5 font-[350] relative"
                 >
                     <div
-                        className={`truncate flex items-center text-base w-full ${chat.isNewChat ? "text-muted-foreground" : ""}`}
+                        className={`truncate flex flex-col w-full ${chat.isNewChat ? "text-muted-foreground" : ""}`}
                     >
-                        {parentChat?.id && (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <div
-                                        className="hover:text-foreground group/parent-chat-button mr-2 shrink-0"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            navigateRef.current(
-                                                `/chat/${parentChat.id}`,
-                                            );
-                                        }}
-                                    >
-                                        <SplitOptimized className="w-3 h-3 mr-2 text-muted-foreground group-hover/parent-chat-button:text-accent-500" />
-                                    </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    Branched from:{" "}
-                                    {parentChat.title || "Untitled Chat"}
-                                </TooltipContent>
-                            </Tooltip>
-                        )}
-                        {chat.pinned && (
-                            <PinIcon className="w-2.5 h-2.5 mr-1.5 shrink-0 text-muted-foreground" />
-                        )}
-                        <EditableTitle
-                            title={chat.title || ""}
-                            onUpdate={async (newTitle) => {
-                                await renameChatMutateAsync({
-                                    chatId: chat.id,
-                                    newTitle,
-                                });
-                                setIsEditingTitle(false);
-                            }}
-                            className="flex-1 truncate"
-                            editClassName={`h-auto text-base px-0 py-0 ${isActive ? "bg-sidebar-accent" : ""} group-hover/chat-button:bg-sidebar-accent border-0 focus:ring-0 focus:outline-hidden shadow-none`}
-                            placeholder="Untitled Chat"
-                            showEditIcon={false}
-                            clickToEdit={false}
-                            isEditing={isEditingTitle}
-                            onStartEdit={() => setIsEditingTitle(true)}
-                            onStopEdit={() => setIsEditingTitle(false)}
-                        />
-                        <ChatLoadingIndicator chatId={chat.id} />
+                        <div className="flex items-center text-base w-full">
+                            <MessageSquareIcon
+                                className="size-3.5 mr-2 text-muted-foreground shrink-0"
+                                strokeWidth={1.5}
+                            />
+                            {parentChat?.id && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div
+                                            className="hover:text-foreground group/parent-chat-button mr-2 shrink-0"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                navigateRef.current(
+                                                    `/chat/${parentChat.id}`,
+                                                );
+                                            }}
+                                        >
+                                            <SplitOptimized className="w-3 h-3 mr-2 text-muted-foreground group-hover/parent-chat-button:text-accent-500" />
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Branched from:{" "}
+                                        {parentChat.title || "Untitled Chat"}
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                            {chat.pinned && (
+                                <PinIcon className="w-2.5 h-2.5 mr-1.5 shrink-0 text-muted-foreground" />
+                            )}
+                            <EditableTitle
+                                title={chat.title || ""}
+                                onUpdate={async (newTitle) => {
+                                    await renameChatMutateAsync({
+                                        chatId: chat.id,
+                                        newTitle,
+                                    });
+                                    setIsEditingTitle(false);
+                                }}
+                                className="flex-1 truncate"
+                                editClassName={`h-auto text-base px-0 py-0 ${isActive ? "bg-sidebar-accent" : ""} group-hover/chat-button:bg-sidebar-accent border-0 focus:ring-0 focus:outline-hidden shadow-none`}
+                                placeholder="Untitled Chat"
+                                showEditIcon={false}
+                                clickToEdit={false}
+                                isEditing={isEditingTitle}
+                                onStartEdit={() => setIsEditingTitle(true)}
+                                onStopEdit={() => setIsEditingTitle(false)}
+                            />
+                            <ChatLoadingIndicator chatId={chat.id} />
+                            {showCost &&
+                                chat.totalCostUsd !== undefined &&
+                                chat.totalCostUsd > 0 && (
+                                    <span className="ml-auto pl-2 text-xs text-muted-foreground shrink-0">
+                                        {formatCost(chat.totalCostUsd)}
+                                    </span>
+                                )}
+                            {branchCount > 0 && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span className="ml-auto pl-2 text-xs text-muted-foreground shrink-0 flex items-center gap-0.5">
+                                            <SplitOptimized className="w-2.5 h-2.5" />
+                                            {branchCount}
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {branchCount} branch
+                                        {branchCount !== 1 ? "es" : ""}
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                        </div>
                         {collectionLabel && (
-                            <span className="text-[10px] text-muted-foreground/50 truncate ml-auto pl-1 shrink-0">
+                            <span className="text-[10px] text-muted-foreground/50 truncate pl-[calc(0.875rem+0.5rem)]">
                                 {collectionLabel}
                             </span>
-                        )}
-                        {showCost &&
-                            chat.totalCostUsd !== undefined &&
-                            chat.totalCostUsd > 0 && (
-                                <span className="ml-auto pl-2 text-xs text-muted-foreground shrink-0">
-                                    {formatCost(chat.totalCostUsd)}
-                                </span>
-                            )}
-                        {branchCount > 0 && (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <span className="ml-auto pl-2 text-xs text-muted-foreground shrink-0 flex items-center gap-0.5">
-                                        <SplitOptimized className="w-2.5 h-2.5" />
-                                        {branchCount}
-                                    </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {branchCount} branch
-                                    {branchCount !== 1 ? "es" : ""}
-                                </TooltipContent>
-                            </Tooltip>
                         )}
                     </div>
 
