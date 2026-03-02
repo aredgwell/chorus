@@ -76,8 +76,8 @@ function MermaidDiagram({ source }: { source: string }) {
  * Shows rendered diagram by default; toggle to see/edit source.
  */
 export function MermaidBlockView({ node }: NodeViewProps) {
-    const [showSource, setShowSource] = useState(false);
     const textContent = node.textContent.trim();
+    const [showSource, setShowSource] = useState(!textContent);
     const deferredContent = useDeferredValue(textContent);
 
     return (
