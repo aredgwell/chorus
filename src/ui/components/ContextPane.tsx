@@ -69,45 +69,7 @@ function ContextToolbar({ createInProjectId }: { createInProjectId: string }) {
     const getOrCreateNewChat = useGetOrCreateNewChat();
 
     return (
-        <div className="flex items-center justify-between px-2 py-1.5 border-b shrink-0">
-            <div className="flex items-center gap-0.5">
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <button
-                            onClick={() =>
-                                createNote.mutate({
-                                    projectId: createInProjectId,
-                                })
-                            }
-                            className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors"
-                        >
-                            <FilePlusIcon
-                                className="size-3.5"
-                                strokeWidth={1.5}
-                            />
-                        </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">New Note</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <button
-                            onClick={() =>
-                                getOrCreateNewChat.mutate({
-                                    projectId: createInProjectId,
-                                })
-                            }
-                            className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors"
-                        >
-                            <SquarePlusIcon
-                                className="size-3.5"
-                                strokeWidth={1.5}
-                            />
-                        </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">New Chat</TooltipContent>
-                </Tooltip>
-            </div>
+        <div className="flex items-center justify-end px-2 py-1.5 border-b shrink-0">
             <DropdownMenu>
                 <Tooltip>
                     <TooltipTrigger asChild>
@@ -147,6 +109,45 @@ function ContextToolbar({ createInProjectId }: { createInProjectId: string }) {
                     ))}
                 </DropdownMenuContent>
             </DropdownMenu>
+
+            <div className="editor-toolbar-separator" />
+
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <button
+                        onClick={() =>
+                            createNote.mutate({
+                                projectId: createInProjectId,
+                            })
+                        }
+                        className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors"
+                    >
+                        <FilePlusIcon
+                            className="size-3.5"
+                            strokeWidth={1.5}
+                        />
+                    </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">New Note</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <button
+                        onClick={() =>
+                            getOrCreateNewChat.mutate({
+                                projectId: createInProjectId,
+                            })
+                        }
+                        className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors"
+                    >
+                        <SquarePlusIcon
+                            className="size-3.5"
+                            strokeWidth={1.5}
+                        />
+                    </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">New Chat</TooltipContent>
+            </Tooltip>
         </div>
     );
 }
