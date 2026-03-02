@@ -75,6 +75,12 @@
     padding-left: 1em;
     margin-left: 0;
     color: hsl(var(--muted-foreground));
+    quotes: none;
+}
+
+.note-editor-content .ProseMirror blockquote::before,
+.note-editor-content .ProseMirror blockquote::after {
+    content: none;
 }
 
 /* Links — always visible, not just on hover */
