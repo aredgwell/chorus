@@ -1,7 +1,9 @@
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import * as NoteAPI from "@core/chorus/api/NoteAPI";
+import { type Note, noteQueries } from "@core/chorus/api/NoteAPI";
 import { useCreateLink } from "@core/chorus/api/NoteChatLinkAPI";
 import type { Editor } from "@tiptap/core";
+import { useQueryClient } from "@tanstack/react-query";
 import _ from "lodash";
 import { MessageSquareIcon, TrashIcon } from "lucide-react";
 import { useCallback, useState } from "react";
@@ -20,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 export default function NoteEditor() {
     const { noteId } = useParams<{ noteId: string }>();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const noteQuery = NoteAPI.useNote(noteId);
     const updateNote = NoteAPI.useUpdateNote();
     const deleteNote = NoteAPI.useDeleteNote();
@@ -47,10 +50,23 @@ export default function NoteEditor() {
                 // Extract first H1 heading as note title
                 const h1Match = /^#\s+(.+)$/m.exec(markdown);
                 const extractedTitle = h1Match ? h1Match[1].trim() : "";
+
+                // Immediately update the list cache so the list pane title
+                // stays in sync on every keystroke (DB save is debounced)
+                queryClient.setQueryData<Note[]>(
+                    noteQueries.list().queryKey,
+                    (old) =>
+                        old?.map((n) =>
+                            n.id === noteId
+                                ? { ...n, title: extractedTitle }
+                                : n,
+                        ),
+                );
+
                 debouncedSave(noteId, markdown, extractedTitle);
             }
         },
-        [noteId, debouncedSave],
+        [noteId, debouncedSave, queryClient],
     );
 
     const handleAskAboutNote = useCallback(async () => {

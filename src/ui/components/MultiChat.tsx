@@ -594,14 +594,13 @@ function ChatTopBar({
 
     return (
         <HeaderBar
-            leftActions={
-                <div className="flex items-center gap-1 min-w-0">
+            actions={
+                <div className="flex items-center gap-1">
                     <TagInput itemType="chat" itemId={chatId} />
                     <LinkedItems chatId={chatId} />
-                </div>
-            }
-            actions={
-                <div className="flex items-center gap-1 shrink-0">
+
+                    <div className="editor-toolbar-separator" />
+
                     {hasMessages && (
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -627,6 +626,7 @@ function ChatTopBar({
                             </TooltipContent>
                         </Tooltip>
                     )}
+
                     <Popover
                         open={deletePopoverOpen}
                         onOpenChange={setDeletePopoverOpen}

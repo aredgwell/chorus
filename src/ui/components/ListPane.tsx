@@ -630,7 +630,9 @@ function NoteListItem({
                     <div className="flex items-center gap-2 absolute right-3 z-10">
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <div
+                                <button
+                                    type="button"
+                                    className="p-0.5 opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
                                     onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
@@ -641,11 +643,11 @@ function NoteListItem({
                                     }}
                                 >
                                     {note.pinned ? (
-                                        <PinOffIcon className="h-[13px] w-[13px] opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground" />
+                                        <PinOffIcon className="h-[13px] w-[13px]" />
                                     ) : (
-                                        <PinIcon className="h-[13px] w-[13px] opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground" />
+                                        <PinIcon className="h-[13px] w-[13px]" />
                                     )}
-                                </div>
+                                </button>
                             </TooltipTrigger>
                             <TooltipContent side="bottom">
                                 {note.pinned ? "Unpin note" : "Pin note"}
@@ -885,7 +887,9 @@ function ChatListItem({
                     <div className="flex items-center gap-2 absolute right-3 z-10">
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <div
+                                <button
+                                    type="button"
+                                    className="p-0.5 opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
                                     onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
@@ -896,11 +900,11 @@ function ChatListItem({
                                     }}
                                 >
                                     {chat.pinned ? (
-                                        <PinOffIcon className="h-[13px] w-[13px] opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground" />
+                                        <PinOffIcon className="h-[13px] w-[13px]" />
                                     ) : (
-                                        <PinIcon className="h-[13px] w-[13px] opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground" />
+                                        <PinIcon className="h-[13px] w-[13px]" />
                                     )}
-                                </div>
+                                </button>
                             </TooltipTrigger>
                             <TooltipContent side="bottom">
                                 {chat.pinned ? "Unpin chat" : "Pin chat"}
