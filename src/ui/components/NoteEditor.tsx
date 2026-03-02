@@ -141,32 +141,32 @@ export default function NoteEditor() {
                             </Tooltip>
                             <PopoverContent
                                 align="end"
-                                className="w-56 p-3"
+                                className="w-52 p-2"
                             >
-                                <p className="text-sm mb-3">
+                                <p className="text-xs text-muted-foreground px-2 py-1">
                                     Delete &ldquo;
                                     {note.title || "Untitled note"}
-                                    &rdquo;? This cannot be undone.
+                                    &rdquo;?
                                 </p>
-                                <div className="flex justify-end gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
+                                <div className="flex gap-1 mt-1">
+                                    <button
+                                        type="button"
+                                        className="tag-suggestion-item flex-1 justify-center"
                                         onClick={() =>
                                             setDeletePopoverOpen(false)
                                         }
                                     >
                                         Cancel
-                                    </Button>
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="tag-suggestion-item flex-1 justify-center text-destructive"
                                         onClick={() =>
                                             void handleConfirmDelete()
                                         }
                                     >
                                         Delete
-                                    </Button>
+                                    </button>
                                 </div>
                             </PopoverContent>
                         </Popover>

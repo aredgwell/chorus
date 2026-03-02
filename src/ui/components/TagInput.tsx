@@ -9,7 +9,7 @@ import {
     useTags,
     useUpdateTag,
 } from "@core/chorus/api/TagAPI";
-import { TagIcon, XIcon } from "lucide-react";
+import { TagIcon, TrashIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -167,6 +167,36 @@ export function TagInput({ itemType, itemId }: TagInputProps) {
                         autoFocus
                     />
                     <div className="tag-suggestions">
+                        {/* Currently attached tags — with remove button */}
+                        {itemTags.map((tag) => (
+                            <div
+                                key={tag.id}
+                                className="tag-suggestion-item justify-between"
+                            >
+                                <span className="flex items-center gap-1.5">
+                                    <span
+                                        className="tag-chip-dot"
+                                        style={{
+                                            backgroundColor:
+                                                tag.color ??
+                                                "hsl(var(--muted-foreground))",
+                                        }}
+                                    />
+                                    {tag.name}
+                                </span>
+                                <button
+                                    type="button"
+                                    className="text-muted-foreground hover:text-destructive transition-colors p-0.5"
+                                    onClick={() => handleRemoveTag(tag.id)}
+                                >
+                                    <TrashIcon size={12} />
+                                </button>
+                            </div>
+                        ))}
+                        {itemTags.length > 0 && suggestions.length > 0 && (
+                            <div className="border-t border-border my-1" />
+                        )}
+                        {/* Unattached tags to add */}
                         {suggestions.map((tag) => (
                             <button
                                 key={tag.id}

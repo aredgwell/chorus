@@ -14,7 +14,6 @@ import {
     useRenameProject,
 } from "@core/chorus/api/ProjectAPI";
 import { useDeleteTag, useTags } from "@core/chorus/api/TagAPI";
-import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
@@ -44,20 +43,12 @@ import {
     TagIcon,
     TrashIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import Droppable from "./Droppable";
 import { useSettings } from "./hooks/useSettings";
-import { Button } from "./ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "./ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import RetroSpinner from "./ui/retro-spinner";
 
 function DevModeIndicator() {
@@ -391,9 +382,6 @@ function CollectionsNavigator() {
     );
 }
 
-const deleteCollectionDialogId = (projectId: string) =>
-    `delete-collection-dialog-${projectId}`;
-
 function CollectionItem({
     projectId,
     name,
@@ -413,12 +401,9 @@ function CollectionItem({
 }) {
     const [isRenaming, setIsRenaming] = useState(false);
     const [renameValue, setRenameValue] = useState(name);
+    const [deletePopoverOpen, setDeletePopoverOpen] = useState(false);
     const renameProject = useRenameProject();
     const deleteProject = useDeleteProject();
-    const isDeleteDialogOpen = useDialogStore(
-        (state) => state.activeDialogId === deleteCollectionDialogId(projectId),
-    );
-    const deleteConfirmButtonRef = useRef<HTMLButtonElement>(null);
 
     const handleStartRename = useCallback(
         (e: React.MouseEvent) => {
@@ -441,27 +426,12 @@ function CollectionItem({
         setIsRenaming(false);
     }, [renameValue, name, projectId, renameProject]);
 
-    const handleOpenDeleteDialog = useCallback(
-        (e: React.MouseEvent) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dialogActions.openDialog(deleteCollectionDialogId(projectId));
-        },
-        [projectId],
-    );
-
     const handleConfirmDelete = useCallback(async () => {
         const displayName = projectDisplayName(name);
         await deleteProject.mutateAsync({ projectId });
-        dialogActions.closeDialog();
+        setDeletePopoverOpen(false);
         toast(`'${displayName}' deleted`);
     }, [projectId, name, deleteProject]);
-
-    useEffect(() => {
-        if (isDeleteDialogOpen && deleteConfirmButtonRef.current) {
-            deleteConfirmButtonRef.current.focus();
-        }
-    }, [isDeleteDialogOpen]);
 
     if (isRenaming) {
         return (
@@ -545,20 +515,60 @@ function CollectionItem({
                         </TooltipTrigger>
                         <TooltipContent>Rename</TooltipContent>
                     </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <span
-                                onClick={handleOpenDeleteDialog}
-                                className="opacity-0 group-hover/collection:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-                            >
-                                <TrashIcon
-                                    className="size-3"
-                                    strokeWidth={1.5}
-                                />
-                            </span>
-                        </TooltipTrigger>
-                        <TooltipContent>Delete</TooltipContent>
-                    </Tooltip>
+                    <Popover
+                        open={deletePopoverOpen}
+                        onOpenChange={setDeletePopoverOpen}
+                    >
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <PopoverTrigger asChild>
+                                    <span
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                        }}
+                                        className="opacity-0 group-hover/collection:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                                    >
+                                        <TrashIcon
+                                            className="size-3"
+                                            strokeWidth={1.5}
+                                        />
+                                    </span>
+                                </PopoverTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete</TooltipContent>
+                        </Tooltip>
+                        <PopoverContent
+                            align="start"
+                            className="w-52 p-2"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <p className="text-xs text-muted-foreground px-2 py-1">
+                                Delete &ldquo;{projectDisplayName(name)}
+                                &rdquo; and all its contents?
+                            </p>
+                            <div className="flex gap-1 mt-1">
+                                <button
+                                    type="button"
+                                    className="tag-suggestion-item flex-1 justify-center"
+                                    onClick={() =>
+                                        setDeletePopoverOpen(false)
+                                    }
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    className="tag-suggestion-item flex-1 justify-center text-destructive"
+                                    onClick={() =>
+                                        void handleConfirmDelete()
+                                    }
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                     {itemCount > 0 && (
                         <span className="text-xs text-muted-foreground ml-1">
                             {itemCount}
@@ -566,48 +576,6 @@ function CollectionItem({
                     )}
                 </span>
             </SidebarMenuButton>
-
-            {/* Delete confirmation dialog */}
-            <Dialog
-                id={deleteCollectionDialogId(projectId)}
-                open={isDeleteDialogOpen}
-            >
-                <DialogContent className="sm:max-w-md p-5">
-                    <DialogHeader>
-                        <DialogTitle>
-                            Delete &ldquo;{projectDisplayName(name)}&rdquo;
-                        </DialogTitle>
-                        <DialogDescription>
-                            This will delete the collection and all its chats
-                            and notes. This action cannot be undone.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => dialogActions.closeDialog()}
-                            tabIndex={-1}
-                        >
-                            Cancel{" "}
-                            <span className="ml-1 text-sm text-muted-foreground/70">
-                                Esc
-                            </span>
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="default"
-                            size="sm"
-                            onClick={() => void handleConfirmDelete()}
-                            ref={deleteConfirmButtonRef}
-                            tabIndex={1}
-                        >
-                            Delete <span className="ml-1 text-sm">↵</span>
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </SidebarMenuItem>
     );
 }
