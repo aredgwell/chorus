@@ -6,7 +6,13 @@ import {
     useSetSidebarSortMode,
 } from "@core/chorus/api/AppMetadataAPI";
 import { type Chat } from "@core/chorus/api/ChatAPI";
-import { type Tag, useAllItemTags } from "@core/chorus/api/TagAPI";
+import {
+    type Tag,
+    useAddTagToItem,
+    useAllItemTags,
+    useRemoveTagFromItem,
+    useTags,
+} from "@core/chorus/api/TagAPI";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import { chatQueries, useGetOrCreateNewChat } from "@core/chorus/api/ChatAPI";
 import { formatCost } from "@core/chorus/api/CostAPI";
@@ -37,10 +43,13 @@ import {
     CheckIcon,
     FileTextIcon,
     FilePlusIcon,
+    FolderIcon,
     MessageSquareIcon,
     PinIcon,
     PinOffIcon,
     SquarePlusIcon,
+    TagIcon,
+    TrashIcon,
 } from "lucide-react";
 import React, { forwardRef, useCallback, useEffect, useState } from "react";
 import { useRef } from "react";
@@ -66,6 +75,16 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuSeparator,
+    ContextMenuSub,
+    ContextMenuSubContent,
+    ContextMenuSubTrigger,
+    ContextMenuTrigger,
+} from "./ui/context-menu";
 import RetroSpinner from "./ui/retro-spinner";
 
 function ContextToolbar({ createInProjectId }: { createInProjectId: string }) {
@@ -534,6 +553,11 @@ function NoteListItem({
     const renameNote = NoteAPI.useRenameNote();
     const deleteNote = NoteAPI.useDeleteNote();
     const { mutate: togglePinNote } = NoteAPI.useTogglePinNote();
+    const setNoteProject = NoteAPI.useSetNoteProject();
+    const projectsQuery = useQuery(ProjectAPI.projectQueries.list());
+    const allTagsQuery = useTags();
+    const addTag = useAddTagToItem();
+    const removeTag = useRemoveTagFromItem();
     const isDeleteDialogOpen = useDialogStore(
         (state) => state.activeDialogId === deleteNoteDialogId(note.id),
     );
@@ -552,7 +576,13 @@ function NoteListItem({
         }
     }, [isDeleteDialogOpen]);
 
+    const projects = projectsQuery.data ?? [];
+    const allTags = allTagsQuery.data ?? [];
+    const itemTagIds = new Set(tags.map((t) => t.id));
+
     return (
+        <ContextMenu>
+        <ContextMenuTrigger asChild>
         <div className={deleteNote.isPending ? "opacity-50" : ""}>
             <Draggable id={`note:${note.id}`}>
                 <SidebarMenuButton
@@ -698,6 +728,114 @@ function NoteListItem({
                 </DialogContent>
             </Dialog>
         </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+            <ContextMenuItem
+                onClick={() =>
+                    togglePinNote({ noteId: note.id, pinned: !note.pinned })
+                }
+            >
+                {note.pinned ? (
+                    <><PinOffIcon className="size-3.5 mr-2" />{" "}Unpin</>
+                ) : (
+                    <><PinIcon className="size-3.5 mr-2" />{" "}Pin</>
+                )}
+            </ContextMenuItem>
+            <ContextMenuSub>
+                <ContextMenuSubTrigger>
+                    <FolderIcon className="size-3.5 mr-2" />{" "}Move to
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent>
+                    <ContextMenuItem
+                        disabled={note.projectId === "default"}
+                        onClick={() =>
+                            setNoteProject.mutate({
+                                noteId: note.id,
+                                projectId: "default",
+                            })
+                        }
+                    >
+                        Ungrouped
+                        {note.projectId === "default" && (
+                            <CheckIcon className="size-3.5 ml-auto" />
+                        )}
+                    </ContextMenuItem>
+                    {projects
+                        .filter((p) => p.id !== "default" && p.id !== "quick-chat" && p.collectionType !== "smart")
+                        .map((p) => (
+                            <ContextMenuItem
+                                key={p.id}
+                                disabled={note.projectId === p.id}
+                                onClick={() =>
+                                    setNoteProject.mutate({
+                                        noteId: note.id,
+                                        projectId: p.id,
+                                    })
+                                }
+                            >
+                                {projectDisplayName(p.name)}
+                                {note.projectId === p.id && (
+                                    <CheckIcon className="size-3.5 ml-auto" />
+                                )}
+                            </ContextMenuItem>
+                        ))}
+                </ContextMenuSubContent>
+            </ContextMenuSub>
+            <ContextMenuSub>
+                <ContextMenuSubTrigger>
+                    <TagIcon className="size-3.5 mr-2" />{" "}Tags
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent>
+                    {allTags.length === 0 ? (
+                        <ContextMenuItem disabled>No tags yet</ContextMenuItem>
+                    ) : (
+                        allTags.map((tag) => {
+                            const attached = itemTagIds.has(tag.id);
+                            return (
+                                <ContextMenuItem
+                                    key={tag.id}
+                                    onClick={() => {
+                                        if (attached) {
+                                            removeTag.mutate({
+                                                tagId: tag.id,
+                                                itemType: "note",
+                                                itemId: note.id,
+                                            });
+                                        } else {
+                                            addTag.mutate({
+                                                tagId: tag.id,
+                                                itemType: "note",
+                                                itemId: note.id,
+                                            });
+                                        }
+                                    }}
+                                >
+                                    <span
+                                        className="w-2 h-2 rounded-full shrink-0 mr-2"
+                                        style={{
+                                            backgroundColor:
+                                                tag.color ?? "hsl(var(--muted-foreground))",
+                                        }}
+                                    />
+                                    {tag.name}
+                                    {attached && (
+                                        <CheckIcon className="size-3.5 ml-auto" />
+                                    )}
+                                </ContextMenuItem>
+                            );
+                        })
+                    )}
+                </ContextMenuSubContent>
+            </ContextMenuSub>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => dialogActions.openDialog(deleteNoteDialogId(note.id))}
+            >
+                <TrashIcon className="size-3.5 mr-2" />{" "}Delete
+            </ContextMenuItem>
+        </ContextMenuContent>
+        </ContextMenu>
     );
 }
 
@@ -726,6 +864,11 @@ function ChatListItem({
 
     const { mutateAsync: renameChatMutateAsync } = ChatAPI.useRenameChat();
     const { mutate: togglePinChat } = ChatAPI.useTogglePinChat();
+    const setChatProject = ProjectAPI.useSetChatProject();
+    const projectsQuery = useQuery(ProjectAPI.projectQueries.list());
+    const allTagsQuery = useTags();
+    const addTag = useAddTagToItem();
+    const removeTag = useRemoveTagFromItem();
     const {
         mutateAsync: deleteChatMutateAsync,
         isPending: deleteChatIsPending,
@@ -761,8 +904,13 @@ function ChatListItem({
     }, [isDeleteChatDialogOpen]);
 
     const showCost = settings?.showCost ?? false;
+    const projects = projectsQuery.data ?? [];
+    const allTags = allTagsQuery.data ?? [];
+    const itemTagIds = new Set(tags.map((t) => t.id));
 
     return (
+        <ContextMenu>
+        <ContextMenuTrigger asChild>
         <div className={deleteChatIsPending ? "opacity-50" : ""}>
             <Draggable id={`chat:${chat.id}`}>
                 <SidebarMenuButton
@@ -954,6 +1102,114 @@ function ChatListItem({
                 </DialogContent>
             </Dialog>
         </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+            <ContextMenuItem
+                onClick={() =>
+                    togglePinChat({ chatId: chat.id, pinned: !chat.pinned })
+                }
+            >
+                {chat.pinned ? (
+                    <><PinOffIcon className="size-3.5 mr-2" />{" "}Unpin</>
+                ) : (
+                    <><PinIcon className="size-3.5 mr-2" />{" "}Pin</>
+                )}
+            </ContextMenuItem>
+            <ContextMenuSub>
+                <ContextMenuSubTrigger>
+                    <FolderIcon className="size-3.5 mr-2" />{" "}Move to
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent>
+                    <ContextMenuItem
+                        disabled={chat.projectId === "default"}
+                        onClick={() =>
+                            setChatProject.mutate({
+                                chatId: chat.id,
+                                projectId: "default",
+                            })
+                        }
+                    >
+                        Ungrouped
+                        {chat.projectId === "default" && (
+                            <CheckIcon className="size-3.5 ml-auto" />
+                        )}
+                    </ContextMenuItem>
+                    {projects
+                        .filter((p) => p.id !== "default" && p.id !== "quick-chat" && p.collectionType !== "smart")
+                        .map((p) => (
+                            <ContextMenuItem
+                                key={p.id}
+                                disabled={chat.projectId === p.id}
+                                onClick={() =>
+                                    setChatProject.mutate({
+                                        chatId: chat.id,
+                                        projectId: p.id,
+                                    })
+                                }
+                            >
+                                {projectDisplayName(p.name)}
+                                {chat.projectId === p.id && (
+                                    <CheckIcon className="size-3.5 ml-auto" />
+                                )}
+                            </ContextMenuItem>
+                        ))}
+                </ContextMenuSubContent>
+            </ContextMenuSub>
+            <ContextMenuSub>
+                <ContextMenuSubTrigger>
+                    <TagIcon className="size-3.5 mr-2" />{" "}Tags
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent>
+                    {allTags.length === 0 ? (
+                        <ContextMenuItem disabled>No tags yet</ContextMenuItem>
+                    ) : (
+                        allTags.map((tag) => {
+                            const attached = itemTagIds.has(tag.id);
+                            return (
+                                <ContextMenuItem
+                                    key={tag.id}
+                                    onClick={() => {
+                                        if (attached) {
+                                            removeTag.mutate({
+                                                tagId: tag.id,
+                                                itemType: "chat",
+                                                itemId: chat.id,
+                                            });
+                                        } else {
+                                            addTag.mutate({
+                                                tagId: tag.id,
+                                                itemType: "chat",
+                                                itemId: chat.id,
+                                            });
+                                        }
+                                    }}
+                                >
+                                    <span
+                                        className="w-2 h-2 rounded-full shrink-0 mr-2"
+                                        style={{
+                                            backgroundColor:
+                                                tag.color ?? "hsl(var(--muted-foreground))",
+                                        }}
+                                    />
+                                    {tag.name}
+                                    {attached && (
+                                        <CheckIcon className="size-3.5 ml-auto" />
+                                    )}
+                                </ContextMenuItem>
+                            );
+                        })
+                    )}
+                </ContextMenuSubContent>
+            </ContextMenuSub>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => dialogActions.openDialog(deleteChatDialogId(chat.id))}
+            >
+                <TrashIcon className="size-3.5 mr-2" />{" "}Delete
+            </ContextMenuItem>
+        </ContextMenuContent>
+        </ContextMenu>
     );
 }
 

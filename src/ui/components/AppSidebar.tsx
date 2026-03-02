@@ -52,6 +52,12 @@ import { toast } from "sonner";
 
 import Droppable from "./Droppable";
 import { useSettings } from "./hooks/useSettings";
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuTrigger,
+} from "./ui/context-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import RetroSpinner from "./ui/retro-spinner";
 
@@ -437,9 +443,9 @@ function CollectionItem({
     const deleteProject = useDeleteProject();
 
     const handleStartRename = useCallback(
-        (e: React.MouseEvent) => {
-            e.preventDefault();
-            e.stopPropagation();
+        (e?: React.MouseEvent) => {
+            e?.preventDefault();
+            e?.stopPropagation();
             setRenameValue(name);
             setIsRenaming(true);
         },
@@ -499,6 +505,8 @@ function CollectionItem({
     }
 
     return (
+        <ContextMenu>
+        <ContextMenuTrigger asChild>
         <SidebarMenuItem>
             <SidebarMenuButton
                 isActive={isSelected}
@@ -608,5 +616,18 @@ function CollectionItem({
                 </span>
             </SidebarMenuButton>
         </SidebarMenuItem>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+            <ContextMenuItem onClick={() => handleStartRename()}>
+                <PencilIcon className="size-3.5 mr-2" />{" "}Rename
+            </ContextMenuItem>
+            <ContextMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => setDeletePopoverOpen(true)}
+            >
+                <TrashIcon className="size-3.5 mr-2" />{" "}Delete
+            </ContextMenuItem>
+        </ContextMenuContent>
+        </ContextMenu>
     );
 }
