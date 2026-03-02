@@ -594,13 +594,14 @@ function ChatTopBar({
 
     return (
         <HeaderBar
-            actions={
+            leftActions={
                 <div className="flex items-center gap-1">
                     <TagInput itemType="chat" itemId={chatId} />
                     <LinkedItems chatId={chatId} />
-
-                    <div className="editor-toolbar-separator" />
-
+                </div>
+            }
+            actions={
+                <div className="flex items-center gap-1">
                     {hasMessages && (
                         <Tooltip>
                             <TooltipTrigger asChild>
