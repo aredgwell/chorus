@@ -59,6 +59,7 @@ export function displayDate(d: Date): string {
  * e.g. "2m ago", "3h ago", "Yesterday", "Mar 2", "Dec 15, 2024"
  */
 export function compactDate(d: Date): string {
+    if (isNaN(d.getTime())) return "";
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
     const diffMin = Math.floor(diffMs / 60_000);

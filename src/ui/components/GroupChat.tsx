@@ -47,7 +47,6 @@ import {
     RefreshCcwIcon,
     RemoveFormattingIcon,
     Undo2,
-    Users,
     WrenchIcon,
     X,
 } from "lucide-react";
@@ -660,17 +659,7 @@ export default function GroupChat() {
     if (!messages || messages.length === 0) {
         return (
             <div className="flex flex-col h-screen w-full">
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-                    <div className="bg-secondary rounded-full p-6 mb-6">
-                        <Users className="w-12 h-12 text-secondary-foreground" />
-                    </div>
-
-                    <h1 className="text-3xl font-bold mb-3">Group Chat</h1>
-                    <p className="text-muted-foreground mb-6 max-w-md">
-                        Send a message to start chatting. Use @mention to talk
-                        to specific models.
-                    </p>
-                </div>
+                <div className="flex-1" />
 
                 <Composer
                     onSend={handleSend}

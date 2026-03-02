@@ -5,7 +5,7 @@ import { useSummarizeChatToNote } from "@core/chorus/api/NoteChatLinkAPI";
 import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
 import { MessageSetDetail } from "@core/chorus/ChatState";
 import { catchAsyncErrors } from "@core/chorus/utilities";
-import { dialogActions } from "@core/infra/DialogStore";
+import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -17,7 +17,7 @@ import { useAppContext } from "@ui/hooks/useAppContext";
 import { useShareChat } from "@ui/hooks/useShareChat";
 import { useShortcut } from "@ui/hooks/useShortcut";
 import { useWaitForAppMetadata } from "@ui/hooks/useWaitForAppMetadata";
-import { FileTextIcon, Loader2, SplitIcon } from "lucide-react";
+import { FileTextIcon, Loader2, SplitIcon, TrashIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import React from "react";
 import {
@@ -33,12 +33,22 @@ import { ChatInput } from "./ChatInput";
 import { MessageSetView } from "./ChatMessageViews";
 import { FindInPage } from "./FindInPage";
 import GroupChat from "./GroupChat";
+import { HeaderBar } from "./HeaderBar";
 import { LinkedItems } from "./LinkedItems";
 import { MouseTrackingEyeRef } from "./MouseTrackingEye";
 import { QuickChatHeaderBar } from "./QuickChatHeaderBar";
 import RepliesDrawer from "./RepliesDrawer";
 import { SHARE_CHAT_DIALOG_ID, ShareChatDialog } from "./ShareChatDialog";
+import { TagInput } from "./TagInput";
 import { Button } from "./ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "./ui/dialog";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { VirtualizedMessageSet } from "./VirtualizedMessageSet";
@@ -446,7 +456,7 @@ export default function MultiChat() {
                         <ResizablePanel
                             defaultSize={repliesDrawerOpen ? 70 : 100}
                         >
-                            <div className="relative flex-1 min-h-0 overflow-hidden h-full">
+                            <div className="flex flex-col min-h-0 h-full">
                                 {!isQuickChatWindow && (
                                     <ChatTopBar
                                         chatId={chatId!}
@@ -455,6 +465,7 @@ export default function MultiChat() {
                                         }
                                     />
                                 )}
+                                <div className="relative flex-1 min-h-0 overflow-hidden">
                                 <MainScrollableContentView
                                     chatContainerRef={chatContainerRef}
                                     lastMessageSetRef={lastMessageSetRef}
@@ -474,6 +485,7 @@ export default function MultiChat() {
                                     showScrollButton={showScrollButton}
                                     handleScrollToBottom={handleScrollToBottom}
                                 />
+                                </div>
                             </div>
                         </ResizablePanel>
                         {repliesDrawerOpen && (
@@ -561,7 +573,10 @@ function ChatMessageSkeleton() {
     );
 }
 
-/** Thin header bar for non-quick-chat views — sits in the top-10 gap */
+const deleteChatDialogId = (chatId: string) =>
+    `delete-chat-topbar-dialog-${chatId}`;
+
+/** Header bar for non-quick-chat views — uses HeaderBar for consistent height */
 function ChatTopBar({
     chatId,
     hasMessages,
@@ -571,6 +586,11 @@ function ChatTopBar({
 }) {
     const navigate = useNavigate();
     const summarize = useSummarizeChatToNote();
+    const deleteChat = ChatAPI.useDeleteChat();
+    const chatQuery = ChatAPI.useChat(chatId);
+    const isDeleteDialogOpen = useDialogStore(
+        (state) => state.activeDialogId === deleteChatDialogId(chatId),
+    );
 
     const handleSummarize = useCallback(() => {
         summarize.mutate(
@@ -592,41 +612,116 @@ function ChatTopBar({
         );
     }, [chatId, summarize, navigate]);
 
+    const handleConfirmDelete = useCallback(async () => {
+        const chatTitle = chatQuery.data?.title || "Untitled Chat";
+        await deleteChat.mutateAsync({ chatId });
+        dialogActions.closeDialog();
+        toast(`'${chatTitle}' deleted`);
+        navigate("/");
+    }, [chatId, chatQuery.data?.title, deleteChat, navigate]);
+
     return (
-        <div
-            data-tauri-drag-region
-            className="absolute top-0 left-0 right-0 h-10 z-10 flex items-center justify-between px-4"
-        >
-            <div className="flex items-center gap-1 min-w-0">
-                <LinkedItems chatId={chatId} />
-            </div>
-            {hasMessages && (
-                <div className="flex items-center gap-1 shrink-0">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="iconSm"
-                                className="px-2 text-accent-foreground hover:text-foreground"
-                                tabIndex={-1}
-                                onClick={handleSummarize}
-                                disabled={summarize.isPending}
-                            >
-                                {summarize.isPending ? (
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                    <FileTextIcon
+        <>
+            <HeaderBar
+                leftActions={
+                    <div className="flex items-center gap-1 min-w-0">
+                        <TagInput itemType="chat" itemId={chatId} />
+                        <LinkedItems chatId={chatId} />
+                    </div>
+                }
+                actions={
+                    <div className="flex items-center gap-1 shrink-0">
+                        {hasMessages && (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="iconSm"
+                                        tabIndex={-1}
+                                        onClick={handleSummarize}
+                                        disabled={summarize.isPending}
+                                    >
+                                        {summarize.isPending ? (
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                            <FileTextIcon
+                                                strokeWidth={1.5}
+                                                className="size-3.5!"
+                                            />
+                                        )}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Summarize to note
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="iconSm"
+                                    onClick={() =>
+                                        dialogActions.openDialog(
+                                            deleteChatDialogId(chatId),
+                                        )
+                                    }
+                                >
+                                    <TrashIcon
                                         strokeWidth={1.5}
                                         className="size-3.5!"
                                     />
-                                )}
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Summarize to note</TooltipContent>
-                    </Tooltip>
-                </div>
-            )}
-        </div>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete chat</TooltipContent>
+                        </Tooltip>
+                    </div>
+                }
+            />
+
+            {/* Delete confirmation dialog */}
+            <Dialog
+                id={deleteChatDialogId(chatId)}
+                open={isDeleteDialogOpen}
+            >
+                <DialogContent className="sm:max-w-md p-5">
+                    <DialogHeader>
+                        <DialogTitle>
+                            Delete &ldquo;
+                            {chatQuery.data?.title || "Untitled Chat"}
+                            &rdquo;
+                        </DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this chat? This
+                            action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => dialogActions.closeDialog()}
+                            tabIndex={-1}
+                        >
+                            Cancel{" "}
+                            <span className="ml-1 text-sm text-muted-foreground/70">
+                                Esc
+                            </span>
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="default"
+                            size="sm"
+                            onClick={() => void handleConfirmDelete()}
+                            tabIndex={1}
+                        >
+                            Delete <span className="ml-1 text-sm">↵</span>
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
 

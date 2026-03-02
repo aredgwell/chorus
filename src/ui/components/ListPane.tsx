@@ -73,7 +73,7 @@ function ContextToolbar({ createInProjectId }: { createInProjectId: string }) {
     const getOrCreateNewChat = useGetOrCreateNewChat();
 
     return (
-        <div className="flex items-center justify-end px-2 py-1.5 border-b shrink-0">
+        <div data-tauri-drag-region className="flex items-center justify-end px-2 h-[44px] border-b shrink-0">
             <DropdownMenu>
                 <Tooltip>
                     <TooltipTrigger asChild>

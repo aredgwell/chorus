@@ -15,7 +15,7 @@ export function HeaderBar({ leftActions, actions }: HeaderBarProps) {
     return (
         <div
             data-tauri-drag-region
-            className="h-[52px] z-10 shrink-0
+            className="h-[44px] z-10 shrink-0
                  items-center justify-between px-3 -mt-px flex bg-background
             hover:bg-background
             active:bg-background
