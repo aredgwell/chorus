@@ -305,13 +305,12 @@
     font-size: 85%;
 }
 
-/* Remove the default ProseMirror pre border/padding inside block-view wrappers —
+/* Remove the default ProseMirror pre border inside block-view wrappers —
    the wrapper already provides the outer chrome. */
 .mermaid-block-wrapper pre,
 .katex-block-wrapper pre {
     border: none;
     margin: 0;
-    padding: 0;
     border-radius: 0;
 }
 

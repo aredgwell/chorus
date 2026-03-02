@@ -75,10 +75,23 @@ function MermaidDiagram({ source }: { source: string }) {
  * Tiptap NodeView for ```mermaid code blocks.
  * Shows rendered diagram by default; toggle to see/edit source.
  */
-export function MermaidBlockView({ node }: NodeViewProps) {
+export function MermaidBlockView({ node, editor, getPos }: NodeViewProps) {
     const textContent = node.textContent.trim();
     const [showSource, setShowSource] = useState(!textContent);
     const deferredContent = useDeferredValue(textContent);
+
+    // When freshly created (empty, source mode), focus the cursor into the code block
+    useEffect(() => {
+        if (showSource && !textContent) {
+            const pos = getPos();
+            if (typeof pos === "number") {
+                // +1 to move inside the code block node
+                editor.commands.focus(pos + 1);
+            }
+        }
+        // Only on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <NodeViewWrapper className="mermaid-block-wrapper">
