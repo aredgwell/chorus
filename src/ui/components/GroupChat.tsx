@@ -38,7 +38,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@ui/components/ui/tooltip";
-import SimpleCopyButton from "@ui/components/unused/CopyButton";
+import SimpleCopyButton from "@ui/components/CopyButton";
 import {
     ChevronDownIcon,
     Loader2,

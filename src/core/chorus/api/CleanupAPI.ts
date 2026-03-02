@@ -17,6 +17,7 @@ export async function cleanupExpiredUngroupedItems(): Promise<void> {
     await db.execute(
         `DELETE FROM notes
          WHERE project_id = 'default'
+           AND pinned = 0
            AND updated_at < datetime('now', '-7 days')`,
     );
 }

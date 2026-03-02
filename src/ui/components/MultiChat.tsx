@@ -181,7 +181,7 @@ export default function MultiChat() {
 
         return () => {
             window.removeEventListener("focus", handleFocus);
-            window.removeEventListener("blur-sm", handleBlur);
+            window.removeEventListener("blur", handleBlur);
         };
     }, []);
 
@@ -269,21 +269,6 @@ export default function MultiChat() {
     const selectMessage = MessageAPI.useSelectMessage();
     const selectSynthesis = MessageAPI.useSelectSynthesis();
     const setReviewsEnabled = MessageAPI.useSetReviewsEnabled();
-    // const nextTools = API.useNextTools();
-
-    // function handleTabKey(isShiftPressed: boolean) {
-    //     if (currentMessageSet?.selectedBlockType === "tools") {
-    //         nextTools.mutate({
-    //             chatId: chatId!,
-    //             messageSetId: currentMessageSet.id,
-    //             toolsBlock: currentMessageSet.toolsBlock,
-    //             direction: isShiftPressed ? "prev" : "next",
-    //         });
-    //     }
-    // }
-
-    // useShortcut(["tab"], () => handleTabKey(false));
-    // useShortcut(["shift", "tab"], () => handleTabKey(true));
 
     const handleToggleVisionMode = useCallback(async () => {
         const hasPermissions = await checkScreenRecordingPermission();
@@ -393,7 +378,6 @@ export default function MultiChat() {
         selectSynthesis,
         setReviewsEnabled,
         setVisionModeEnabled,
-        // nextTools,
         handleToggleVisionMode,
     ]);
 

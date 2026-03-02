@@ -118,34 +118,6 @@ const queryClient = new QueryClient({
     },
 });
 
-// function DeeplinkTester({ onTest }: { onTest: (urls: string[]) => void }) {
-//     const [testUrl, setTestUrl] = useState("");
-
-//     const handleTestDeeplink = () => {
-//         if (testUrl.trim()) {
-//             onTest([testUrl]);
-//         }
-//     };
-
-//     return (
-//         <div className="fixed bottom-12 right-4 z-50 flex gap-2 bg-card p-2 rounded-md border shadow-md">
-//             <input
-//                 type="text"
-//                 value={testUrl}
-//                 onChange={(e) => setTestUrl(e.target.value)}
-//                 placeholder="chorus://..."
-//                 className="px-2 py-1 text-sm border rounded"
-//             />
-//             <button
-//                 onClick={handleTestDeeplink}
-//                 className="px-2 py-1 text-sm bg-primary text-primary-foreground rounded"
-//             >
-//                 Open deep link
-//             </button>
-//         </div>
-//     );
-// }
-
 let deepLinkChecked = false;
 
 function AppContent() {
@@ -213,7 +185,6 @@ function AppContent() {
         dismissedAlertVersion !== currentAppVersion;
 
     const [reviewsDialogOpen, setReviewsDialogOpen] = useState(false);
-    const [_waitlistDialogOpen, _setWaitlistDialogOpen] = useState(false);
     const [defaultSettingsTab, setDefaultSettingsTab] =
         useState<SettingsTabId>("general");
     const { db } = useDatabase();
@@ -907,21 +878,6 @@ function AppContent() {
                 </div>
             )}
 
-            <AlertDialog open={_waitlistDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>
-                            You're on the waitlist!
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Thanks for signing up! You've been added to our
-                            waitlist. We'll email you as soon as your account is
-                            activated with full access to Chorus.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                </AlertDialogContent>
-            </AlertDialog>
-
             {!hasDismissedOnboarding && !isQuickChatWindow && (
                 <Onboarding onComplete={onCompleteOnboarding} />
             )}
@@ -1047,7 +1003,7 @@ async function getDeviceId(): Promise<string> {
 }
 
 function App() {
-    const [_deviceId, setDeviceId] = useState<string | null>(null);
+    const [, setDeviceId] = useState<string | null>(null);
     const [db, setDb] = useState<Database | null>(null);
     const [appLocationDialogOpen, setAppLocationDialogOpen] = useState(false);
 
