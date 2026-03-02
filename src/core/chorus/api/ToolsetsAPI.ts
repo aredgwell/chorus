@@ -76,9 +76,7 @@ export type CustomToolsetConfigDBRow = {
     updated_at: string;
 };
 
-function readCustomToolset(
-    row: CustomToolsetConfigDBRow,
-): CustomToolsetConfig {
+function readCustomToolset(row: CustomToolsetConfigDBRow): CustomToolsetConfig {
     return {
         name: row.name,
         command: row.command,

@@ -1,6 +1,10 @@
 import "@ui/styles/tiptap.css";
 
-import { type Editor, type NodeViewProps, textblockTypeInputRule } from "@tiptap/core";
+import {
+    type Editor,
+    type NodeViewProps,
+    textblockTypeInputRule,
+} from "@tiptap/core";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
@@ -39,7 +43,7 @@ import {
     QuoteIcon,
     StrikethroughIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Markdown } from "tiptap-markdown";
@@ -80,18 +84,40 @@ function CopyButton({ getText }: { getText: () => string }) {
 }
 
 // Standard code block node view with language selector
-function CodeBlockView({ node, updateAttributes }: NodeViewProps) {
+function CodeBlockView({
+    node,
+    updateAttributes,
+    editor,
+    getPos,
+}: NodeViewProps) {
+    // Auto-focus the language selector when a new empty code block is created
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const selectRefCallback = useCallback(
+        (el: HTMLSelectElement | null) => {
+            if (el && !node.textContent.trim() && !node.attrs.language) {
+                el.focus();
+            }
+        },
+        [], // only on mount
+    );
+
     return (
         <NodeViewWrapper className="code-block-wrapper">
             <div className="code-block-actions" contentEditable={false}>
                 <select
+                    ref={selectRefCallback}
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     value={node.attrs.language ?? ""}
-                    onChange={(e) =>
+                    onChange={(e) => {
                         updateAttributes({
                             language: e.target.value || null,
-                        })
-                    }
+                        });
+                        // After selecting a language, focus the code block content
+                        const pos = getPos();
+                        if (typeof pos === "number") {
+                            editor.commands.focus(pos + 1);
+                        }
+                    }}
                 >
                     <option value="">auto</option>
                     {languages.map((lang) => (
@@ -160,9 +186,7 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
                 return ed
                     .chain()
                     .clearContent()
-                    .setCodeBlock(
-                        language ? { language } : undefined,
-                    )
+                    .setCodeBlock(language ? { language } : undefined)
                     .run();
             },
         };

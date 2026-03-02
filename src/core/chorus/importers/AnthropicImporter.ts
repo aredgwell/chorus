@@ -123,7 +123,8 @@ export class AnthropicImporter {
         conversation: AnthropicConversation,
         projectId: string,
     ): Promise<void> {
-        if (import.meta.env.DEV) console.log(`Importing conversation: ${conversation.name}`);
+        if (import.meta.env.DEV)
+            console.log(`Importing conversation: ${conversation.name}`);
 
         const chatId = await createChat(
             conversation.name,

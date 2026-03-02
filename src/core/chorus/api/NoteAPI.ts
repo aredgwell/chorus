@@ -347,9 +347,7 @@ export function useTogglePinNote() {
             queryClient.setQueryData<Note[]>(
                 noteQueries.list().queryKey,
                 (old) =>
-                    old?.map((n) =>
-                        n.id === noteId ? { ...n, pinned } : n,
-                    ),
+                    old?.map((n) => (n.id === noteId ? { ...n, pinned } : n)),
             );
             return { previousNotes };
         },

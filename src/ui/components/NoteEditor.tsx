@@ -15,7 +15,8 @@ import { LinkedItems } from "./LinkedItems";
 import { EditorToolbar, MarkdownEditor } from "./MarkdownEditor";
 import { TagInput } from "./TagInput";
 import { Button } from "./ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { DeleteConfirmContent } from "./ui/delete-confirm-popover";
+import { Popover, PopoverTrigger } from "./ui/popover";
 import RetroSpinner from "./ui/retro-spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
@@ -150,10 +151,7 @@ export default function NoteEditor() {
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <PopoverTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="iconSm"
-                                        >
+                                        <Button variant="ghost" size="iconSm">
                                             <TrashIcon
                                                 strokeWidth={1.5}
                                                 className="size-3.5!"
@@ -163,30 +161,11 @@ export default function NoteEditor() {
                                 </TooltipTrigger>
                                 <TooltipContent>Delete note</TooltipContent>
                             </Tooltip>
-                            <PopoverContent
+                            <DeleteConfirmContent
                                 align="end"
-                                className="w-40 p-1"
-                            >
-                                <button
-                                    type="button"
-                                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent cursor-default"
-                                    onClick={() =>
-                                        void handleConfirmDelete()
-                                    }
-                                >
-                                    <TrashIcon className="size-3.5" />
-                                    Delete
-                                </button>
-                                <button
-                                    type="button"
-                                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent cursor-default"
-                                    onClick={() =>
-                                        setDeletePopoverOpen(false)
-                                    }
-                                >
-                                    Cancel
-                                </button>
-                            </PopoverContent>
+                                onConfirm={() => void handleConfirmDelete()}
+                                onCancel={() => setDeletePopoverOpen(false)}
+                            />
                         </Popover>
                     </div>
                 }

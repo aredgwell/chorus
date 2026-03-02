@@ -440,25 +440,31 @@ export default function MultiChat() {
                         >
                             <div className="flex flex-col min-h-0 h-full">
                                 <div className="relative flex-1 min-h-0 overflow-hidden">
-                                <MainScrollableContentView
-                                    chatContainerRef={chatContainerRef}
-                                    lastMessageSetRef={lastMessageSetRef}
-                                    inputRef={inputRef}
-                                    setShowScrollButton={setShowScrollButton}
-                                    handleScrollToBottom={handleScrollToBottom}
-                                />
-                                <ChatInput
-                                    isNewChat={chatQuery.data?.isNewChat}
-                                    chatId={chatId!}
-                                    inputRef={inputRef}
-                                    eyeRef={eyeRef}
-                                    currentMessageSet={currentMessageSet}
-                                    scrollToLatestMessageSet={
-                                        scrollToLatestMessageSet
-                                    }
-                                    showScrollButton={showScrollButton}
-                                    handleScrollToBottom={handleScrollToBottom}
-                                />
+                                    <MainScrollableContentView
+                                        chatContainerRef={chatContainerRef}
+                                        lastMessageSetRef={lastMessageSetRef}
+                                        inputRef={inputRef}
+                                        setShowScrollButton={
+                                            setShowScrollButton
+                                        }
+                                        handleScrollToBottom={
+                                            handleScrollToBottom
+                                        }
+                                    />
+                                    <ChatInput
+                                        isNewChat={chatQuery.data?.isNewChat}
+                                        chatId={chatId!}
+                                        inputRef={inputRef}
+                                        eyeRef={eyeRef}
+                                        currentMessageSet={currentMessageSet}
+                                        scrollToLatestMessageSet={
+                                            scrollToLatestMessageSet
+                                        }
+                                        showScrollButton={showScrollButton}
+                                        handleScrollToBottom={
+                                            handleScrollToBottom
+                                        }
+                                    />
                                 </div>
                             </div>
                         </ResizablePanel>
@@ -619,9 +625,7 @@ function ChatTopBar({
                                     )}
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>
-                                Summarize to note
-                            </TooltipContent>
+                            <TooltipContent>Summarize to note</TooltipContent>
                         </Tooltip>
                     )}
 
@@ -632,10 +636,7 @@ function ChatTopBar({
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <PopoverTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="iconSm"
-                                    >
+                                    <Button variant="ghost" size="iconSm">
                                         <TrashIcon
                                             strokeWidth={1.5}
                                             className="size-3.5!"
@@ -645,10 +646,7 @@ function ChatTopBar({
                             </TooltipTrigger>
                             <TooltipContent>Delete chat</TooltipContent>
                         </Tooltip>
-                        <PopoverContent
-                            align="end"
-                            className="w-52 p-2"
-                        >
+                        <PopoverContent align="end" className="w-52 p-2">
                             <p className="text-xs text-muted-foreground px-2 py-1">
                                 Delete &ldquo;
                                 {chatQuery.data?.title || "Untitled Chat"}
@@ -658,18 +656,14 @@ function ChatTopBar({
                                 <button
                                     type="button"
                                     className="tag-suggestion-item flex-1 justify-center"
-                                    onClick={() =>
-                                        setDeletePopoverOpen(false)
-                                    }
+                                    onClick={() => setDeletePopoverOpen(false)}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="button"
                                     className="tag-suggestion-item flex-1 justify-center text-destructive"
-                                    onClick={() =>
-                                        void handleConfirmDelete()
-                                    }
+                                    onClick={() => void handleConfirmDelete()}
                                 >
                                     Delete
                                 </button>

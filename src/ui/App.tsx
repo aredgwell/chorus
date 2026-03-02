@@ -296,11 +296,12 @@ function AppContent() {
         if (isQuickChatWindow) return;
         const { visibleItems } = useNavigationStore.getState();
         if (visibleItems.length === 0) return;
-        const currentId = location.pathname.match(
-            /^\/(chat|note)\/(.+)$/,
-        )?.[2];
+        const currentId = location.pathname.match(/^\/(chat|note)\/(.+)$/)?.[2];
         const idx = visibleItems.findIndex((i) => i.id === currentId);
-        const prev = idx > 0 ? visibleItems[idx - 1] : visibleItems[visibleItems.length - 1];
+        const prev =
+            idx > 0
+                ? visibleItems[idx - 1]
+                : visibleItems[visibleItems.length - 1];
         navigate(`/${prev.type === "note" ? "note" : "chat"}/${prev.id}`);
     });
 
@@ -308,11 +309,12 @@ function AppContent() {
         if (isQuickChatWindow) return;
         const { visibleItems } = useNavigationStore.getState();
         if (visibleItems.length === 0) return;
-        const currentId = location.pathname.match(
-            /^\/(chat|note)\/(.+)$/,
-        )?.[2];
+        const currentId = location.pathname.match(/^\/(chat|note)\/(.+)$/)?.[2];
         const idx = visibleItems.findIndex((i) => i.id === currentId);
-        const next = idx < visibleItems.length - 1 ? visibleItems[idx + 1] : visibleItems[0];
+        const next =
+            idx < visibleItems.length - 1
+                ? visibleItems[idx + 1]
+                : visibleItems[0];
         navigate(`/${next.type === "note" ? "note" : "chat"}/${next.id}`);
     });
 
