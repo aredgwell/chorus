@@ -23,7 +23,6 @@ import {
     setVisibleItems,
 } from "@core/infra/NavigationStore";
 import { useQuery } from "@tanstack/react-query";
-import { emit } from "@tauri-apps/api/event";
 import { SidebarMenuButton, SidebarTrigger } from "@ui/components/ui/sidebar";
 import { useSidebar } from "@ui/hooks/useSidebar";
 import {
@@ -40,7 +39,6 @@ import {
     MessageSquareIcon,
     PinIcon,
     PinOffIcon,
-    Settings,
     SquarePlusIcon,
 } from "lucide-react";
 import React, { forwardRef, useCallback, useEffect, useState } from "react";
@@ -82,27 +80,6 @@ function ContextToolbar({ createInProjectId }: { createInProjectId: string }) {
             <div className="flex items-center">
             {!isSidebarOpen && (
                 <>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <button
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    void emit("open_settings", {
-                                        tab: "general",
-                                    });
-                                }}
-                                className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors"
-                            >
-                                <Settings
-                                    className="size-3.5"
-                                    strokeWidth={1.5}
-                                />
-                            </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                            Settings <kbd>⌘,</kbd>
-                        </TooltipContent>
-                    </Tooltip>
                     <SidebarTrigger className="size-3.5!" />
                     <div className="editor-toolbar-separator" />
                 </>
