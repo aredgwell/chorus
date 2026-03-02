@@ -77,39 +77,36 @@ function ContextToolbar({ createInProjectId }: { createInProjectId: string }) {
     const { open: isSidebarOpen } = useSidebar();
 
     return (
-        <div data-tauri-drag-region className="flex items-center justify-between px-2 h-[44px] border-b shrink-0">
-            {/* Left side: settings + sidebar toggle (visible when sidebar is hidden) */}
-            <div className="flex items-center gap-1">
-                {!isSidebarOpen && (
-                    <>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <button
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        void emit("open_settings", {
-                                            tab: "general",
-                                        });
-                                    }}
-                                    className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors ml-[68px]"
-                                >
-                                    <Settings
-                                        className="size-3.5"
-                                        strokeWidth={1.5}
-                                    />
-                                </button>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom">
-                                Settings <kbd>⌘,</kbd>
-                            </TooltipContent>
-                        </Tooltip>
-                        <SidebarTrigger className="size-3.5!" />
-                    </>
-                )}
-            </div>
-
-            {/* Right side: sort + create buttons */}
+        <div data-tauri-drag-region className="flex items-center justify-end px-2 h-[44px] border-b shrink-0">
+            {/* Right-aligned controls: sidebar controls (when hidden) | sort | separator | new note, new chat */}
             <div className="flex items-center">
+            {!isSidebarOpen && (
+                <>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    void emit("open_settings", {
+                                        tab: "general",
+                                    });
+                                }}
+                                className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors"
+                            >
+                                <Settings
+                                    className="size-3.5"
+                                    strokeWidth={1.5}
+                                />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                            Settings <kbd>⌘,</kbd>
+                        </TooltipContent>
+                    </Tooltip>
+                    <SidebarTrigger className="size-3.5!" />
+                    <div className="editor-toolbar-separator" />
+                </>
+            )}
             <DropdownMenu>
                 <Tooltip>
                     <TooltipTrigger asChild>
