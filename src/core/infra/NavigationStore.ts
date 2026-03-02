@@ -14,6 +14,6 @@ export const useNavigationStore = create<NavigationStore>(() => ({
     visibleItems: [],
 }));
 
-/** Set the visible items list (called by ContextPane when items change) */
+/** Set the visible items list (called by ListPane when items change) */
 export const setVisibleItems = (items: NavigableItem[]) =>
     useNavigationStore.setState({ visibleItems: items });

@@ -60,8 +60,8 @@ import { v4 as uuidv4 } from "uuid";
 
 import { AppSidebar } from "./components/AppSidebar";
 import { COMMAND_MENU_DIALOG_ID, CommandMenu } from "./components/CommandMenu";
-import { ContentPane } from "./components/ContentPane";
-import { ContextPane } from "./components/ContextPane";
+import { EditorPane } from "./components/EditorPane";
+import { ListPane } from "./components/ListPane";
 import Onboarding from "./components/Onboarding";
 import Settings, {
     SETTINGS_DIALOG_ID,
@@ -976,7 +976,7 @@ function AppContent() {
                         <main className="flex flex-col flex-1 h-svh min-w-0 overflow-hidden">
                             <div className="flex-1 min-h-0 relative">
                                 {isQuickChatWindow ? (
-                                    <ContentPane />
+                                    <EditorPane />
                                 ) : (
                                     <ResizablePanelGroup
                                         autoSaveId="three-pane-layout"
@@ -988,11 +988,11 @@ function AppContent() {
                                             minSize={15}
                                             maxSize={40}
                                         >
-                                            <ContextPane />
+                                            <ListPane />
                                         </ResizablePanel>
                                         <ResizableHandle />
                                         <ResizablePanel defaultSize={75}>
-                                            <ContentPane />
+                                            <EditorPane />
                                         </ResizablePanel>
                                     </ResizablePanelGroup>
                                 )}

@@ -156,7 +156,7 @@ function ContextToolbar({ createInProjectId }: { createInProjectId: string }) {
     );
 }
 
-export function ContextPane() {
+export function ListPane() {
     const selectedCollectionId = useSelectedCollectionId();
     const selectedTagIds = useSelectedTagIds();
 
