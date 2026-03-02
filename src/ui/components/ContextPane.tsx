@@ -542,7 +542,7 @@ function NoteListItem({
                     asChild={false}
                     data-active={isActive}
                     onClick={() => navigate(`/note/${note.id}`)}
-                    className="data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground text-sidebar-foreground truncate group/chat-button flex justify-between mb-0.5 font-[350] relative"
+                    className="data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground text-sidebar-foreground truncate group/chat-button flex justify-between mb-0.5 font-[350] relative py-2.5 h-auto!"
                 >
                     <div className="truncate flex flex-col w-full">
                         <div className="flex items-center text-base w-full">
@@ -739,7 +739,7 @@ function ChatListItem({
                     asChild={false}
                     data-active={isActive}
                     onClick={() => navigateRef.current(`/chat/${chat.id}`)}
-                    className="data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground text-sidebar-foreground truncate group/chat-button flex justify-between mb-0.5 font-[350] relative"
+                    className="data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground text-sidebar-foreground truncate group/chat-button flex justify-between mb-0.5 font-[350] relative py-2.5 h-auto!"
                 >
                     <div
                         className={`truncate flex flex-col w-full ${chat.isNewChat ? "text-muted-foreground" : ""}`}

@@ -23,6 +23,7 @@ const Sidebar = React.forwardRef<
         side?: "left" | "right";
         variant?: "sidebar" | "floating" | "inset";
         collapsible?: "offcanvas" | "icon" | "none";
+        headerActions?: React.ReactNode;
     }
 >(
     (
@@ -32,6 +33,7 @@ const Sidebar = React.forwardRef<
             collapsible = "offcanvas",
             className,
             children,
+            headerActions,
             ...props
         },
         ref,
@@ -118,8 +120,9 @@ const Sidebar = React.forwardRef<
                     >
                         <div
                             data-tauri-drag-region
-                            className="flex items-center justify-end gap-4 pr-3 h-[44px] shrink-0"
+                            className="flex items-center justify-end gap-2 pr-3 h-[44px] shrink-0"
                         >
+                            {headerActions}
                             <SidebarTrigger />
                         </div>
                         {children}

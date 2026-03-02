@@ -26,7 +26,6 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
-    SidebarTrigger,
 } from "@ui/components/ui/sidebar";
 import {
     Tooltip,
@@ -193,6 +192,26 @@ export function AppSidebar() {
             collapsible="offcanvas"
             variant="sidebar"
             className="no-scrollbar group/sidebar"
+            headerActions={
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <button
+                            onClick={(e) => {
+                                e.preventDefault();
+                                void emit("open_settings", {
+                                    tab: "general",
+                                });
+                            }}
+                            className="text-muted-foreground hover:text-sidebar-accent-foreground transition-colors"
+                        >
+                            <Settings className="size-4" strokeWidth={1.5} />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                        Settings <kbd>⌘,</kbd>
+                    </TooltipContent>
+                </Tooltip>
+            }
         >
             <DevModeIndicator />
             <CollectionsNavigator />
@@ -261,34 +280,6 @@ function CollectionsNavigator() {
 
     return (
         <SidebarContent className="relative h-full flex flex-col">
-            {/* Header: Settings + Hide sidebar */}
-            <div className="relative bg-sidebar z-10">
-                <div className="flex items-center justify-between py-2 px-3 border-b">
-                    <SidebarTrigger className="size-4!" />
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <button
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    void emit("open_settings", {
-                                        tab: "general",
-                                    });
-                                }}
-                                className="p-1 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
-                            >
-                                <Settings
-                                    className="size-4"
-                                    strokeWidth={1.5}
-                                />
-                            </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                            Settings <kbd>⌘,</kbd>
-                        </TooltipContent>
-                    </Tooltip>
-                </div>
-            </div>
-
             <div className="overflow-y-auto flex-1 no-scrollbar">
                 <SidebarGroup className="min-h-0">
                     <SidebarGroupContent>
