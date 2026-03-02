@@ -75,15 +75,14 @@ function ContextToolbar({ createInProjectId }: { createInProjectId: string }) {
     const { open: isSidebarOpen } = useSidebar();
 
     return (
-        <div data-tauri-drag-region className="flex items-center justify-end px-2 h-[44px] border-b shrink-0">
-            {/* Right-aligned controls: sidebar controls (when hidden) | sort | separator | new note, new chat */}
+        <div data-tauri-drag-region className="flex items-center justify-between px-2 h-[44px] border-b shrink-0">
+            {/* Left side: sidebar toggle (consistent position) */}
+            <div className={`flex items-center ${isSidebarOpen ? "" : "ml-[68px]"}`}>
+                <SidebarTrigger className="size-3.5!" />
+            </div>
+
+            {/* Right side: sort | separator | new note, new chat */}
             <div className="flex items-center">
-            {!isSidebarOpen && (
-                <>
-                    <SidebarTrigger className="size-3.5!" />
-                    <div className="editor-toolbar-separator" />
-                </>
-            )}
             <DropdownMenu>
                 <Tooltip>
                     <TooltipTrigger asChild>

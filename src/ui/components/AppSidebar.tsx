@@ -38,7 +38,6 @@ import {
     FolderPlusIcon,
     LayersIcon,
     PencilIcon,
-    Settings,
     SparklesIcon,
     TagIcon,
     TrashIcon,
@@ -183,26 +182,6 @@ export function AppSidebar() {
             collapsible="offcanvas"
             variant="sidebar"
             className="no-scrollbar group/sidebar"
-            headerActions={
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <button
-                            onClick={(e) => {
-                                e.preventDefault();
-                                void emit("open_settings", {
-                                    tab: "general",
-                                });
-                            }}
-                            className="text-muted-foreground hover:text-sidebar-accent-foreground transition-colors"
-                        >
-                            <Settings className="size-4" strokeWidth={1.5} />
-                        </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                        Settings <kbd>⌘,</kbd>
-                    </TooltipContent>
-                </Tooltip>
-            }
         >
             <DevModeIndicator />
             <CollectionsNavigator />
