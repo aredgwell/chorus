@@ -4,9 +4,9 @@ import {
     useSetSelectedCollectionId,
     useSetSelectedTagIds,
 } from "@core/chorus/api/AppMetadataAPI";
-import { chatQueries, useGetOrCreateNewChat } from "@core/chorus/api/ChatAPI";
+import { chatQueries } from "@core/chorus/api/ChatAPI";
 import { formatCost } from "@core/chorus/api/CostAPI";
-import { noteQueries, useCreateNote } from "@core/chorus/api/NoteAPI";
+import { noteQueries } from "@core/chorus/api/NoteAPI";
 import {
     projectQueries,
     useCreateProject,
@@ -26,6 +26,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarTrigger,
 } from "@ui/components/ui/sidebar";
 import {
     Tooltip,
@@ -34,7 +35,6 @@ import {
 } from "@ui/components/ui/tooltip";
 import { projectDisplayName } from "@ui/lib/utils";
 import {
-    FilePlusIcon,
     FolderIcon,
     FolderOpenIcon,
     FolderPlusIcon,
@@ -42,7 +42,6 @@ import {
     PencilIcon,
     Settings,
     SparklesIcon,
-    SquarePlusIcon,
     TagIcon,
     TrashIcon,
 } from "lucide-react";
@@ -107,10 +106,32 @@ function SidebarTagsSection() {
 
     return (
         <>
-            <div className="pt-4 flex items-center justify-between">
-                <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
+            <div className="pt-4 flex items-center justify-between px-3">
+                <div className="sidebar-label flex items-center gap-2 text-muted-foreground">
                     Tags
                 </div>
+                {tags.length > 0 && (
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() =>
+                                    void emit("open_settings", {
+                                        tab: "general",
+                                    })
+                                }
+                                className="text-muted-foreground/50 hover:text-foreground transition-colors"
+                            >
+                                <PencilIcon
+                                    className="size-3"
+                                    strokeWidth={1.5}
+                                />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                            Edit tags
+                        </TooltipContent>
+                    </Tooltip>
+                )}
             </div>
             {tags.length === 0 ? (
                 <div className="px-3 py-2 text-sm text-muted-foreground/60 flex items-center gap-2">
@@ -184,8 +205,6 @@ function CollectionsNavigator() {
     const chatsQuery = useQuery(chatQueries.list());
     const notesQuery = useQuery(noteQueries.list());
     const createProject = useCreateProject();
-    const createNote = useCreateNote();
-    const getOrCreateNewChat = useGetOrCreateNewChat();
     const selectedCollectionId = useSelectedCollectionId();
     const setSelectedCollectionId = useSetSelectedCollectionId();
     const selectedTagIds = useSelectedTagIds();
@@ -240,74 +259,12 @@ function CollectionsNavigator() {
         }
     };
 
-    // Determine which collection to create new items in
-    const createInProjectId =
-        selectedCollectionId &&
-        selectedCollectionId !== "__all__"
-            ? selectedCollectionId
-            : "default";
-
     return (
         <SidebarContent className="relative h-full flex flex-col">
-            {/* Toolbar */}
+            {/* Header: Settings + Hide sidebar */}
             <div className="relative bg-sidebar z-10">
-                <div className="flex items-center justify-center gap-1 py-2 px-2 border-b">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <button
-                                onClick={() =>
-                                    createNote.mutate({
-                                        projectId: createInProjectId,
-                                    })
-                                }
-                                className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
-                            >
-                                <FilePlusIcon
-                                    className="w-4 h-4"
-                                    strokeWidth={1.5}
-                                />
-                            </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                            New Note
-                        </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <button
-                                onClick={() =>
-                                    getOrCreateNewChat.mutate({
-                                        projectId: createInProjectId,
-                                    })
-                                }
-                                className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
-                            >
-                                <SquarePlusIcon
-                                    className="w-4 h-4"
-                                    strokeWidth={1.5}
-                                />
-                            </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                            New Chat
-                        </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <button
-                                onClick={() => createProject.mutate()}
-                                className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
-                            >
-                                <FolderPlusIcon
-                                    className="w-4 h-4"
-                                    strokeWidth={1.5}
-                                />
-                            </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                            New Collection
-                        </TooltipContent>
-                    </Tooltip>
+                <div className="flex items-center justify-between py-2 px-3 border-b">
+                    <SidebarTrigger className="size-4!" />
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <button
@@ -317,10 +274,10 @@ function CollectionsNavigator() {
                                         tab: "general",
                                     });
                                 }}
-                                className="p-2 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
+                                className="p-1 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
                             >
                                 <Settings
-                                    className="w-4 h-4"
+                                    className="size-4"
                                     strokeWidth={1.5}
                                 />
                             </button>
@@ -369,10 +326,28 @@ function CollectionsNavigator() {
                             </Droppable>
 
                             {/* Collections section */}
-                            <div className="pt-2 flex items-center">
-                                <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
+                            <div className="pt-2 flex items-center justify-between px-3">
+                                <div className="sidebar-label flex items-center gap-2 text-muted-foreground">
                                     Collections
                                 </div>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            onClick={() =>
+                                                createProject.mutate()
+                                            }
+                                            className="text-muted-foreground/50 hover:text-foreground transition-colors"
+                                        >
+                                            <FolderPlusIcon
+                                                className="size-3"
+                                                strokeWidth={1.5}
+                                            />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                        New Collection
+                                    </TooltipContent>
+                                </Tooltip>
                             </div>
                             <div className="flex flex-col">
                                 {projects.length ? (

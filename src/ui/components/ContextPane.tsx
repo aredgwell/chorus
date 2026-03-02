@@ -2,18 +2,16 @@ import {
     type SidebarSortMode,
     useSelectedCollectionId,
     useSelectedTagIds,
-    useSidebarContextTab,
-    useSetSidebarContextTab,
     useSidebarSortMode,
     useSetSidebarSortMode,
 } from "@core/chorus/api/AppMetadataAPI";
 import { type Chat } from "@core/chorus/api/ChatAPI";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
-import { chatQueries } from "@core/chorus/api/ChatAPI";
+import { chatQueries, useGetOrCreateNewChat } from "@core/chorus/api/ChatAPI";
 import { formatCost } from "@core/chorus/api/CostAPI";
 import { type Note } from "@core/chorus/api/NoteAPI";
 import * as NoteAPI from "@core/chorus/api/NoteAPI";
-import { noteQueries } from "@core/chorus/api/NoteAPI";
+import { noteQueries, useCreateNote } from "@core/chorus/api/NoteAPI";
 import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
 import {
     fetchSmartCollectionItems,
@@ -32,9 +30,11 @@ import {
     ArrowUpDownIcon,
     CheckIcon,
     FileTextIcon,
+    FilePlusIcon,
     MessageSquareIcon,
     PinIcon,
     PinOffIcon,
+    SquarePlusIcon,
 } from "lucide-react";
 import React, { forwardRef, useCallback, useEffect, useState } from "react";
 import { useRef } from "react";
@@ -62,34 +62,51 @@ import {
 } from "./ui/dropdown-menu";
 import RetroSpinner from "./ui/retro-spinner";
 
-function ContextFilterBar() {
-    const activeTab = useSidebarContextTab();
-    const setActiveTab = useSetSidebarContextTab();
+function ContextToolbar({ createInProjectId }: { createInProjectId: string }) {
     const sortMode = useSidebarSortMode();
     const setSortMode = useSetSidebarSortMode();
+    const createNote = useCreateNote();
+    const getOrCreateNewChat = useGetOrCreateNewChat();
 
     return (
         <div className="flex items-center justify-between px-2 py-1.5 border-b shrink-0">
             <div className="flex items-center gap-0.5">
-                {(
-                    [
-                        { value: "all", label: "All" },
-                        { value: "notes", label: "Notes" },
-                        { value: "chats", label: "Chats" },
-                    ] as const
-                ).map(({ value, label }) => (
-                    <button
-                        key={value}
-                        onClick={() => setActiveTab.mutate(value)}
-                        className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
-                            activeTab === value
-                                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                                : "text-muted-foreground hover:text-foreground"
-                        }`}
-                    >
-                        {label}
-                    </button>
-                ))}
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <button
+                            onClick={() =>
+                                createNote.mutate({
+                                    projectId: createInProjectId,
+                                })
+                            }
+                            className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors"
+                        >
+                            <FilePlusIcon
+                                className="size-3.5"
+                                strokeWidth={1.5}
+                            />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">New Note</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <button
+                            onClick={() =>
+                                getOrCreateNewChat.mutate({
+                                    projectId: createInProjectId,
+                                })
+                            }
+                            className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors"
+                        >
+                            <SquarePlusIcon
+                                className="size-3.5"
+                                strokeWidth={1.5}
+                            />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">New Chat</TooltipContent>
+                </Tooltip>
             </div>
             <DropdownMenu>
                 <Tooltip>
@@ -164,7 +181,6 @@ function CollectionView({ collectionId }: { collectionId: string }) {
     const currentNoteId = location.pathname.startsWith("/note/")
         ? location.pathname.split("/").pop()!
         : undefined;
-    const activeTab = useSidebarContextTab();
     const sortMode = useSidebarSortMode();
 
     // Detect smart collection
@@ -242,17 +258,14 @@ function CollectionView({ collectionId }: { collectionId: string }) {
         data: chat,
     }));
 
-    // Filter by active tab and sort into a single flat list
-    const visibleItems: SidebarItem[] = [];
-    if (activeTab === "all" || activeTab === "notes") {
-        visibleItems.push(...noteItems);
-    }
-    if (activeTab === "all" || activeTab === "chats") {
-        visibleItems.push(...chatItems);
-    }
-    const sortedItems = sortItems(visibleItems, sortMode);
+    const allItems: SidebarItem[] = [...noteItems, ...chatItems];
+    const sortedItems = sortItems(allItems, sortMode);
 
     const isAll = collectionId === "__all__";
+
+    // Determine which collection to create new items in
+    const createInProjectId =
+        collectionId !== "__all__" ? collectionId : "default";
 
     // Build project name lookup for collection labels in "All items" view
     const projectNameById = new Map<string, string>();
@@ -267,7 +280,7 @@ function CollectionView({ collectionId }: { collectionId: string }) {
 
     return (
         <div className="flex flex-col h-full bg-sidebar">
-            <ContextFilterBar />
+            <ContextToolbar createInProjectId={createInProjectId} />
 
             {/* Scrollable items */}
             <div className="flex-1 overflow-y-auto no-scrollbar pt-1">
@@ -302,7 +315,6 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
         ? location.pathname.split("/").pop()!
         : undefined;
 
-    const activeTab = useSidebarContextTab();
     const sortMode = useSidebarSortMode();
 
     // Fetch items matching ALL selected tags
@@ -353,15 +365,8 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
         data: chat,
     }));
 
-    // Filter by active tab and sort into a single flat list
-    const visibleItems: SidebarItem[] = [];
-    if (activeTab === "all" || activeTab === "notes") {
-        visibleItems.push(...noteItems);
-    }
-    if (activeTab === "all" || activeTab === "chats") {
-        visibleItems.push(...chatItems);
-    }
-    const sortedItems = sortItems(visibleItems, sortMode);
+    const allItems: SidebarItem[] = [...noteItems, ...chatItems];
+    const sortedItems = sortItems(allItems, sortMode);
 
     // Build project name lookup for collection labels
     const projectNameById = new Map<string, string>();
@@ -375,7 +380,7 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
 
     return (
         <div className="flex flex-col h-full bg-sidebar">
-            <ContextFilterBar />
+            <ContextToolbar createInProjectId="default" />
 
             {/* Scrollable items */}
             <div className="flex-1 overflow-y-auto no-scrollbar pt-1">
