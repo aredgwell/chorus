@@ -230,6 +230,8 @@ interface MarkdownEditorProps {
     placeholder?: string;
     /** Additional CSS class names for the editor container */
     className?: string;
+    /** Auto-focus the editor and place cursor at end when ready */
+    autoFocus?: boolean;
 }
 
 export function MarkdownEditor({
@@ -238,6 +240,7 @@ export function MarkdownEditor({
     onEditorReady,
     placeholder = "Start writing...",
     className,
+    autoFocus = false,
 }: MarkdownEditorProps) {
     const editor = useEditor({
         extensions: [
@@ -295,6 +298,13 @@ export function MarkdownEditor({
     useEffect(() => {
         onEditorReady?.(editor ?? null);
     }, [editor, onEditorReady]);
+
+    // Auto-focus and place cursor at end of content when editor is ready
+    useEffect(() => {
+        if (editor && autoFocus) {
+            editor.commands.focus("end");
+        }
+    }, [editor, autoFocus]);
 
     return <EditorContent editor={editor} />;
 }

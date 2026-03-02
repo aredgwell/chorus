@@ -5,13 +5,7 @@
     text-align: left;
 }
 
-/* Tag row below the header */
-.note-editor-tags {
-    padding: 4px 24px;
-    border-bottom: 1px solid hsl(var(--border));
-    background: hsl(var(--background));
-    flex-shrink: 0;
-}
+/* Tag row below the header (kept for potential reuse, now tags are in the toolbar) */
 
 /* Apple Notes-like typography for the note editor */
 .note-editor-content .ProseMirror {
@@ -35,6 +29,10 @@
     letter-spacing: -0.02em;
     margin-top: 1.2em;
     margin-bottom: 0.3em;
+}
+
+.note-editor-content .ProseMirror > h1:first-child {
+    margin-top: 0;
 }
 
 .note-editor-content .ProseMirror h2 {
@@ -192,7 +190,7 @@
 .note-editor-content {
     flex: 1;
     overflow-y: auto;
-    padding: 2rem 3rem;
+    padding: 1.25rem 3rem 2rem;
 }
 
 /* Editor toolbar */

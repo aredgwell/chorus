@@ -112,6 +112,11 @@ export default function NoteEditor() {
 
                         <div className="editor-toolbar-separator" />
 
+                        <TagInput itemType="note" itemId={noteId} />
+                        <LinkedItems noteId={noteId} />
+
+                        <div className="editor-toolbar-separator" />
+
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
@@ -151,11 +156,6 @@ export default function NoteEditor() {
                 }
             />
 
-            <div className="note-editor-tags">
-                <TagInput itemType="note" itemId={noteId} />
-                <LinkedItems noteId={noteId} />
-            </div>
-
             <div className="note-editor-content">
                 <MarkdownEditor
                     key={noteId}
@@ -163,6 +163,7 @@ export default function NoteEditor() {
                     onUpdate={handleUpdate}
                     onEditorReady={setEditor}
                     placeholder="Start writing..."
+                    autoFocus={note.content.trim() === "#"}
                 />
             </div>
 
