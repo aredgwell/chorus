@@ -27,7 +27,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@ui/components/ui/tooltip";
-import { projectDisplayName } from "@ui/lib/utils";
+import { compactDate, convertDate, projectDisplayName } from "@ui/lib/utils";
 import {
     ArrowUpDownIcon,
     CheckIcon,
@@ -272,27 +272,14 @@ function CollectionView({ collectionId }: { collectionId: string }) {
             {/* Scrollable items */}
             <div className="flex-1 overflow-y-auto no-scrollbar pt-1">
                 {sortedItems.length > 0 ? (
-                    sortedItems.map((item) =>
-                        item.type === "note" ? (
-                            <NoteListItem
-                                key={item.data.id + "-ctx"}
-                                note={item.data as Note}
-                                isActive={currentNoteId === item.data.id}
-                                collectionLabel={getCollectionLabel(
-                                    (item.data as Note).projectId,
-                                )}
-                            />
-                        ) : (
-                            <ChatListItem
-                                key={item.data.id + "-ctx"}
-                                chat={item.data as Chat}
-                                isActive={currentChatId === item.data.id}
-                                collectionLabel={getCollectionLabel(
-                                    (item.data as Chat).projectId,
-                                )}
-                            />
-                        ),
-                    )
+                    <ItemList
+                        items={sortedItems}
+                        showTypeHeaders={sortMode === "type"}
+                        currentNoteId={currentNoteId}
+                        currentChatId={currentChatId}
+                        getCollectionLabel={getCollectionLabel}
+                        keySuffix="-ctx"
+                    />
                 ) : (
                     <div className="px-3 py-2 text-sm text-muted-foreground">
                         No items yet
@@ -393,10 +380,64 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
             {/* Scrollable items */}
             <div className="flex-1 overflow-y-auto no-scrollbar pt-1">
                 {sortedItems.length > 0 ? (
-                    sortedItems.map((item) =>
-                        item.type === "note" ? (
+                    <ItemList
+                        items={sortedItems}
+                        showTypeHeaders={sortMode === "type"}
+                        currentNoteId={currentNoteId}
+                        currentChatId={currentChatId}
+                        getCollectionLabel={getCollectionLabel}
+                        keySuffix="-tag"
+                    />
+                ) : (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                        No items yet
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ─── ItemList (shared between CollectionView and TagFilterView) ──────────────
+
+function ItemList({
+    items,
+    showTypeHeaders,
+    currentNoteId,
+    currentChatId,
+    getCollectionLabel,
+    keySuffix,
+}: {
+    items: SidebarItem[];
+    showTypeHeaders: boolean;
+    currentNoteId: string | undefined;
+    currentChatId: string | undefined;
+    getCollectionLabel: (projectId: string) => string | undefined;
+    keySuffix: string;
+}) {
+    let lastType: "note" | "chat" | undefined;
+
+    return (
+        <>
+            {items.map((item) => {
+                const header =
+                    showTypeHeaders && item.type !== lastType ? (
+                        <div
+                            key={`header-${item.type}`}
+                            className="pt-3 pb-1 flex items-center"
+                        >
+                            <div className="sidebar-label flex w-full items-center gap-2 px-3 text-muted-foreground">
+                                {item.type === "note" ? "Notes" : "Chats"}
+                            </div>
+                        </div>
+                    ) : null;
+                lastType = item.type;
+
+                return (
+                    <React.Fragment key={item.data.id + keySuffix}>
+                        {header}
+                        {item.type === "note" ? (
                             <NoteListItem
-                                key={item.data.id + "-tag"}
                                 note={item.data as Note}
                                 isActive={currentNoteId === item.data.id}
                                 collectionLabel={getCollectionLabel(
@@ -405,22 +446,17 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
                             />
                         ) : (
                             <ChatListItem
-                                key={item.data.id + "-tag"}
                                 chat={item.data as Chat}
                                 isActive={currentChatId === item.data.id}
                                 collectionLabel={getCollectionLabel(
                                     (item.data as Chat).projectId,
                                 )}
                             />
-                        ),
-                    )
-                ) : (
-                    <div className="px-3 py-2 text-sm text-muted-foreground">
-                        No items yet
-                    </div>
-                )}
-            </div>
-        </div>
+                        )}
+                    </React.Fragment>
+                );
+            })}
+        </>
     );
 }
 
@@ -527,11 +563,19 @@ function NoteListItem({
                                 onStopEdit={() => setIsEditingTitle(false)}
                             />
                         </div>
-                        {collectionLabel && (
-                            <span className="text-[10px] text-muted-foreground/50 truncate pl-[calc(0.875rem+0.5rem)]">
-                                {collectionLabel}
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50 pl-[calc(0.875rem+0.5rem)]">
+                            <span>
+                                {compactDate(convertDate(note.updatedAt))}
                             </span>
-                        )}
+                            {collectionLabel && (
+                                <>
+                                    <span>·</span>
+                                    <span className="truncate">
+                                        {collectionLabel}
+                                    </span>
+                                </>
+                            )}
+                        </div>
                     </div>
 
                     {/* Gradient overlay on hover */}
@@ -766,11 +810,19 @@ function ChatListItem({
                                 </Tooltip>
                             )}
                         </div>
-                        {collectionLabel && (
-                            <span className="text-[10px] text-muted-foreground/50 truncate pl-[calc(0.875rem+0.5rem)]">
-                                {collectionLabel}
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50 pl-[calc(0.875rem+0.5rem)]">
+                            <span>
+                                {compactDate(convertDate(chat.updatedAt))}
                             </span>
-                        )}
+                            {collectionLabel && (
+                                <>
+                                    <span>·</span>
+                                    <span className="truncate">
+                                        {collectionLabel}
+                                    </span>
+                                </>
+                            )}
+                        </div>
                     </div>
 
                     {/* Gradient overlay on hover */}
