@@ -1,10 +1,38 @@
 import type { NodeViewProps } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper } from "@tiptap/react";
-import { CodeIcon, EyeIcon } from "lucide-react";
+import { CheckIcon, ClipboardIcon, CodeIcon, EyeIcon } from "lucide-react";
 import mermaid from "mermaid";
 import { useDeferredValue, useEffect, useState } from "react";
 
 let mermaidIdCounter = 0;
+
+/** Copy-to-clipboard button with brief checkmark feedback */
+function CopyButton({ getText }: { getText: () => string }) {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        void navigator.clipboard.writeText(getText()).then(() => {
+            setCopied(true);
+        });
+    };
+
+    useEffect(() => {
+        if (!copied) return;
+        const id = window.setTimeout(() => setCopied(false), 1500);
+        return () => window.clearTimeout(id);
+    }, [copied]);
+
+    return (
+        <button
+            type="button"
+            className="block-view-toggle"
+            onClick={handleCopy}
+            title="Copy to clipboard"
+        >
+            {copied ? <CheckIcon size={12} /> : <ClipboardIcon size={12} />}
+        </button>
+    );
+}
 
 /**
  * Renders a Mermaid diagram from source text using the mermaid v8 API directly.
@@ -97,18 +125,21 @@ export function MermaidBlockView({ node, editor, getPos }: NodeViewProps) {
         <NodeViewWrapper className="mermaid-block-wrapper">
             <div className="block-view-header" contentEditable={false}>
                 <span className="block-view-label">Mermaid</span>
-                <button
-                    type="button"
-                    className="block-view-toggle"
-                    onClick={() => setShowSource((prev) => !prev)}
-                    title={showSource ? "Show preview" : "Show source"}
-                >
-                    {showSource ? (
-                        <EyeIcon size={12} />
-                    ) : (
-                        <CodeIcon size={12} />
-                    )}
-                </button>
+                <div className="block-view-actions">
+                    <CopyButton getText={() => node.textContent} />
+                    <button
+                        type="button"
+                        className="block-view-toggle"
+                        onClick={() => setShowSource((prev) => !prev)}
+                        title={showSource ? "Show preview" : "Show source"}
+                    >
+                        {showSource ? (
+                            <EyeIcon size={12} />
+                        ) : (
+                            <CodeIcon size={12} />
+                        )}
+                    </button>
+                </div>
             </div>
 
             {showSource ? (

@@ -165,11 +165,17 @@
     position: relative;
 }
 
-.code-block-wrapper select {
+.code-block-actions {
     position: absolute;
     top: -0.5rem;
     right: 0.75rem;
     z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.code-block-actions select {
     font-size: 10px;
     line-height: 1;
     padding: 3px 8px;
@@ -182,8 +188,16 @@
     -webkit-appearance: none;
 }
 
-.code-block-wrapper select:focus {
+.code-block-actions select:focus {
     outline: none;
+}
+
+.code-block-actions .block-view-toggle {
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius);
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--muted));
 }
 
 /* Note editor layout */
@@ -271,6 +285,12 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: hsl(var(--muted-foreground));
+}
+
+.block-view-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
 }
 
 .block-view-toggle {

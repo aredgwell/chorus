@@ -26,6 +26,8 @@ import StarterKit from "@tiptap/starter-kit";
 import { common, createLowlight } from "lowlight";
 import {
     BoldIcon,
+    CheckIcon,
+    ClipboardIcon,
     CodeIcon,
     Heading1Icon,
     Heading2Icon,
@@ -48,25 +50,58 @@ const languages = [...lowlight.listLanguages(), "mermaid", "latex"].sort();
 import { KatexBlockView } from "./tiptap/KatexBlockView";
 import { MermaidBlockView } from "./tiptap/MermaidBlockView";
 
+/** Copy-to-clipboard button with brief checkmark feedback */
+function CopyButton({ getText }: { getText: () => string }) {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        void navigator.clipboard.writeText(getText()).then(() => {
+            setCopied(true);
+        });
+    };
+
+    useEffect(() => {
+        if (!copied) return;
+        const id = window.setTimeout(() => setCopied(false), 1500);
+        return () => window.clearTimeout(id);
+    }, [copied]);
+
+    return (
+        <button
+            type="button"
+            className="block-view-toggle"
+            onClick={handleCopy}
+            title="Copy to clipboard"
+            contentEditable={false}
+        >
+            {copied ? <CheckIcon size={12} /> : <ClipboardIcon size={12} />}
+        </button>
+    );
+}
+
 // Standard code block node view with language selector
 function CodeBlockView({ node, updateAttributes }: NodeViewProps) {
     return (
         <NodeViewWrapper className="code-block-wrapper">
-            <select
-                contentEditable={false}
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                value={node.attrs.language ?? ""}
-                onChange={(e) =>
-                    updateAttributes({ language: e.target.value || null })
-                }
-            >
-                <option value="">auto</option>
-                {languages.map((lang) => (
-                    <option key={lang} value={lang}>
-                        {lang}
-                    </option>
-                ))}
-            </select>
+            <div className="code-block-actions" contentEditable={false}>
+                <select
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    value={node.attrs.language ?? ""}
+                    onChange={(e) =>
+                        updateAttributes({
+                            language: e.target.value || null,
+                        })
+                    }
+                >
+                    <option value="">auto</option>
+                    {languages.map((lang) => (
+                        <option key={lang} value={lang}>
+                            {lang}
+                        </option>
+                    ))}
+                </select>
+                <CopyButton getText={() => node.textContent} />
+            </div>
             <pre>
                 <NodeViewContent<"code"> as="code" />
             </pre>
@@ -104,6 +139,11 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
     addKeyboardShortcuts() {
         return {
             ...this.parent?.(),
+            // Insert a tab (two spaces) instead of moving focus
+            Tab: ({ editor: ed }) => {
+                if (!ed.isActive("codeBlock")) return false;
+                return ed.commands.insertContent("  ");
+            },
             // Convert a line starting with ``` into a code block on Enter
             Enter: ({ editor: ed }) => {
                 const { $from, empty } = ed.state.selection;
