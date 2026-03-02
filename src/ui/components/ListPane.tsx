@@ -78,13 +78,13 @@ function ContextToolbar({ createInProjectId }: { createInProjectId: string }) {
     return (
         <div data-tauri-drag-region className="flex items-center justify-between px-2 h-[44px] border-b shrink-0">
             {/* Left side: sidebar toggle (only when sidebar is hidden) */}
-            <div className="flex items-center">
-                {!isSidebarOpen && (
-                    <div className="ml-[76px]">
-                        <SidebarTrigger />
-                    </div>
-                )}
-            </div>
+            {!isSidebarOpen ? (
+                <div className="pl-[68px]">
+                    <SidebarTrigger />
+                </div>
+            ) : (
+                <div />
+            )}
 
             {/* Right side: sort | separator | new note, new chat */}
             <div className="flex items-center">
