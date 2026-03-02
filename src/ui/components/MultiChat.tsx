@@ -403,8 +403,8 @@ export default function MultiChat() {
             className={`flex flex-col ${isQuickChatWindow ? "h-screen" : "h-full"} w-full min-w-0 mx-auto @container group relative
         ${isQuickChatWindow && (windowIsFocused ? "rounded-xl" : "bg-foreground/5 rounded-xl")}`}
         >
-            {/* header bar — only for quick chat windows */}
-            {isQuickChatWindow && (
+            {/* header bar */}
+            {isQuickChatWindow ? (
                 <QuickChatHeaderBar
                     visionModeEnabled={
                         appMetadata["vision_mode_enabled"] === "true"
@@ -416,6 +416,11 @@ export default function MultiChat() {
                         void handleOpenQuickChatInMainWindow()
                     }
                     onNewAmbientChat={() => createQuickChat.mutate()}
+                />
+            ) : (
+                <ChatTopBar
+                    chatId={chatId!}
+                    hasMessages={!!messageSetsQuery.data?.length}
                 />
             )}
 
@@ -434,14 +439,6 @@ export default function MultiChat() {
                             defaultSize={repliesDrawerOpen ? 70 : 100}
                         >
                             <div className="flex flex-col min-h-0 h-full">
-                                {!isQuickChatWindow && (
-                                    <ChatTopBar
-                                        chatId={chatId!}
-                                        hasMessages={
-                                            !!messageSetsQuery.data?.length
-                                        }
-                                    />
-                                )}
                                 <div className="relative flex-1 min-h-0 overflow-hidden">
                                 <MainScrollableContentView
                                     chatContainerRef={chatContainerRef}
