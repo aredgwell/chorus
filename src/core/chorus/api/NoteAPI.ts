@@ -170,7 +170,42 @@ export function useUpdateNote() {
                 params,
             );
         },
-        onSuccess: async (_data, variables) => {
+        onMutate: async (variables) => {
+            // Optimistically update the note in the list cache so title/content
+            // changes appear immediately (e.g., H1 → sidebar title)
+            await queryClient.cancelQueries(noteQueries.list());
+            const previousNotes = queryClient.getQueryData<Note[]>(
+                noteQueries.list().queryKey,
+            );
+            queryClient.setQueryData<Note[]>(
+                noteQueries.list().queryKey,
+                (old) =>
+                    old?.map((n) =>
+                        n.id === variables.noteId
+                            ? {
+                                  ...n,
+                                  ...(variables.title !== undefined && {
+                                      title: variables.title,
+                                  }),
+                                  ...(variables.content !== undefined && {
+                                      content: variables.content,
+                                  }),
+                                  updatedAt: new Date().toISOString(),
+                              }
+                            : n,
+                    ),
+            );
+            return { previousNotes };
+        },
+        onError: (_err, _vars, context) => {
+            if (context?.previousNotes) {
+                queryClient.setQueryData(
+                    noteQueries.list().queryKey,
+                    context.previousNotes,
+                );
+            }
+        },
+        onSettled: async (_data, _error, variables) => {
             await queryClient.invalidateQueries(noteQueries.list());
 
             // Enqueue embedding generation when note content changes

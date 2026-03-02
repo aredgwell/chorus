@@ -13,21 +13,21 @@ const modelConfigChatKeys = {
 // Saved model config functions
 async function fetchSavedModelConfigChat(
     chatId: string,
-): Promise<string[] | null> {
+): Promise<string[] | undefined> {
     const rows = await db.select<{ model_ids: string }[]>(
         `SELECT model_ids FROM saved_model_configs_chats WHERE chat_id = ?`,
         [chatId],
     );
 
     if (rows.length === 0) {
-        return null;
+        return undefined;
     }
 
     // Parse the JSON array of model IDs
     try {
         return JSON.parse(rows[0].model_ids) as string[];
     } catch {
-        return null;
+        return undefined;
     }
 }
 
@@ -93,7 +93,7 @@ export function useReplyModelConfig(chatId: string) {
     const savedModelConfig = useSavedModelConfigChat(chatId);
     return {
         ...savedModelConfig,
-        data: savedModelConfig.data?.[0] ?? null,
+        data: savedModelConfig.data?.[0] ?? undefined,
     };
 }
 

@@ -38,13 +38,13 @@ function readToolPermission(row: ToolPermissionDBRow): ToolPermission {
 export async function fetchToolPermission(
     toolsetName: string,
     toolName: string,
-): Promise<ToolPermission | null> {
+): Promise<ToolPermission | undefined> {
     const rows = await db.select<ToolPermissionDBRow[]>(
         "SELECT * FROM tool_permissions WHERE toolset_name = ? AND tool_name = ?",
         [toolsetName, toolName],
     );
 
-    return rows.length > 0 ? readToolPermission(rows[0]) : null;
+    return rows.length > 0 ? readToolPermission(rows[0]) : undefined;
 }
 
 export async function fetchAllToolPermissions(): Promise<ToolPermission[]> {
@@ -161,7 +161,7 @@ export async function checkToolPermission(
 ): Promise<{
     shouldAsk: boolean;
     isAllowed: boolean;
-    permission: ToolPermission | null;
+    permission: ToolPermission | undefined;
 }> {
     const permission = await fetchToolPermission(toolsetName, toolName);
 
@@ -170,7 +170,7 @@ export async function checkToolPermission(
         return {
             shouldAsk: defaultPermission === "ask",
             isAllowed: defaultPermission === "always_allow",
-            permission: null,
+            permission: undefined,
         };
     }
 
