@@ -9,7 +9,7 @@ import {
     useTags,
     useUpdateTag,
 } from "@core/chorus/api/TagAPI";
-import { TagIcon, TrashIcon } from "lucide-react";
+import { TagIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -133,10 +133,10 @@ export function TagInput({ itemType, itemId }: TagInputProps) {
                             </span>
                             <button
                                 type="button"
-                                className="text-muted-foreground hover:text-destructive transition-colors p-0.5"
+                                className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
                                 onClick={() => handleRemoveTag(tag.id)}
                             >
-                                <TrashIcon size={12} />
+                                <XIcon size={12} />
                             </button>
                         </div>
                     ))}

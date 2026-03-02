@@ -80,8 +80,8 @@ function ContextToolbar({ createInProjectId }: { createInProjectId: string }) {
             {/* Left side: sidebar toggle (only when sidebar is hidden) */}
             <div className="flex items-center">
                 {!isSidebarOpen && (
-                    <div className="ml-[68px]">
-                        <SidebarTrigger className="size-3.5!" />
+                    <div className="ml-[76px]">
+                        <SidebarTrigger />
                     </div>
                 )}
             </div>
