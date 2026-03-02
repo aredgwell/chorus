@@ -6,7 +6,7 @@ import type { Editor } from "@tiptap/core";
 import { useQueryClient } from "@tanstack/react-query";
 import _ from "lodash";
 import { MessageSquareIcon, TrashIcon } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -43,6 +43,14 @@ export default function NoteEditor() {
         }, 500),
         [updateNote],
     );
+
+    // Flush any pending debounced save when navigating away or on unmount,
+    // so content typed in the last 500ms before clicking away isn't lost.
+    useEffect(() => {
+        return () => {
+            debouncedSave.flush();
+        };
+    }, [noteId, debouncedSave]);
 
     const handleUpdate = useCallback(
         (markdown: string) => {

@@ -207,6 +207,9 @@ export function useUpdateNote() {
         },
         onSettled: async (_data, _error, variables) => {
             await queryClient.invalidateQueries(noteQueries.list());
+            void queryClient.invalidateQueries(
+                noteQueries.detail(variables.noteId),
+            );
 
             // Enqueue embedding generation when note content changes
             try {
