@@ -91,7 +91,7 @@ function ContextToolbar({ createInProjectId }: { createInProjectId: string }) {
                                             tab: "general",
                                         });
                                     }}
-                                    className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors ml-14"
+                                    className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors ml-[68px]"
                                 >
                                     <Settings
                                         className="size-3.5"
