@@ -167,8 +167,9 @@
 
 .code-block-wrapper select {
     position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
+    top: -0.5rem;
+    right: 0.75rem;
+    z-index: 1;
     font-size: 10px;
     line-height: 1;
     padding: 3px 8px;

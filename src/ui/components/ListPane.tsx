@@ -533,6 +533,7 @@ function NoteListItem({
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const renameNote = NoteAPI.useRenameNote();
     const deleteNote = NoteAPI.useDeleteNote();
+    const { mutate: togglePinNote } = NoteAPI.useTogglePinNote();
     const isDeleteDialogOpen = useDialogStore(
         (state) => state.activeDialogId === deleteNoteDialogId(note.id),
     );
@@ -566,6 +567,9 @@ function NoteListItem({
                                 className="size-3.5 mr-2 text-muted-foreground shrink-0"
                                 strokeWidth={1.5}
                             />
+                            {note.pinned && (
+                                <PinIcon className="w-2.5 h-2.5 mr-1.5 shrink-0 text-muted-foreground" />
+                            )}
                             <EditableTitle
                                 title={note.title || ""}
                                 onUpdate={async (newTitle) => {
@@ -619,6 +623,35 @@ function NoteListItem({
                         )}
                     </div>
 
+                    {/* Gradient overlay on hover */}
+                    <div className="absolute right-0 w-20 h-full opacity-0 group-hover/chat-button:opacity-100 transition-opacity bg-linear-to-l from-sidebar-accent via-sidebar-accent to-transparent pointer-events-none" />
+
+                    {/* Note actions */}
+                    <div className="flex items-center gap-2 absolute right-3 z-10">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        togglePinNote({
+                                            noteId: note.id,
+                                            pinned: !note.pinned,
+                                        });
+                                    }}
+                                >
+                                    {note.pinned ? (
+                                        <PinOffIcon className="h-[13px] w-[13px] opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground" />
+                                    ) : (
+                                        <PinIcon className="h-[13px] w-[13px] opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground" />
+                                    )}
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                                {note.pinned ? "Unpin note" : "Pin note"}
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
                 </SidebarMenuButton>
             </Draggable>
 
