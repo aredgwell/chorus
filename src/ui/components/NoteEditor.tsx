@@ -106,12 +106,11 @@ export default function NoteEditor() {
     return (
         <div className="flex flex-col h-full">
             <HeaderBar
+                leftActions={
+                    editor ? <EditorToolbar editor={editor} /> : undefined
+                }
                 actions={
                     <div className="flex items-center gap-1">
-                        {editor && <EditorToolbar editor={editor} />}
-
-                        <div className="editor-toolbar-separator" />
-
                         <TagInput itemType="note" itemId={noteId} />
                         <LinkedItems noteId={noteId} />
 

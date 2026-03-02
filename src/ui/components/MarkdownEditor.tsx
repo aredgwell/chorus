@@ -299,10 +299,10 @@ export function MarkdownEditor({
         onEditorReady?.(editor ?? null);
     }, [editor, onEditorReady]);
 
-    // Auto-focus and place cursor at end of content when editor is ready
+    // Auto-focus and place cursor at start of content when editor is ready
     useEffect(() => {
         if (editor && autoFocus) {
-            editor.commands.focus("end");
+            editor.commands.focus("start");
         }
     }, [editor, autoFocus]);
 

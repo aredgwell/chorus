@@ -3,11 +3,13 @@ import { useSidebar } from "@ui/hooks/useSidebar";
 import { ReactNode } from "react";
 
 interface HeaderBarProps {
+    /** Actions for the left side (e.g. formatting toolbar) */
+    leftActions?: ReactNode;
     /** Actions for the right side (buttons, menus, etc.) */
     actions?: ReactNode;
 }
 
-export function HeaderBar({ actions }: HeaderBarProps) {
+export function HeaderBar({ leftActions, actions }: HeaderBarProps) {
     const { open: isSidebarOpen } = useSidebar();
 
     return (
@@ -23,6 +25,7 @@ export function HeaderBar({ actions }: HeaderBarProps) {
         >
             <div className="flex items-center gap-1">
                 {!isSidebarOpen && <SidebarTrigger className="size-4! ml-2" />}
+                {leftActions}
             </div>
 
             {actions && (
