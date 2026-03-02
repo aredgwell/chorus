@@ -43,7 +43,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Markdown } from "tiptap-markdown";
 
 const lowlight = createLowlight(common);
-const languages = lowlight.listLanguages().sort();
+const languages = [...lowlight.listLanguages(), "mermaid", "latex"].sort();
 
 import { KatexBlockView } from "./tiptap/KatexBlockView";
 import { MermaidBlockView } from "./tiptap/MermaidBlockView";
