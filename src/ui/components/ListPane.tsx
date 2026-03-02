@@ -77,9 +77,13 @@ function ContextToolbar({ createInProjectId }: { createInProjectId: string }) {
 
     return (
         <div data-tauri-drag-region className="flex items-center justify-between px-2 h-[44px] border-b shrink-0">
-            {/* Left side: sidebar toggle (consistent position) */}
-            <div className={`flex items-center ${isSidebarOpen ? "" : "ml-[68px]"}`}>
-                <SidebarTrigger className="size-3.5!" />
+            {/* Left side: sidebar toggle (only when sidebar is hidden) */}
+            <div className="flex items-center">
+                {!isSidebarOpen && (
+                    <div className="ml-[68px]">
+                        <SidebarTrigger className="size-3.5!" />
+                    </div>
+                )}
             </div>
 
             {/* Right side: sort | separator | new note, new chat */}
@@ -592,31 +596,27 @@ function NoteListItem({
                                     </span>
                                 </>
                             )}
-                            {tags.length > 0 && (
-                                <>
-                                    <span>·</span>
-                                    <span className="flex items-center gap-1">
-                                        {tags.map((tag) => (
-                                            <Tooltip key={tag.id}>
-                                                <TooltipTrigger asChild>
-                                                    <span
-                                                        className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
-                                                        style={{
-                                                            backgroundColor:
-                                                                tag.color ??
-                                                                "hsl(var(--muted-foreground))",
-                                                        }}
-                                                    />
-                                                </TooltipTrigger>
-                                                <TooltipContent side="bottom">
-                                                    {tag.name}
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        ))}
-                                    </span>
-                                </>
-                            )}
                         </div>
+                        {tags.length > 0 && (
+                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50 pl-[calc(0.875rem+0.5rem)] overflow-hidden">
+                                {tags.map((tag) => (
+                                    <span
+                                        key={tag.id}
+                                        className="flex items-center gap-0.5 shrink-0"
+                                    >
+                                        <span
+                                            className="w-1.5 h-1.5 rounded-full shrink-0"
+                                            style={{
+                                                backgroundColor:
+                                                    tag.color ??
+                                                    "hsl(var(--muted-foreground))",
+                                            }}
+                                        />
+                                        <span>{tag.name}</span>
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                 </SidebarMenuButton>
@@ -822,31 +822,27 @@ function ChatListItem({
                                     </span>
                                 </>
                             )}
-                            {tags.length > 0 && (
-                                <>
-                                    <span>·</span>
-                                    <span className="flex items-center gap-1">
-                                        {tags.map((tag) => (
-                                            <Tooltip key={tag.id}>
-                                                <TooltipTrigger asChild>
-                                                    <span
-                                                        className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
-                                                        style={{
-                                                            backgroundColor:
-                                                                tag.color ??
-                                                                "hsl(var(--muted-foreground))",
-                                                        }}
-                                                    />
-                                                </TooltipTrigger>
-                                                <TooltipContent side="bottom">
-                                                    {tag.name}
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        ))}
-                                    </span>
-                                </>
-                            )}
                         </div>
+                        {tags.length > 0 && (
+                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50 pl-[calc(0.875rem+0.5rem)] overflow-hidden">
+                                {tags.map((tag) => (
+                                    <span
+                                        key={tag.id}
+                                        className="flex items-center gap-0.5 shrink-0"
+                                    >
+                                        <span
+                                            className="w-1.5 h-1.5 rounded-full shrink-0"
+                                            style={{
+                                                backgroundColor:
+                                                    tag.color ??
+                                                    "hsl(var(--muted-foreground))",
+                                            }}
+                                        />
+                                        <span>{tag.name}</span>
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Gradient overlay on hover */}

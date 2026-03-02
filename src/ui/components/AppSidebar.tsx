@@ -13,7 +13,12 @@ import {
     useDeleteProject,
     useRenameProject,
 } from "@core/chorus/api/ProjectAPI";
-import { useDeleteTag, useTags } from "@core/chorus/api/TagAPI";
+import {
+    TAG_COLOR_PALETTE,
+    useDeleteTag,
+    useTags,
+    useUpdateTag,
+} from "@core/chorus/api/TagAPI";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
@@ -73,6 +78,7 @@ function DevModeIndicator() {
 function SidebarTagsSection() {
     const tagsQuery = useTags();
     const deleteTag = useDeleteTag();
+    const updateTag = useUpdateTag();
     const selectedTagIds = useSelectedTagIds();
     const setSelectedTagIds = useSetSelectedTagIds();
     const setSelectedCollectionId = useSetSelectedCollectionId();
@@ -136,19 +142,65 @@ function SidebarTagsSection() {
                                 key={tag.id}
                                 className={`group/tag flex items-center gap-2 px-2 py-1 rounded-md text-sm cursor-pointer transition-colors ${
                                     isSelected
-                                        ? "bg-accent text-accent-foreground font-medium"
-                                        : "hover:bg-accent"
+                                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                                        : "hover:bg-sidebar-accent/50"
                                 }`}
                                 onClick={() => handleToggleTag(tag.id)}
                             >
-                                <span
-                                    className="w-2 h-2 rounded-full shrink-0"
-                                    style={{
-                                        backgroundColor:
-                                            tag.color ??
-                                            "hsl(var(--muted-foreground))",
-                                    }}
-                                />
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <button
+                                            type="button"
+                                            className="shrink-0 rounded-full hover:ring-2 hover:ring-muted-foreground/30 transition-all"
+                                            onClick={(e) =>
+                                                e.stopPropagation()
+                                            }
+                                        >
+                                            <span
+                                                className="block w-2.5 h-2.5 rounded-full"
+                                                style={{
+                                                    backgroundColor:
+                                                        tag.color ??
+                                                        "hsl(var(--muted-foreground))",
+                                                }}
+                                            />
+                                        </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                        className="w-auto p-2"
+                                        align="start"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <div className="flex gap-1 flex-wrap max-w-[130px]">
+                                            {TAG_COLOR_PALETTE.map((color) => (
+                                                <button
+                                                    key={color}
+                                                    type="button"
+                                                    className={`w-5 h-5 rounded-full border-2 transition-all ${
+                                                        tag.color === color
+                                                            ? "border-foreground scale-110"
+                                                            : "border-transparent hover:border-muted-foreground/50"
+                                                    }`}
+                                                    style={{
+                                                        backgroundColor: color,
+                                                    }}
+                                                    onClick={() => {
+                                                        void updateTag.mutateAsync(
+                                                            {
+                                                                tagId: tag.id,
+                                                                color:
+                                                                    tag.color ===
+                                                                    color
+                                                                        ? null
+                                                                        : color,
+                                                            },
+                                                        );
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
                                 <span className="truncate flex-1">
                                     {tag.name}
                                 </span>

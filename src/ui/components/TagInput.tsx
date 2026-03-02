@@ -9,7 +9,7 @@ import {
     useTags,
     useUpdateTag,
 } from "@core/chorus/api/TagAPI";
-import { TagIcon, TrashIcon, XIcon } from "lucide-react";
+import { TagIcon, TrashIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -19,7 +19,7 @@ interface TagInputProps {
     itemId: string;
 }
 
-/** Compact tag chips with popover for adding tags */
+/** Compact tag button with popover for managing tags */
 export function TagInput({ itemType, itemId }: TagInputProps) {
     const [open, setOpen] = useState(false);
     const [input, setInput] = useState("");
@@ -85,155 +85,159 @@ export function TagInput({ itemType, itemId }: TagInputProps) {
     };
 
     return (
-        <div className="tag-input-container">
-            {itemTags.map((tag) => (
-                <span key={tag.id} className="tag-chip">
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <button
-                                type="button"
-                                className="tag-chip-dot-btn"
-                            >
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <button type="button" className="tag-add-btn flex items-center gap-1">
+                    {itemTags.length > 0 && (
+                        <span className="flex items-center gap-0.5">
+                            {itemTags.map((tag) => (
                                 <span
-                                    className="tag-chip-dot"
+                                    key={tag.id}
+                                    className="w-2 h-2 rounded-full shrink-0"
                                     style={{
                                         backgroundColor:
                                             tag.color ??
                                             "hsl(var(--muted-foreground))",
                                     }}
                                 />
-                            </button>
-                        </PopoverTrigger>
-                        <PopoverContent
-                            className="w-auto p-2"
-                            align="start"
+                            ))}
+                        </span>
+                    )}
+                    <TagIcon size={12} />
+                </button>
+            </PopoverTrigger>
+            <PopoverContent
+                align="end"
+                className="w-52 p-2"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+            >
+                <input
+                    type="text"
+                    className="tag-search-input"
+                    placeholder="Add tag..."
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    autoFocus
+                />
+                <div className="tag-suggestions">
+                    {/* Currently attached tags — with color picker and remove */}
+                    {itemTags.map((tag) => (
+                        <div
+                            key={tag.id}
+                            className="tag-suggestion-item justify-between"
                         >
-                            <div className="flex gap-1 flex-wrap max-w-[130px]">
-                                {TAG_COLOR_PALETTE.map((color) => (
-                                    <button
-                                        key={color}
-                                        type="button"
-                                        className={`w-5 h-5 rounded-full border-2 transition-all ${
-                                            tag.color === color
-                                                ? "border-foreground scale-110"
-                                                : "border-transparent hover:border-muted-foreground/50"
-                                        }`}
-                                        style={{
-                                            backgroundColor: color,
-                                        }}
-                                        onClick={() => {
-                                            void updateTag.mutateAsync({
-                                                tagId: tag.id,
-                                                color:
-                                                    tag.color === color
-                                                        ? null
-                                                        : color,
-                                            });
-                                        }}
-                                    />
-                                ))}
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-                    <span className="tag-chip-name">{tag.name}</span>
-                    <button
-                        type="button"
-                        className="tag-chip-remove"
-                        onClick={() => handleRemoveTag(tag.id)}
-                    >
-                        <XIcon size={10} />
-                    </button>
-                </span>
-            ))}
-
-            <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger asChild>
-                    <button type="button" className="tag-add-btn">
-                        <TagIcon size={12} />
-                    </button>
-                </PopoverTrigger>
-                <PopoverContent
-                    align="start"
-                    className="w-52 p-2"
-                    onOpenAutoFocus={(e) => e.preventDefault()}
-                >
-                    <input
-                        type="text"
-                        className="tag-search-input"
-                        placeholder="Add tag..."
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        autoFocus
-                    />
-                    <div className="tag-suggestions">
-                        {/* Currently attached tags — with remove button */}
-                        {itemTags.map((tag) => (
-                            <div
-                                key={tag.id}
-                                className="tag-suggestion-item justify-between"
-                            >
-                                <span className="flex items-center gap-1.5">
-                                    <span
-                                        className="tag-chip-dot"
-                                        style={{
-                                            backgroundColor:
-                                                tag.color ??
-                                                "hsl(var(--muted-foreground))",
-                                        }}
-                                    />
-                                    {tag.name}
-                                </span>
-                                <button
-                                    type="button"
-                                    className="text-muted-foreground hover:text-destructive transition-colors p-0.5"
-                                    onClick={() => handleRemoveTag(tag.id)}
-                                >
-                                    <TrashIcon size={12} />
-                                </button>
-                            </div>
-                        ))}
-                        {itemTags.length > 0 && suggestions.length > 0 && (
-                            <div className="border-t border-border my-1" />
-                        )}
-                        {/* Unattached tags to add */}
-                        {suggestions.map((tag) => (
-                            <button
-                                key={tag.id}
-                                type="button"
-                                className="tag-suggestion-item"
-                                onClick={() => handleAddExistingTag(tag)}
-                            >
-                                {tag.color && (
-                                    <span
-                                        className="tag-chip-dot"
-                                        style={{
-                                            backgroundColor: tag.color,
-                                        }}
-                                    />
-                                )}
+                            <span className="flex items-center gap-1.5">
+                                <TagColorDot tag={tag} updateTag={updateTag} />
                                 {tag.name}
-                            </button>
-                        ))}
-                        {input.trim() && !inputMatchesExisting && (
+                            </span>
                             <button
                                 type="button"
-                                className="tag-suggestion-item tag-suggestion-create"
-                                onClick={() => void handleCreateAndAdd()}
+                                className="text-muted-foreground hover:text-destructive transition-colors p-0.5"
+                                onClick={() => handleRemoveTag(tag.id)}
                             >
-                                Create &ldquo;{input.trim()}&rdquo;
+                                <TrashIcon size={12} />
                             </button>
-                        )}
-                        {!suggestions.length &&
-                            !input.trim() &&
-                            allTags.length === 0 && (
-                                <div className="tag-suggestion-empty">
-                                    Type to create your first tag
-                                </div>
+                        </div>
+                    ))}
+                    {itemTags.length > 0 && suggestions.length > 0 && (
+                        <div className="border-t border-border my-1" />
+                    )}
+                    {/* Unattached tags to add */}
+                    {suggestions.map((tag) => (
+                        <button
+                            key={tag.id}
+                            type="button"
+                            className="tag-suggestion-item"
+                            onClick={() => handleAddExistingTag(tag)}
+                        >
+                            {tag.color && (
+                                <span
+                                    className="tag-chip-dot"
+                                    style={{
+                                        backgroundColor: tag.color,
+                                    }}
+                                />
                             )}
-                    </div>
-                </PopoverContent>
-            </Popover>
-        </div>
+                            {tag.name}
+                        </button>
+                    ))}
+                    {input.trim() && !inputMatchesExisting && (
+                        <button
+                            type="button"
+                            className="tag-suggestion-item tag-suggestion-create"
+                            onClick={() => void handleCreateAndAdd()}
+                        >
+                            Create &ldquo;{input.trim()}&rdquo;
+                        </button>
+                    )}
+                    {!suggestions.length &&
+                        !input.trim() &&
+                        allTags.length === 0 && (
+                            <div className="tag-suggestion-empty">
+                                Type to create your first tag
+                            </div>
+                        )}
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+}
+
+/** Color dot with popover for changing tag color */
+function TagColorDot({
+    tag,
+    updateTag,
+}: {
+    tag: Tag;
+    updateTag: ReturnType<typeof useUpdateTag>;
+}) {
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <button
+                    type="button"
+                    className="tag-chip-dot-btn"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <span
+                        className="tag-chip-dot"
+                        style={{
+                            backgroundColor:
+                                tag.color ?? "hsl(var(--muted-foreground))",
+                        }}
+                    />
+                </button>
+            </PopoverTrigger>
+            <PopoverContent
+                className="w-auto p-2"
+                align="start"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex gap-1 flex-wrap max-w-[130px]">
+                    {TAG_COLOR_PALETTE.map((color) => (
+                        <button
+                            key={color}
+                            type="button"
+                            className={`w-5 h-5 rounded-full border-2 transition-all ${
+                                tag.color === color
+                                    ? "border-foreground scale-110"
+                                    : "border-transparent hover:border-muted-foreground/50"
+                            }`}
+                            style={{
+                                backgroundColor: color,
+                            }}
+                            onClick={() => {
+                                void updateTag.mutateAsync({
+                                    tagId: tag.id,
+                                    color:
+                                        tag.color === color ? null : color,
+                                });
+                            }}
+                        />
+                    ))}
+                </div>
+            </PopoverContent>
+        </Popover>
     );
 }

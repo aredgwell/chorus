@@ -118,8 +118,10 @@ const Sidebar = React.forwardRef<
                     >
                         <div
                             data-tauri-drag-region
-                            className="h-[44px] shrink-0 border-b"
-                        />
+                            className="flex items-center pl-[68px] h-[44px] shrink-0 border-b"
+                        >
+                            <SidebarTrigger />
+                        </div>
                         {children}
                     </div>
                     <SidebarResizeHandle />

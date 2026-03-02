@@ -1,6 +1,6 @@
 import "@ui/styles/tiptap.css";
 
-import type { Editor, NodeViewProps } from "@tiptap/core";
+import { type Editor, type NodeViewProps, textblockTypeInputRule } from "@tiptap/core";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
@@ -89,6 +89,17 @@ function CodeBlockNodeView(props: NodeViewProps) {
 const CustomCodeBlock = CodeBlockLowlight.extend({
     addNodeView() {
         return ReactNodeViewRenderer(CodeBlockNodeView);
+    },
+    addInputRules() {
+        return [
+            textblockTypeInputRule({
+                find: /^```([a-z]*)$/,
+                type: this.type,
+                getAttributes: (match) => ({
+                    language: match[1] || undefined,
+                }),
+            }),
+        ];
     },
     addKeyboardShortcuts() {
         return {
