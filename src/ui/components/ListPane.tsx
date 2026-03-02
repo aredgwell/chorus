@@ -24,7 +24,6 @@ import {
     fetchSmartCollectionItems,
     type SmartCollectionItem,
 } from "@core/chorus/api/ProjectAPI";
-import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import {
     type NavigableItem,
     setVisibleItems,
@@ -60,15 +59,7 @@ import Draggable from "./Draggable";
 import { EditableTitle } from "./EditableTitle";
 import { useSettings } from "./hooks/useSettings";
 import { type SidebarItem, sortItems } from "./sidebar/ItemListHelpers";
-import { Button } from "./ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "./ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -98,7 +89,7 @@ function ContextToolbar({ createInProjectId }: { createInProjectId: string }) {
         <div data-tauri-drag-region className="flex items-center justify-between px-2 h-[44px] border-b shrink-0">
             {/* Left side: sidebar toggle (only when sidebar is hidden) */}
             {!isSidebarOpen ? (
-                <div className="pl-[68px]">
+                <div className="pl-[76px]">
                     <SidebarTrigger />
                 </div>
             ) : (
@@ -535,7 +526,6 @@ const SplitOptimized = forwardRef<
 
 // ─── NoteListItem ───────────────────────────────────────────────────────────
 
-const deleteNoteDialogId = (noteId: string) => `delete-note-dialog-${noteId}`;
 
 function NoteListItem({
     note,
@@ -558,23 +548,14 @@ function NoteListItem({
     const allTagsQuery = useTags();
     const addTag = useAddTagToItem();
     const removeTag = useRemoveTagFromItem();
-    const isDeleteDialogOpen = useDialogStore(
-        (state) => state.activeDialogId === deleteNoteDialogId(note.id),
-    );
-    const deleteConfirmButtonRef = useRef<HTMLButtonElement>(null);
+    const [deletePopoverOpen, setDeletePopoverOpen] = useState(false);
 
     const handleConfirmDelete = useCallback(async () => {
         const noteTitle = note.title || "Untitled note";
         await deleteNote.mutateAsync({ noteId: note.id });
-        dialogActions.closeDialog();
+        setDeletePopoverOpen(false);
         toast(`'${noteTitle}' deleted`);
     }, [note.id, note.title, deleteNote]);
-
-    useEffect(() => {
-        if (isDeleteDialogOpen && deleteConfirmButtonRef.current) {
-            deleteConfirmButtonRef.current.focus();
-        }
-    }, [isDeleteDialogOpen]);
 
     const projects = projectsQuery.data ?? [];
     const allTags = allTagsQuery.data ?? [];
@@ -687,46 +668,29 @@ function NoteListItem({
                 </SidebarMenuButton>
             </Draggable>
 
-            {/* Delete confirmation dialog */}
-            <Dialog id={deleteNoteDialogId(note.id)} open={isDeleteDialogOpen}>
-                <DialogContent className="sm:max-w-md p-5">
-                    <DialogHeader>
-                        <DialogTitle>
-                            Delete &ldquo;
-                            {note.title || "Untitled note"}
-                            &rdquo;
-                        </DialogTitle>
-                        <DialogDescription>
-                            Are you sure you want to delete this note? This
-                            action cannot be undone.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => dialogActions.closeDialog()}
-                            tabIndex={-1}
-                        >
-                            Cancel{" "}
-                            <span className="ml-1 text-sm text-muted-foreground/70">
-                                Esc
-                            </span>
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="default"
-                            size="sm"
-                            onClick={() => void handleConfirmDelete()}
-                            ref={deleteConfirmButtonRef}
-                            tabIndex={1}
-                        >
-                            Delete <span className="ml-1 text-sm">↵</span>
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            {/* Delete confirmation popover */}
+            <Popover open={deletePopoverOpen} onOpenChange={setDeletePopoverOpen}>
+                <PopoverTrigger asChild>
+                    <span className="hidden" />
+                </PopoverTrigger>
+                <PopoverContent className="w-40 p-1" align="start">
+                    <button
+                        type="button"
+                        className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent cursor-default"
+                        onClick={() => void handleConfirmDelete()}
+                    >
+                        <TrashIcon className="size-3.5" />
+                        Delete
+                    </button>
+                    <button
+                        type="button"
+                        className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent cursor-default"
+                        onClick={() => setDeletePopoverOpen(false)}
+                    >
+                        Cancel
+                    </button>
+                </PopoverContent>
+            </Popover>
         </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
@@ -830,7 +794,7 @@ function NoteListItem({
             <ContextMenuSeparator />
             <ContextMenuItem
                 className="text-destructive focus:text-destructive"
-                onClick={() => dialogActions.openDialog(deleteNoteDialogId(note.id))}
+                onClick={() => setDeletePopoverOpen(true)}
             >
                 <TrashIcon className="size-3.5 mr-2" />{" "}Delete
             </ContextMenuItem>
@@ -841,7 +805,6 @@ function NoteListItem({
 
 // ─── ChatListItem ───────────────────────────────────────────────────────────
 
-const deleteChatDialogId = (chatId: string) => `delete-chat-dialog-${chatId}`;
 
 function ChatListItem({
     chat,
@@ -854,10 +817,7 @@ function ChatListItem({
     collectionLabel?: string;
     tags: Tag[];
 }) {
-    const isDeleteChatDialogOpen = useDialogStore(
-        (state) => state.activeDialogId === deleteChatDialogId(chat.id),
-    );
-    const deleteConfirmButtonRef = useRef<HTMLButtonElement>(null);
+    const [deletePopoverOpen, setDeletePopoverOpen] = useState(false);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const settings = useSettings();
     const navigateRef = useRef(useNavigate());
@@ -881,27 +841,9 @@ function ChatListItem({
     const handleConfirmDelete = useCallback(async () => {
         const chatTitle = chat.title || "Untitled Chat";
         await deleteChatMutateAsync({ chatId: chat.id });
-        dialogActions.closeDialog();
+        setDeletePopoverOpen(false);
         toast(`'${chatTitle}' deleted`);
     }, [chat.id, chat.title, deleteChatMutateAsync]);
-
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (!isDeleteChatDialogOpen) return;
-            if (e.key === "Escape") {
-                dialogActions.closeDialog();
-                e.preventDefault();
-            }
-        };
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isDeleteChatDialogOpen, chat.id]);
-
-    useEffect(() => {
-        if (isDeleteChatDialogOpen && deleteConfirmButtonRef.current) {
-            deleteConfirmButtonRef.current?.focus();
-        }
-    }, [isDeleteChatDialogOpen]);
 
     const showCost = settings?.showCost ?? false;
     const projects = projectsQuery.data ?? [];
@@ -1062,45 +1004,29 @@ function ChatListItem({
                 </SidebarMenuButton>
             </Draggable>
 
-            {/* Delete confirmation dialog */}
-            <Dialog id={deleteChatDialogId(chat.id)}>
-                <DialogContent className="sm:max-w-md p-5">
-                    <DialogHeader>
-                        <DialogTitle>
-                            Delete &ldquo;
-                            {chat.title || "Untitled Chat"}&rdquo;
-                        </DialogTitle>
-                        <DialogDescription>
-                            Are you sure you want to delete this chat? This
-                            action cannot be undone.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => dialogActions.closeDialog()}
-                            tabIndex={-1}
-                        >
-                            Cancel{" "}
-                            <span className="ml-1 text-sm text-muted-foreground/70">
-                                Esc
-                            </span>
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="default"
-                            size="sm"
-                            onClick={() => void handleConfirmDelete()}
-                            tabIndex={1}
-                            ref={deleteConfirmButtonRef}
-                        >
-                            Delete <span className="ml-1 text-xs">⌘↵</span>
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            {/* Delete confirmation popover */}
+            <Popover open={deletePopoverOpen} onOpenChange={setDeletePopoverOpen}>
+                <PopoverTrigger asChild>
+                    <span className="hidden" />
+                </PopoverTrigger>
+                <PopoverContent className="w-40 p-1" align="start">
+                    <button
+                        type="button"
+                        className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent cursor-default"
+                        onClick={() => void handleConfirmDelete()}
+                    >
+                        <TrashIcon className="size-3.5" />
+                        Delete
+                    </button>
+                    <button
+                        type="button"
+                        className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent cursor-default"
+                        onClick={() => setDeletePopoverOpen(false)}
+                    >
+                        Cancel
+                    </button>
+                </PopoverContent>
+            </Popover>
         </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
@@ -1204,7 +1130,7 @@ function ChatListItem({
             <ContextMenuSeparator />
             <ContextMenuItem
                 className="text-destructive focus:text-destructive"
-                onClick={() => dialogActions.openDialog(deleteChatDialogId(chat.id))}
+                onClick={() => setDeletePopoverOpen(true)}
             >
                 <TrashIcon className="size-3.5 mr-2" />{" "}Delete
             </ContextMenuItem>

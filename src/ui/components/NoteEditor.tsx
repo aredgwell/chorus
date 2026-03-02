@@ -165,33 +165,27 @@ export default function NoteEditor() {
                             </Tooltip>
                             <PopoverContent
                                 align="end"
-                                className="w-52 p-2"
+                                className="w-40 p-1"
                             >
-                                <p className="text-xs text-muted-foreground px-2 py-1">
-                                    Delete &ldquo;
-                                    {note.title || "Untitled note"}
-                                    &rdquo;?
-                                </p>
-                                <div className="flex gap-1 mt-1">
-                                    <button
-                                        type="button"
-                                        className="tag-suggestion-item flex-1 justify-center"
-                                        onClick={() =>
-                                            setDeletePopoverOpen(false)
-                                        }
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="tag-suggestion-item flex-1 justify-center text-destructive"
-                                        onClick={() =>
-                                            void handleConfirmDelete()
-                                        }
-                                    >
-                                        Delete
-                                    </button>
-                                </div>
+                                <button
+                                    type="button"
+                                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent cursor-default"
+                                    onClick={() =>
+                                        void handleConfirmDelete()
+                                    }
+                                >
+                                    <TrashIcon className="size-3.5" />
+                                    Delete
+                                </button>
+                                <button
+                                    type="button"
+                                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent cursor-default"
+                                    onClick={() =>
+                                        setDeletePopoverOpen(false)
+                                    }
+                                >
+                                    Cancel
+                                </button>
                             </PopoverContent>
                         </Popover>
                     </div>
