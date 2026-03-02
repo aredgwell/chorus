@@ -90,6 +90,32 @@ const CustomCodeBlock = CodeBlockLowlight.extend({
     addNodeView() {
         return ReactNodeViewRenderer(CodeBlockNodeView);
     },
+    addKeyboardShortcuts() {
+        return {
+            ...this.parent?.(),
+            // Convert a line starting with ``` into a code block on Enter
+            Enter: ({ editor: ed }) => {
+                const { $from, empty } = ed.state.selection;
+                if (
+                    !empty ||
+                    $from.parent.type.name !== "paragraph" ||
+                    $from.parent.childCount !== 1
+                )
+                    return false;
+                const text = $from.parent.textContent;
+                const match = /^```([a-z]*)$/.exec(text);
+                if (!match) return false;
+                const language = match[1] || undefined;
+                return ed
+                    .chain()
+                    .clearContent()
+                    .setCodeBlock(
+                        language ? { language } : undefined,
+                    )
+                    .run();
+            },
+        };
+    },
 });
 
 /** Toolbar button for the editor formatting bar */
