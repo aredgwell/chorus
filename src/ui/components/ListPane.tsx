@@ -6,6 +6,7 @@ import {
     useSetSidebarSortMode,
 } from "@core/chorus/api/AppMetadataAPI";
 import { type Chat } from "@core/chorus/api/ChatAPI";
+import { type Tag, useAllItemTags } from "@core/chorus/api/TagAPI";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import { chatQueries, useGetOrCreateNewChat } from "@core/chorus/api/ChatAPI";
 import { formatCost } from "@core/chorus/api/CostAPI";
@@ -189,6 +190,7 @@ function CollectionView({ collectionId }: { collectionId: string }) {
     const chatsQuery = useQuery(chatQueries.list());
     const notesQuery = useQuery(noteQueries.list());
     const projectsQuery = useQuery(ProjectAPI.projectQueries.list());
+    const itemTagsMap = useAllItemTags();
     const location = useLocation();
     const currentChatId = location.pathname.startsWith("/chat/")
         ? location.pathname.split("/").pop()!
@@ -306,6 +308,7 @@ function CollectionView({ collectionId }: { collectionId: string }) {
                         currentNoteId={currentNoteId}
                         currentChatId={currentChatId}
                         getCollectionLabel={getCollectionLabel}
+                        itemTagsMap={itemTagsMap}
                         keySuffix="-ctx"
                     />
                 ) : (
@@ -322,6 +325,7 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
     const chatsQuery = useQuery(chatQueries.list());
     const notesQuery = useQuery(noteQueries.list());
     const projectsQuery = useQuery(ProjectAPI.projectQueries.list());
+    const itemTagsMap = useAllItemTags();
     const location = useLocation();
     const currentChatId = location.pathname.startsWith("/chat/")
         ? location.pathname.split("/").pop()!
@@ -406,6 +410,7 @@ function TagFilterView({ tagIds }: { tagIds: string[] }) {
                         currentNoteId={currentNoteId}
                         currentChatId={currentChatId}
                         getCollectionLabel={getCollectionLabel}
+                        itemTagsMap={itemTagsMap}
                         keySuffix="-tag"
                     />
                 ) : (
@@ -426,6 +431,7 @@ function ItemList({
     currentNoteId,
     currentChatId,
     getCollectionLabel,
+    itemTagsMap,
     keySuffix,
 }: {
     items: SidebarItem[];
@@ -433,6 +439,7 @@ function ItemList({
     currentNoteId: string | undefined;
     currentChatId: string | undefined;
     getCollectionLabel: (projectId: string) => string | undefined;
+    itemTagsMap: Map<string, Tag[]>;
     keySuffix: string;
 }) {
     // Sync visible items to navigation store for CMD-[/] cycling
@@ -472,6 +479,7 @@ function ItemList({
                                 collectionLabel={getCollectionLabel(
                                     (item.data as Note).projectId,
                                 )}
+                                tags={itemTagsMap.get(`note:${item.data.id}`) ?? []}
                             />
                         ) : (
                             <ChatListItem
@@ -480,6 +488,7 @@ function ItemList({
                                 collectionLabel={getCollectionLabel(
                                     (item.data as Chat).projectId,
                                 )}
+                                tags={itemTagsMap.get(`chat:${item.data.id}`) ?? []}
                             />
                         )}
                     </React.Fragment>
@@ -509,10 +518,12 @@ function NoteListItem({
     note,
     isActive,
     collectionLabel,
+    tags,
 }: {
     note: Note;
     isActive: boolean;
     collectionLabel?: string;
+    tags: Tag[];
 }) {
     const navigate = useNavigate();
     const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -581,6 +592,30 @@ function NoteListItem({
                                     </span>
                                 </>
                             )}
+                            {tags.length > 0 && (
+                                <>
+                                    <span>·</span>
+                                    <span className="flex items-center gap-1">
+                                        {tags.map((tag) => (
+                                            <Tooltip key={tag.id}>
+                                                <TooltipTrigger asChild>
+                                                    <span
+                                                        className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
+                                                        style={{
+                                                            backgroundColor:
+                                                                tag.color ??
+                                                                "hsl(var(--muted-foreground))",
+                                                        }}
+                                                    />
+                                                </TooltipTrigger>
+                                                <TooltipContent side="bottom">
+                                                    {tag.name}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        ))}
+                                    </span>
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -639,10 +674,12 @@ function ChatListItem({
     chat,
     isActive,
     collectionLabel,
+    tags,
 }: {
     chat: Chat;
     isActive: boolean;
     collectionLabel?: string;
+    tags: Tag[];
 }) {
     const isDeleteChatDialogOpen = useDialogStore(
         (state) => state.activeDialogId === deleteChatDialogId(chat.id),
@@ -782,6 +819,30 @@ function ChatListItem({
                                     <span>·</span>
                                     <span className="truncate">
                                         {collectionLabel}
+                                    </span>
+                                </>
+                            )}
+                            {tags.length > 0 && (
+                                <>
+                                    <span>·</span>
+                                    <span className="flex items-center gap-1">
+                                        {tags.map((tag) => (
+                                            <Tooltip key={tag.id}>
+                                                <TooltipTrigger asChild>
+                                                    <span
+                                                        className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
+                                                        style={{
+                                                            backgroundColor:
+                                                                tag.color ??
+                                                                "hsl(var(--muted-foreground))",
+                                                        }}
+                                                    />
+                                                </TooltipTrigger>
+                                                <TooltipContent side="bottom">
+                                                    {tag.name}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        ))}
                                     </span>
                                 </>
                             )}
