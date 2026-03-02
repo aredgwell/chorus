@@ -94,28 +94,6 @@ export default function GroupChatThread({
     );
     const { data: conductor } = useGCConductor(chatId, threadRootMessageId);
 
-    // Debug logging for conductor state in thread
-    useEffect(() => {
-        console.log(
-            "[UI Debug] GroupChatThread conductor state changed:",
-            conductor,
-        );
-        console.log(
-            "[UI Debug] chatId:",
-            chatId,
-            "threadRootMessageId:",
-            threadRootMessageId,
-            "conductor data:",
-            conductor
-                ? {
-                      modelId: conductor.conductorModelId,
-                      isActive: conductor.isActive,
-                      turnCount: conductor.turnCount,
-                      scopeId: conductor.scopeId,
-                  }
-                : "no conductor",
-        );
-    }, [conductor, chatId, threadRootMessageId]);
     const sendMessage = useSendGCMessage();
     const generateAIResponses = useGenerateAIResponses();
     const promoteMessage = usePromoteGCMessage();

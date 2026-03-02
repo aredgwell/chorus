@@ -50,15 +50,8 @@ export async function resizeImageCore(
 
     // If the file is already smaller than our target, return it as is
     if (fileSizeMB <= targetSizeMB) {
-        console.log(
-            `File already under size limit (${fileSizeMB.toFixed(2)}MB). Skipping compression.`,
-        );
         return { resizedData: fileData, wasResized: false };
     }
-
-    console.log(
-        `Compressing file from ${fileSizeMB.toFixed(2)}MB to target ${targetSizeMB}MB`,
-    );
 
     // Create a temporary file path to store the original image
     const tempDir = await appDataDir();
@@ -79,12 +72,6 @@ export async function resizeImageCore(
 
         // Read the resized file
         const resizedData = await readFile(resizedPath);
-
-        // Log compression result
-        const compressedSizeMB = resizedData.length / (1024 * 1024);
-        console.log(
-            `Compressed to ${compressedSizeMB.toFixed(2)}MB (${Math.round((compressedSizeMB / fileSizeMB) * 100)}% of original)`,
-        );
 
         return { resizedData, wasResized: true };
     } catch (error) {
@@ -184,8 +171,6 @@ export const resizeAndStoreFileData = async (
 
     // check if it's an image and if so, resize it
     if (typeInfo?.mime?.startsWith("image/")) {
-        console.log("resizing image...");
-
         const { resizedData } = await resizeImageCore(uint8Arr, file.name);
 
         // Write the resized data to the final storage path
@@ -193,9 +178,6 @@ export const resizeAndStoreFileData = async (
             path: resolvedStorePath,
             content: Array.from(resizedData),
         });
-
-        // print final size in mb
-        console.log("final size", resizedData.length / 1024 / 1024);
     } else {
         await invoke("write_file_async", {
             path: resolvedStorePath,
@@ -207,7 +189,6 @@ export const resizeAndStoreFileData = async (
 
 // Storage handlers
 export const storeFile = async (filePath: string) => {
-    console.log("storing file", filePath);
     const storedPath = await generateStorePath(filePath);
 
     // Check if file is an image that needs resizing
@@ -234,8 +215,6 @@ export async function convertPdfToPng(filePath: string): Promise<string[]> {
     // Load the PDF document from the file data
     const loadingTask = pdfjsLib.getDocument({ data: fileData });
     const pdf = await loadingTask.promise;
-
-    console.time("convertPdfToPng");
 
     const pngUrls: string[] = [];
 
@@ -265,8 +244,6 @@ export async function convertPdfToPng(filePath: string): Promise<string[]> {
         const pngUrl = canvas.toDataURL("image/png");
         pngUrls.push(pngUrl);
     }
-
-    console.timeEnd("convertPdfToPng");
 
     return pngUrls;
 }

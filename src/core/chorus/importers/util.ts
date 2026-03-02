@@ -42,7 +42,7 @@ export async function createProject(
     );
 
     if (existingProject.length > 0) {
-        console.log(`Using existing '${name}' project`);
+        if (import.meta.env.DEV) console.log(`Using existing '${name}' project`);
         return existingProject[0].id;
     }
 
@@ -55,7 +55,7 @@ export async function createProject(
         [projectId, name, now, now],
     );
 
-    console.log(`Created '${name}' project for conversation import`);
+    if (import.meta.env.DEV) console.log(`Created '${name}' project for conversation import`);
     return projectId;
 }
 

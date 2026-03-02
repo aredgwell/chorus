@@ -16,7 +16,6 @@ function ModelSelectorWrapper() {
 
     const handleModelSelect = useCallback(
         (modelId: string) => {
-            console.log("ModelSelector: selecting model", modelId);
             const modelConfig = modelConfigsQuery.data?.find(
                 (m) => m.id === modelId,
             );

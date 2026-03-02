@@ -49,7 +49,6 @@ export function ImagePreview({ src, alt }: ImagePreviewProps) {
                                     // decode the path
                                     const decodedPath =
                                         decodeURIComponent(path);
-                                    console.log("openPath", decodedPath);
                                     void openPath(decodedPath);
                                 }}
                             >

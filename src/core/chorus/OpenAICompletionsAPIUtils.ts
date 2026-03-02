@@ -114,9 +114,7 @@ async function convertMessage(
                 }
                 case "pdf": {
                     try {
-                        console.log("Converting PDF to PNG:", attachment.path);
                         const pngUrls = await convertPdfToPng(attachment.path);
-                        console.log("Conversion successful, got URLs");
 
                         // Add each PNG as a separate image
                         for (const pngUrl of pngUrls) {
@@ -126,7 +124,6 @@ async function convertMessage(
                                     url: pngUrl,
                                 },
                             });
-                            console.log("Added image to contents");
                         }
                     } catch (error) {
                         console.error("Failed to convert PDF to PNG:", error);

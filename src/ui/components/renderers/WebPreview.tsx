@@ -25,7 +25,6 @@ export function WebPreview({ url, children }: WebPreviewProps) {
         if (isFileUrl) {
             const removedFilePrefix = url.replace("file://", "");
             const decodedUrl = decodeURIComponent(removedFilePrefix);
-            console.log("Opening file:", decodedUrl);
             await openPath(decodedUrl);
         } else {
             await openUrl(url);
