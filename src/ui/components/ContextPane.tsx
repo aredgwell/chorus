@@ -18,6 +18,10 @@ import {
     type SmartCollectionItem,
 } from "@core/chorus/api/ProjectAPI";
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import {
+    type NavigableItem,
+    setVisibleItems,
+} from "@core/infra/NavigationStore";
 import { useQuery } from "@tanstack/react-query";
 import { SidebarMenuButton } from "@ui/components/ui/sidebar";
 import {
@@ -421,6 +425,15 @@ function ItemList({
     getCollectionLabel: (projectId: string) => string | undefined;
     keySuffix: string;
 }) {
+    // Sync visible items to navigation store for CMD-[/] cycling
+    useEffect(() => {
+        const navigableItems: NavigableItem[] = items.map((item) => ({
+            type: item.type,
+            id: item.data.id,
+        }));
+        setVisibleItems(navigableItems);
+    }, [items]);
+
     let lastType: "note" | "chat" | undefined;
 
     return (
@@ -466,29 +479,6 @@ function ItemList({
     );
 }
 
-// ─── Optimized SVG icons (from index.html sprite) ───────────────────────────
-
-const PencilOptimized = forwardRef<
-    SVGSVGElement,
-    React.SVGProps<SVGSVGElement> & { size?: number }
->(({ size = 16, ...props }, ref) => (
-    <div>
-        <svg ref={ref} width={size} height={size} {...props}>
-            <use href="#icon-pencil" />
-        </svg>
-    </div>
-));
-
-const Trash2Optimized = forwardRef<
-    SVGSVGElement,
-    React.SVGProps<SVGSVGElement> & { size?: number }
->(({ size = 16, ...props }, ref) => (
-    <div>
-        <svg ref={ref} width={size} height={size} {...props}>
-            <use href="#icon-trash-2" />
-        </svg>
-    </div>
-));
 
 const SplitOptimized = forwardRef<
     SVGSVGElement,
@@ -584,45 +574,6 @@ function NoteListItem({
                         </div>
                     </div>
 
-                    {/* Gradient overlay on hover */}
-                    <div className="absolute right-0 w-20 h-full opacity-0 group-hover/chat-button:opacity-100 transition-opacity bg-linear-to-l from-sidebar-accent via-sidebar-accent to-transparent pointer-events-none" />
-
-                    {/* Note actions */}
-                    <div className="flex items-center gap-2 absolute right-3 z-10">
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <PencilOptimized
-                                    className="h-[13px] w-[13px] opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-                                    onClick={(e: React.MouseEvent) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setIsEditingTitle(true);
-                                    }}
-                                />
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom">
-                                Rename note
-                            </TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        dialogActions.openDialog(
-                                            deleteNoteDialogId(note.id),
-                                        );
-                                    }}
-                                >
-                                    <Trash2Optimized className="h-[13px] w-[13px] opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground" />
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom">
-                                Delete note
-                            </TooltipContent>
-                        </Tooltip>
-                    </div>
                 </SidebarMenuButton>
             </Draggable>
 
@@ -701,10 +652,6 @@ function ChatListItem({
         ChatAPI.chatQueries.detail(chat.parentChatId ?? undefined),
     );
     const branchCount = ChatAPI.useBranchCount(chat.id);
-
-    const handleOpenDeleteDialog = useCallback(() => {
-        dialogActions.openDialog(deleteChatDialogId(chat.id));
-    }, [chat.id]);
 
     const handleConfirmDelete = useCallback(async () => {
         const chatTitle = chat.title || "Untitled Chat";
@@ -857,31 +804,6 @@ function ChatListItem({
                             </TooltipTrigger>
                             <TooltipContent side="bottom">
                                 {chat.pinned ? "Unpin chat" : "Pin chat"}
-                            </TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <PencilOptimized
-                                    className="h-[13px] w-[13px] opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-                                    onClick={(e: React.MouseEvent) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setIsEditingTitle(true);
-                                    }}
-                                />
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom">
-                                Rename chat
-                            </TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div onClick={handleOpenDeleteDialog}>
-                                    <Trash2Optimized className="h-[13px] w-[13px] opacity-0 group-hover/chat-button:opacity-100 transition-opacity text-muted-foreground hover:text-foreground" />
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom">
-                                Delete chat
                             </TooltipContent>
                         </Tooltip>
                     </div>

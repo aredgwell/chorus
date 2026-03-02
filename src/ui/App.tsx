@@ -10,6 +10,7 @@ import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
 import * as ToolsetsAPI from "@core/chorus/api/ToolsetsAPI";
 import { config } from "@core/config";
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import { useNavigationStore } from "@core/infra/NavigationStore";
 import { SettingsManager } from "@core/utilities/Settings";
 import {
     DndContext,
@@ -319,18 +320,29 @@ function AppContent() {
         },
     );
 
-    // these are not global since they're navigation based
-    // and we should block these out when a dialog is opened
+    // Navigate to the previous/next item in the current filtered view
     useShortcut(["meta", "["], () => {
-        if (!isQuickChatWindow) {
-            navigate(-1);
-        }
+        if (isQuickChatWindow) return;
+        const { visibleItems } = useNavigationStore.getState();
+        if (visibleItems.length === 0) return;
+        const currentId = location.pathname.match(
+            /^\/(chat|note)\/(.+)$/,
+        )?.[2];
+        const idx = visibleItems.findIndex((i) => i.id === currentId);
+        const prev = idx > 0 ? visibleItems[idx - 1] : visibleItems[visibleItems.length - 1];
+        navigate(`/${prev.type === "note" ? "note" : "chat"}/${prev.id}`);
     });
 
     useShortcut(["meta", "]"], () => {
-        if (!isQuickChatWindow) {
-            navigate(1);
-        }
+        if (isQuickChatWindow) return;
+        const { visibleItems } = useNavigationStore.getState();
+        if (visibleItems.length === 0) return;
+        const currentId = location.pathname.match(
+            /^\/(chat|note)\/(.+)$/,
+        )?.[2];
+        const idx = visibleItems.findIndex((i) => i.id === currentId);
+        const next = idx < visibleItems.length - 1 ? visibleItems[idx + 1] : visibleItems[0];
+        navigate(`/${next.type === "note" ? "note" : "chat"}/${next.id}`);
     });
 
     useShortcut(["meta", "p"], () => {

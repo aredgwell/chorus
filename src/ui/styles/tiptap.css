@@ -77,6 +77,18 @@
     color: hsl(var(--muted-foreground));
 }
 
+/* Links — always visible, not just on hover */
+.note-editor-content .ProseMirror a {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+
+.note-editor-content .ProseMirror a:hover {
+    color: hsl(var(--primary) / 0.8);
+}
+
 /* Placeholder text for empty editor */
 .ProseMirror p.is-editor-empty:first-child::before {
     color: hsl(var(--muted-foreground) / 0.5);
