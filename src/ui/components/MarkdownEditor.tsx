@@ -20,6 +20,7 @@ import {
     NodeViewWrapper,
     ReactNodeViewRenderer,
     useEditor,
+    useEditorState,
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { common, createLowlight } from "lowlight";
@@ -36,7 +37,9 @@ import {
     QuoteIcon,
     StrikethroughIcon,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Markdown } from "tiptap-markdown";
 
 const lowlight = createLowlight(common);
@@ -117,34 +120,132 @@ function ToolbarButton({
     );
 }
 
+/** Link popover — styled like the tag input popover */
+function LinkPopover({ editor }: { editor: Editor }) {
+    const [open, setOpen] = useState(false);
+    const [url, setUrl] = useState("");
+
+    const isActive = useEditorState({
+        editor,
+        selector: (snapshot) => snapshot.editor.isActive("link"),
+    });
+
+    const handleOpen = (nextOpen: boolean) => {
+        if (nextOpen) {
+            // Pre-fill with existing link href if cursor is on a link
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+            const existing = editor.getAttributes("link").href;
+            setUrl(typeof existing === "string" ? existing : "");
+        }
+        setOpen(nextOpen);
+    };
+
+    const handleSubmit = () => {
+        const trimmed = url.trim();
+        if (trimmed) {
+            editor.chain().focus().setLink({ href: trimmed }).run();
+        } else {
+            editor.chain().focus().unsetLink().run();
+        }
+        setOpen(false);
+        setUrl("");
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            handleSubmit();
+        }
+        if (e.key === "Escape") {
+            setOpen(false);
+        }
+    };
+
+    return (
+        <Popover open={open} onOpenChange={handleOpen}>
+            <PopoverTrigger asChild>
+                <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    className={`editor-toolbar-btn ${isActive ? "is-active" : ""}`}
+                    title="Link"
+                >
+                    <LinkIcon size={14} />
+                </button>
+            </PopoverTrigger>
+            <PopoverContent
+                align="start"
+                className="w-64 p-2"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+            >
+                <input
+                    type="text"
+                    className="tag-search-input"
+                    placeholder="Paste or type a URL..."
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    autoFocus
+                />
+                <div className="flex gap-1 mt-1">
+                    <button
+                        type="button"
+                        className="tag-suggestion-item flex-1 justify-center"
+                        onClick={handleSubmit}
+                    >
+                        {url.trim() ? "Apply" : "Remove link"}
+                    </button>
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+}
+
 /** Fixed formatting toolbar — rendered in the header bar by NoteEditor */
 export function EditorToolbar({ editor }: { editor: Editor }) {
+    // Subscribe to editor transactions so active states update on cursor move
+    const active = useEditorState({
+        editor,
+        selector: (snapshot) => ({
+            bold: snapshot.editor.isActive("bold"),
+            italic: snapshot.editor.isActive("italic"),
+            strike: snapshot.editor.isActive("strike"),
+            code: snapshot.editor.isActive("code"),
+            h1: snapshot.editor.isActive("heading", { level: 1 }),
+            h2: snapshot.editor.isActive("heading", { level: 2 }),
+            h3: snapshot.editor.isActive("heading", { level: 3 }),
+            bulletList: snapshot.editor.isActive("bulletList"),
+            orderedList: snapshot.editor.isActive("orderedList"),
+            blockquote: snapshot.editor.isActive("blockquote"),
+        }),
+    });
+
     return (
         <div className="editor-toolbar">
             <ToolbarButton
                 action={() => editor.chain().focus().toggleBold().run()}
-                isActive={editor.isActive("bold")}
+                isActive={active.bold}
                 title="Bold"
             >
                 <BoldIcon size={14} />
             </ToolbarButton>
             <ToolbarButton
                 action={() => editor.chain().focus().toggleItalic().run()}
-                isActive={editor.isActive("italic")}
+                isActive={active.italic}
                 title="Italic"
             >
                 <ItalicIcon size={14} />
             </ToolbarButton>
             <ToolbarButton
                 action={() => editor.chain().focus().toggleStrike().run()}
-                isActive={editor.isActive("strike")}
+                isActive={active.strike}
                 title="Strikethrough"
             >
                 <StrikethroughIcon size={14} />
             </ToolbarButton>
             <ToolbarButton
                 action={() => editor.chain().focus().toggleCode().run()}
-                isActive={editor.isActive("code")}
+                isActive={active.code}
                 title="Inline code"
             >
                 <CodeIcon size={14} />
@@ -156,7 +257,7 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
                 action={() =>
                     editor.chain().focus().toggleHeading({ level: 1 }).run()
                 }
-                isActive={editor.isActive("heading", { level: 1 })}
+                isActive={active.h1}
                 title="Heading 1"
             >
                 <Heading1Icon size={14} />
@@ -165,7 +266,7 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
                 action={() =>
                     editor.chain().focus().toggleHeading({ level: 2 }).run()
                 }
-                isActive={editor.isActive("heading", { level: 2 })}
+                isActive={active.h2}
                 title="Heading 2"
             >
                 <Heading2Icon size={14} />
@@ -174,7 +275,7 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
                 action={() =>
                     editor.chain().focus().toggleHeading({ level: 3 }).run()
                 }
-                isActive={editor.isActive("heading", { level: 3 })}
+                isActive={active.h3}
                 title="Heading 3"
             >
                 <Heading3Icon size={14} />
@@ -184,37 +285,26 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
 
             <ToolbarButton
                 action={() => editor.chain().focus().toggleBulletList().run()}
-                isActive={editor.isActive("bulletList")}
+                isActive={active.bulletList}
                 title="Bullet list"
             >
                 <ListIcon size={14} />
             </ToolbarButton>
             <ToolbarButton
                 action={() => editor.chain().focus().toggleOrderedList().run()}
-                isActive={editor.isActive("orderedList")}
+                isActive={active.orderedList}
                 title="Ordered list"
             >
                 <ListOrderedIcon size={14} />
             </ToolbarButton>
             <ToolbarButton
                 action={() => editor.chain().focus().toggleBlockquote().run()}
-                isActive={editor.isActive("blockquote")}
+                isActive={active.blockquote}
                 title="Blockquote"
             >
                 <QuoteIcon size={14} />
             </ToolbarButton>
-            <ToolbarButton
-                action={() => {
-                    const url = window.prompt("URL:");
-                    if (url) {
-                        editor.chain().focus().setLink({ href: url }).run();
-                    }
-                }}
-                isActive={editor.isActive("link")}
-                title="Link"
-            >
-                <LinkIcon size={14} />
-            </ToolbarButton>
+            <LinkPopover editor={editor} />
         </div>
     );
 }
