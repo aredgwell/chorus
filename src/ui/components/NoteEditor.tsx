@@ -1,7 +1,6 @@
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import * as NoteAPI from "@core/chorus/api/NoteAPI";
 import { useCreateLink } from "@core/chorus/api/NoteChatLinkAPI";
-import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
 import type { Editor } from "@tiptap/core";
 import _ from "lodash";
 import { MessageSquareIcon, TrashIcon } from "lucide-react";
@@ -14,18 +13,9 @@ import { LinkedItems } from "./LinkedItems";
 import { EditorToolbar, MarkdownEditor } from "./MarkdownEditor";
 import { TagInput } from "./TagInput";
 import { Button } from "./ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "./ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import RetroSpinner from "./ui/retro-spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-
-const deleteNoteDialogId = (noteId: string) => `delete-note-dialog-${noteId}`;
 
 export default function NoteEditor() {
     const { noteId } = useParams<{ noteId: string }>();
@@ -36,10 +26,7 @@ export default function NoteEditor() {
     const createChat = ChatAPI.useCreateNewChat();
     const createLink = useCreateLink();
     const [editor, setEditor] = useState<Editor | null>(null);
-
-    const isDeleteDialogOpen = useDialogStore((state) =>
-        noteId ? state.activeDialogId === deleteNoteDialogId(noteId) : false,
-    );
+    const [deletePopoverOpen, setDeletePopoverOpen] = useState(false);
 
     // Debounced save — called by MarkdownEditor on each edit
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -81,7 +68,7 @@ export default function NoteEditor() {
     const handleConfirmDelete = async () => {
         if (!noteId) return;
         await deleteNote.mutateAsync({ noteId });
-        dialogActions.closeDialog();
+        setDeletePopoverOpen(false);
         toast("Note deleted");
         navigate("/");
     };
@@ -132,25 +119,57 @@ export default function NoteEditor() {
                             <TooltipContent>Ask about this note</TooltipContent>
                         </Tooltip>
 
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="iconSm"
-                                    onClick={() =>
-                                        dialogActions.openDialog(
-                                            deleteNoteDialogId(noteId),
-                                        )
-                                    }
-                                >
-                                    <TrashIcon
-                                        strokeWidth={1.5}
-                                        className="size-3.5!"
-                                    />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Delete note</TooltipContent>
-                        </Tooltip>
+                        <Popover
+                            open={deletePopoverOpen}
+                            onOpenChange={setDeletePopoverOpen}
+                        >
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="iconSm"
+                                        >
+                                            <TrashIcon
+                                                strokeWidth={1.5}
+                                                className="size-3.5!"
+                                            />
+                                        </Button>
+                                    </PopoverTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent>Delete note</TooltipContent>
+                            </Tooltip>
+                            <PopoverContent
+                                align="end"
+                                className="w-56 p-3"
+                            >
+                                <p className="text-sm mb-3">
+                                    Delete &ldquo;
+                                    {note.title || "Untitled note"}
+                                    &rdquo;? This cannot be undone.
+                                </p>
+                                <div className="flex justify-end gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() =>
+                                            setDeletePopoverOpen(false)
+                                        }
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() =>
+                                            void handleConfirmDelete()
+                                        }
+                                    >
+                                        Delete
+                                    </Button>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                     </div>
                 }
             />
@@ -165,45 +184,6 @@ export default function NoteEditor() {
                     autoFocus={note.content.trim() === "#"}
                 />
             </div>
-
-            {/* Delete confirmation dialog */}
-            <Dialog id={deleteNoteDialogId(noteId)} open={isDeleteDialogOpen}>
-                <DialogContent className="sm:max-w-md p-5">
-                    <DialogHeader>
-                        <DialogTitle>
-                            Delete &ldquo;{note.title || "Untitled note"}
-                            &rdquo;
-                        </DialogTitle>
-                        <DialogDescription>
-                            Are you sure you want to delete this note? This
-                            action cannot be undone.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => dialogActions.closeDialog()}
-                            tabIndex={-1}
-                        >
-                            Cancel{" "}
-                            <span className="ml-1 text-sm text-muted-foreground/70">
-                                Esc
-                            </span>
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="default"
-                            size="sm"
-                            onClick={() => void handleConfirmDelete()}
-                            tabIndex={1}
-                        >
-                            Delete <span className="ml-1 text-sm">↵</span>
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

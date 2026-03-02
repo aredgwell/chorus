@@ -5,7 +5,7 @@ import { useSummarizeChatToNote } from "@core/chorus/api/NoteChatLinkAPI";
 import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
 import { MessageSetDetail } from "@core/chorus/ChatState";
 import { catchAsyncErrors } from "@core/chorus/utilities";
-import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import { dialogActions } from "@core/infra/DialogStore";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -41,14 +41,7 @@ import RepliesDrawer from "./RepliesDrawer";
 import { SHARE_CHAT_DIALOG_ID, ShareChatDialog } from "./ShareChatDialog";
 import { TagInput } from "./TagInput";
 import { Button } from "./ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "./ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { VirtualizedMessageSet } from "./VirtualizedMessageSet";
@@ -573,9 +566,6 @@ function ChatMessageSkeleton() {
     );
 }
 
-const deleteChatDialogId = (chatId: string) =>
-    `delete-chat-topbar-dialog-${chatId}`;
-
 /** Header bar for non-quick-chat views — uses HeaderBar for consistent height */
 function ChatTopBar({
     chatId,
@@ -588,9 +578,7 @@ function ChatTopBar({
     const summarize = useSummarizeChatToNote();
     const deleteChat = ChatAPI.useDeleteChat();
     const chatQuery = ChatAPI.useChat(chatId);
-    const isDeleteDialogOpen = useDialogStore(
-        (state) => state.activeDialogId === deleteChatDialogId(chatId),
-    );
+    const [deletePopoverOpen, setDeletePopoverOpen] = useState(false);
 
     const handleSummarize = useCallback(() => {
         summarize.mutate(
@@ -615,113 +603,100 @@ function ChatTopBar({
     const handleConfirmDelete = useCallback(async () => {
         const chatTitle = chatQuery.data?.title || "Untitled Chat";
         await deleteChat.mutateAsync({ chatId });
-        dialogActions.closeDialog();
+        setDeletePopoverOpen(false);
         toast(`'${chatTitle}' deleted`);
         navigate("/");
     }, [chatId, chatQuery.data?.title, deleteChat, navigate]);
 
     return (
-        <>
-            <HeaderBar
-                leftActions={
-                    <div className="flex items-center gap-1 min-w-0">
-                        <TagInput itemType="chat" itemId={chatId} />
-                        <LinkedItems chatId={chatId} />
-                    </div>
-                }
-                actions={
-                    <div className="flex items-center gap-1 shrink-0">
-                        {hasMessages && (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="iconSm"
-                                        tabIndex={-1}
-                                        onClick={handleSummarize}
-                                        disabled={summarize.isPending}
-                                    >
-                                        {summarize.isPending ? (
-                                            <Loader2 className="w-3 h-3 animate-spin" />
-                                        ) : (
-                                            <FileTextIcon
-                                                strokeWidth={1.5}
-                                                className="size-3.5!"
-                                            />
-                                        )}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    Summarize to note
-                                </TooltipContent>
-                            </Tooltip>
-                        )}
+        <HeaderBar
+            leftActions={
+                <div className="flex items-center gap-1 min-w-0">
+                    <TagInput itemType="chat" itemId={chatId} />
+                    <LinkedItems chatId={chatId} />
+                </div>
+            }
+            actions={
+                <div className="flex items-center gap-1 shrink-0">
+                    {hasMessages && (
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
                                     variant="ghost"
                                     size="iconSm"
-                                    onClick={() =>
-                                        dialogActions.openDialog(
-                                            deleteChatDialogId(chatId),
-                                        )
-                                    }
+                                    tabIndex={-1}
+                                    onClick={handleSummarize}
+                                    disabled={summarize.isPending}
                                 >
-                                    <TrashIcon
-                                        strokeWidth={1.5}
-                                        className="size-3.5!"
-                                    />
+                                    {summarize.isPending ? (
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                        <FileTextIcon
+                                            strokeWidth={1.5}
+                                            className="size-3.5!"
+                                        />
+                                    )}
                                 </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                Summarize to note
+                            </TooltipContent>
+                        </Tooltip>
+                    )}
+                    <Popover
+                        open={deletePopoverOpen}
+                        onOpenChange={setDeletePopoverOpen}
+                    >
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="iconSm"
+                                    >
+                                        <TrashIcon
+                                            strokeWidth={1.5}
+                                            className="size-3.5!"
+                                        />
+                                    </Button>
+                                </PopoverTrigger>
                             </TooltipTrigger>
                             <TooltipContent>Delete chat</TooltipContent>
                         </Tooltip>
-                    </div>
-                }
-            />
-
-            {/* Delete confirmation dialog */}
-            <Dialog
-                id={deleteChatDialogId(chatId)}
-                open={isDeleteDialogOpen}
-            >
-                <DialogContent className="sm:max-w-md p-5">
-                    <DialogHeader>
-                        <DialogTitle>
-                            Delete &ldquo;
-                            {chatQuery.data?.title || "Untitled Chat"}
-                            &rdquo;
-                        </DialogTitle>
-                        <DialogDescription>
-                            Are you sure you want to delete this chat? This
-                            action cannot be undone.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => dialogActions.closeDialog()}
-                            tabIndex={-1}
+                        <PopoverContent
+                            align="end"
+                            className="w-56 p-3"
                         >
-                            Cancel{" "}
-                            <span className="ml-1 text-sm text-muted-foreground/70">
-                                Esc
-                            </span>
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="default"
-                            size="sm"
-                            onClick={() => void handleConfirmDelete()}
-                            tabIndex={1}
-                        >
-                            Delete <span className="ml-1 text-sm">↵</span>
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </>
+                            <p className="text-sm mb-3">
+                                Delete &ldquo;
+                                {chatQuery.data?.title || "Untitled Chat"}
+                                &rdquo;? This cannot be undone.
+                            </p>
+                            <div className="flex justify-end gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                        setDeletePopoverOpen(false)
+                                    }
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() =>
+                                        void handleConfirmDelete()
+                                    }
+                                >
+                                    Delete
+                                </Button>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                </div>
+            }
+        />
     );
 }
 

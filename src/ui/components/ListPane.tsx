@@ -23,7 +23,9 @@ import {
     setVisibleItems,
 } from "@core/infra/NavigationStore";
 import { useQuery } from "@tanstack/react-query";
-import { SidebarMenuButton } from "@ui/components/ui/sidebar";
+import { emit } from "@tauri-apps/api/event";
+import { SidebarMenuButton, SidebarTrigger } from "@ui/components/ui/sidebar";
+import { useSidebar } from "@ui/hooks/useSidebar";
 import {
     Tooltip,
     TooltipContent,
@@ -38,6 +40,7 @@ import {
     MessageSquareIcon,
     PinIcon,
     PinOffIcon,
+    Settings,
     SquarePlusIcon,
 } from "lucide-react";
 import React, { forwardRef, useCallback, useEffect, useState } from "react";
@@ -71,9 +74,42 @@ function ContextToolbar({ createInProjectId }: { createInProjectId: string }) {
     const setSortMode = useSetSidebarSortMode();
     const createNote = useCreateNote();
     const getOrCreateNewChat = useGetOrCreateNewChat();
+    const { open: isSidebarOpen } = useSidebar();
 
     return (
-        <div data-tauri-drag-region className="flex items-center justify-end px-2 h-[44px] border-b shrink-0">
+        <div data-tauri-drag-region className="flex items-center justify-between px-2 h-[44px] border-b shrink-0">
+            {/* Left side: settings + sidebar toggle (visible when sidebar is hidden) */}
+            <div className="flex items-center gap-1">
+                {!isSidebarOpen && (
+                    <>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        void emit("open_settings", {
+                                            tab: "general",
+                                        });
+                                    }}
+                                    className="p-1.5 rounded-md text-muted-foreground/75 hover:text-foreground hover:bg-sidebar-accent/50 transition-colors ml-14"
+                                >
+                                    <Settings
+                                        className="size-3.5"
+                                        strokeWidth={1.5}
+                                    />
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                                Settings <kbd>⌘,</kbd>
+                            </TooltipContent>
+                        </Tooltip>
+                        <SidebarTrigger className="size-3.5!" />
+                    </>
+                )}
+            </div>
+
+            {/* Right side: sort + create buttons */}
+            <div className="flex items-center">
             <DropdownMenu>
                 <Tooltip>
                     <TooltipTrigger asChild>
@@ -152,6 +188,7 @@ function ContextToolbar({ createInProjectId }: { createInProjectId: string }) {
                 </TooltipTrigger>
                 <TooltipContent side="bottom">New Chat</TooltipContent>
             </Tooltip>
+            </div>
         </div>
     );
 }
