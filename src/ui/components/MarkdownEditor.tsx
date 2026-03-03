@@ -27,7 +27,6 @@ import {
     useEditorState,
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { common, createLowlight } from "lowlight";
 import {
     BoldIcon,
     CheckIcon,
@@ -53,10 +52,11 @@ import {
     DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import {
+    codeBlockLanguages,
+    lowlight,
+} from "./tiptap/codeBlockLanguages";
 import { Markdown } from "tiptap-markdown";
-
-const lowlight = createLowlight(common);
-const languages = [...lowlight.listLanguages(), "mermaid", "latex"].sort();
 
 import { KatexBlockView } from "./tiptap/KatexBlockView";
 import { MermaidBlockView } from "./tiptap/MermaidBlockView";
@@ -132,7 +132,7 @@ function CodeBlockView({
                         >
                             auto
                         </DropdownMenuItem>
-                        {languages.map((lang) => (
+                        {codeBlockLanguages.map((lang) => (
                             <DropdownMenuItem
                                 key={lang}
                                 onSelect={() => {

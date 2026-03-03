@@ -1,8 +1,22 @@
 import type { NodeViewProps } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper } from "@tiptap/react";
-import { CheckIcon, ClipboardIcon, CodeIcon, EyeIcon } from "lucide-react";
+import {
+    CheckIcon,
+    ChevronDownIcon,
+    ClipboardIcon,
+    CodeIcon,
+    EyeIcon,
+} from "lucide-react";
 import mermaid from "mermaid";
 import { useDeferredValue, useEffect, useState } from "react";
+
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import { codeBlockLanguages } from "./codeBlockLanguages";
 
 let mermaidIdCounter = 0;
 
@@ -103,7 +117,12 @@ function MermaidDiagram({ source }: { source: string }) {
  * Tiptap NodeView for ```mermaid code blocks.
  * Shows rendered diagram by default; toggle to see/edit source.
  */
-export function MermaidBlockView({ node, editor, getPos }: NodeViewProps) {
+export function MermaidBlockView({
+    node,
+    updateAttributes,
+    editor,
+    getPos,
+}: NodeViewProps) {
     const textContent = node.textContent.trim();
     const [showSource, setShowSource] = useState(!textContent);
     const deferredContent = useDeferredValue(textContent);
@@ -124,9 +143,33 @@ export function MermaidBlockView({ node, editor, getPos }: NodeViewProps) {
     return (
         <NodeViewWrapper className="mermaid-block-wrapper">
             <div className="block-view-header" contentEditable={false}>
-                <span className="block-view-label">Mermaid</span>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button
+                            type="button"
+                            className="block-view-label flex items-center gap-1 cursor-pointer"
+                        >
+                            mermaid
+                            <ChevronDownIcon size={10} />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                        align="start"
+                        className="max-h-[300px] overflow-y-auto"
+                    >
+                        {codeBlockLanguages.map((lang) => (
+                            <DropdownMenuItem
+                                key={lang}
+                                onSelect={() =>
+                                    updateAttributes({ language: lang })
+                                }
+                            >
+                                {lang}
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
                 <div className="block-view-actions">
-                    <CopyButton getText={() => node.textContent} />
                     <button
                         type="button"
                         className="block-view-toggle"
@@ -139,6 +182,7 @@ export function MermaidBlockView({ node, editor, getPos }: NodeViewProps) {
                             <CodeIcon size={12} />
                         )}
                     </button>
+                    <CopyButton getText={() => node.textContent} />
                 </div>
             </div>
 

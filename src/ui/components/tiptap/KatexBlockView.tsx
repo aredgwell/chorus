@@ -2,9 +2,23 @@ import "katex/dist/katex.min.css";
 
 import type { NodeViewProps } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper } from "@tiptap/react";
-import { CheckIcon, ClipboardIcon, CodeIcon, EyeIcon } from "lucide-react";
+import {
+    CheckIcon,
+    ChevronDownIcon,
+    ClipboardIcon,
+    CodeIcon,
+    EyeIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { BlockMath } from "react-katex";
+
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import { codeBlockLanguages } from "./codeBlockLanguages";
 
 /** Copy-to-clipboard button with brief checkmark feedback */
 function CopyButton({ getText }: { getText: () => string }) {
@@ -38,7 +52,12 @@ function CopyButton({ getText }: { getText: () => string }) {
  * Tiptap NodeView for ```latex / ```math code blocks.
  * Shows rendered KaTeX by default; toggle to see/edit source.
  */
-export function KatexBlockView({ node, editor, getPos }: NodeViewProps) {
+export function KatexBlockView({
+    node,
+    updateAttributes,
+    editor,
+    getPos,
+}: NodeViewProps) {
     const textContent = node.textContent.trim();
     const [showSource, setShowSource] = useState(!textContent);
 
@@ -58,9 +77,33 @@ export function KatexBlockView({ node, editor, getPos }: NodeViewProps) {
     return (
         <NodeViewWrapper className="katex-block-wrapper">
             <div className="block-view-header" contentEditable={false}>
-                <span className="block-view-label">LaTeX</span>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button
+                            type="button"
+                            className="block-view-label flex items-center gap-1 cursor-pointer"
+                        >
+                            latex
+                            <ChevronDownIcon size={10} />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                        align="start"
+                        className="max-h-[300px] overflow-y-auto"
+                    >
+                        {codeBlockLanguages.map((lang) => (
+                            <DropdownMenuItem
+                                key={lang}
+                                onSelect={() =>
+                                    updateAttributes({ language: lang })
+                                }
+                            >
+                                {lang}
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
                 <div className="block-view-actions">
-                    <CopyButton getText={() => node.textContent} />
                     <button
                         type="button"
                         className="block-view-toggle"
@@ -73,6 +116,7 @@ export function KatexBlockView({ node, editor, getPos }: NodeViewProps) {
                             <CodeIcon size={12} />
                         )}
                     </button>
+                    <CopyButton getText={() => node.textContent} />
                 </div>
             </div>
 
