@@ -2,17 +2,10 @@ import {
     type SidebarSortMode,
     useSelectedCollectionId,
     useSelectedTagIds,
-    useSidebarSortMode,
     useSetSidebarSortMode,
+    useSidebarSortMode,
 } from "@core/chorus/api/AppMetadataAPI";
 import { type Chat } from "@core/chorus/api/ChatAPI";
-import {
-    type Tag,
-    useAddTagToItem,
-    useAllItemTags,
-    useRemoveTagFromItem,
-    useTags,
-} from "@core/chorus/api/TagAPI";
 import * as ChatAPI from "@core/chorus/api/ChatAPI";
 import { chatQueries, useGetOrCreateNewChat } from "@core/chorus/api/ChatAPI";
 import { formatCost } from "@core/chorus/api/CostAPI";
@@ -25,23 +18,30 @@ import {
     type SmartCollectionItem,
 } from "@core/chorus/api/ProjectAPI";
 import {
+    type Tag,
+    useAddTagToItem,
+    useAllItemTags,
+    useRemoveTagFromItem,
+    useTags,
+} from "@core/chorus/api/TagAPI";
+import {
     type NavigableItem,
     setVisibleItems,
 } from "@core/infra/NavigationStore";
 import { useQuery } from "@tanstack/react-query";
 import { SidebarMenuButton, SidebarTrigger } from "@ui/components/ui/sidebar";
-import { useSidebar } from "@ui/hooks/useSidebar";
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from "@ui/components/ui/tooltip";
+import { useSidebar } from "@ui/hooks/useSidebar";
 import { compactDate, convertDate, projectDisplayName } from "@ui/lib/utils";
 import {
     ArrowUpDownIcon,
     CheckIcon,
-    FileTextIcon,
     FilePlusIcon,
+    FileTextIcon,
     FolderIcon,
     MessageSquareIcon,
     PinIcon,
@@ -59,14 +59,6 @@ import Draggable from "./Draggable";
 import { EditableTitle } from "./EditableTitle";
 import { useSettings } from "./hooks/useSettings";
 import { type SidebarItem, sortItems } from "./sidebar/ItemListHelpers";
-import { DeleteConfirmContent } from "./ui/delete-confirm-popover";
-import { Popover, PopoverAnchor } from "./ui/popover";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
 import {
     ContextMenu,
     ContextMenuContent,
@@ -77,6 +69,14 @@ import {
     ContextMenuSubTrigger,
     ContextMenuTrigger,
 } from "./ui/context-menu";
+import { DeleteConfirmContent } from "./ui/delete-confirm-popover";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { Popover, PopoverAnchor } from "./ui/popover";
 import RetroSpinner from "./ui/retro-spinner";
 
 function ContextToolbar({ createInProjectId }: { createInProjectId: string }) {
@@ -491,10 +491,10 @@ function ItemList({
                         {header}
                         {item.type === "note" ? (
                             <NoteListItem
-                                note={item.data as Note}
+                                note={item.data}
                                 isActive={currentNoteId === item.data.id}
                                 collectionLabel={getCollectionLabel(
-                                    (item.data as Note).projectId,
+                                    item.data.projectId,
                                 )}
                                 tags={
                                     itemTagsMap.get(`note:${item.data.id}`) ??
@@ -503,10 +503,10 @@ function ItemList({
                             />
                         ) : (
                             <ChatListItem
-                                chat={item.data as Chat}
+                                chat={item.data}
                                 isActive={currentChatId === item.data.id}
                                 collectionLabel={getCollectionLabel(
-                                    (item.data as Chat).projectId,
+                                    item.data.projectId,
                                 )}
                                 tags={
                                     itemTagsMap.get(`chat:${item.data.id}`) ??

@@ -38,13 +38,13 @@ function readToolPermission(row: ToolPermissionDBRow): ToolPermission {
 export async function fetchToolPermission(
     toolsetName: string,
     toolName: string,
-): Promise<ToolPermission | undefined> {
+): Promise<ToolPermission | null> {
     const rows = await db.select<ToolPermissionDBRow[]>(
         "SELECT * FROM tool_permissions WHERE toolset_name = ? AND tool_name = ?",
         [toolsetName, toolName],
     );
 
-    return rows.length > 0 ? readToolPermission(rows[0]) : undefined;
+    return rows.length > 0 ? readToolPermission(rows[0]) : null;
 }
 
 export async function fetchAllToolPermissions(): Promise<ToolPermission[]> {

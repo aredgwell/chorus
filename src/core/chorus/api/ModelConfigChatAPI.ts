@@ -13,21 +13,21 @@ const modelConfigChatKeys = {
 // Saved model config functions
 async function fetchSavedModelConfigChat(
     chatId: string,
-): Promise<string[] | undefined> {
+): Promise<string[] | null> {
     const rows = await db.select<{ model_ids: string }[]>(
         `SELECT model_ids FROM saved_model_configs_chats WHERE chat_id = ?`,
         [chatId],
     );
 
     if (rows.length === 0) {
-        return undefined;
+        return null;
     }
 
     // Parse the JSON array of model IDs
     try {
         return JSON.parse(rows[0].model_ids) as string[];
     } catch {
-        return undefined;
+        return null;
     }
 }
 
