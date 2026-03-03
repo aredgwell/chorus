@@ -52,10 +52,7 @@ import {
     DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import {
-    codeBlockLanguages,
-    lowlight,
-} from "./tiptap/codeBlockLanguages";
+import { codeBlockLanguages, lowlight } from "./tiptap/codeBlockLanguages";
 import { Markdown } from "tiptap-markdown";
 
 import { KatexBlockView } from "./tiptap/KatexBlockView";

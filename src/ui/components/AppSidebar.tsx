@@ -128,9 +128,7 @@ function SidebarTagsSection() {
                                 />
                             </button>
                         </TooltipTrigger>
-                        <TooltipContent side="right">
-                            Edit tags
-                        </TooltipContent>
+                        <TooltipContent side="right">Edit tags</TooltipContent>
                     </Tooltip>
                 )}
             </div>
@@ -158,9 +156,7 @@ function SidebarTagsSection() {
                                         <button
                                             type="button"
                                             className="shrink-0 rounded-full hover:ring-2 hover:ring-muted-foreground/30 transition-all"
-                                            onClick={(e) =>
-                                                e.stopPropagation()
-                                            }
+                                            onClick={(e) => e.stopPropagation()}
                                         >
                                             <span
                                                 className="block w-2.5 h-2.5 rounded-full"
@@ -294,10 +290,8 @@ function CollectionsNavigator() {
     };
 
     const totalItemCount =
-        allChats.filter(
-            (c) =>
-                c.projectId !== "quick-chat" && !c.isNewChat,
-        ).length + allNotes.length;
+        allChats.filter((c) => c.projectId !== "quick-chat" && !c.isNewChat)
+            .length + allNotes.length;
 
     const selectCollection = (collectionId: string) => {
         setSelectedCollectionId.mutate(collectionId);
@@ -386,9 +380,7 @@ function CollectionsNavigator() {
                                                     project.id
                                                 }
                                                 onSelect={() =>
-                                                    selectCollection(
-                                                        project.id,
-                                                    )
+                                                    selectCollection(project.id)
                                                 }
                                                 cost={
                                                     showCost
@@ -506,128 +498,128 @@ function CollectionItem({
 
     return (
         <ContextMenu>
-        <ContextMenuTrigger asChild>
-        <SidebarMenuItem>
-            <SidebarMenuButton
-                isActive={isSelected}
-                onClick={onSelect}
-                className="flex items-center justify-between mb-0.5 group/collection"
-            >
-                <span className="flex items-center gap-2 flex-1 min-w-0">
-                    {isSmart ? (
-                        <SparklesIcon
-                            strokeWidth={1.5}
-                            className="size-4 text-muted-foreground shrink-0"
-                        />
-                    ) : isSelected ? (
-                        <FolderOpenIcon
-                            strokeWidth={1.5}
-                            className="size-4 text-muted-foreground shrink-0"
-                        />
-                    ) : (
-                        <FolderIcon
-                            strokeWidth={1.5}
-                            className="size-4 text-muted-foreground shrink-0"
-                        />
-                    )}
-                    <span className="truncate text-base">
-                        {projectDisplayName(name)}
-                    </span>
-                    {cost !== undefined && cost > 0 && (
-                        <span className="ml-auto text-xs text-muted-foreground shrink-0">
-                            {formatCost(cost)}
-                        </span>
-                    )}
-                </span>
-                <span className="flex items-center gap-1 shrink-0">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <span
-                                onClick={handleStartRename}
-                                className="opacity-0 group-hover/collection:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-                            >
-                                <PencilIcon
-                                    className="size-3"
-                                    strokeWidth={1.5}
-                                />
-                            </span>
-                        </TooltipTrigger>
-                        <TooltipContent>Rename</TooltipContent>
-                    </Tooltip>
-                    <Popover
-                        open={deletePopoverOpen}
-                        onOpenChange={setDeletePopoverOpen}
+            <ContextMenuTrigger asChild>
+                <SidebarMenuItem>
+                    <SidebarMenuButton
+                        isActive={isSelected}
+                        onClick={onSelect}
+                        className="flex items-center justify-between mb-0.5 group/collection"
                     >
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <PopoverTrigger asChild>
+                        <span className="flex items-center gap-2 flex-1 min-w-0">
+                            {isSmart ? (
+                                <SparklesIcon
+                                    strokeWidth={1.5}
+                                    className="size-4 text-muted-foreground shrink-0"
+                                />
+                            ) : isSelected ? (
+                                <FolderOpenIcon
+                                    strokeWidth={1.5}
+                                    className="size-4 text-muted-foreground shrink-0"
+                                />
+                            ) : (
+                                <FolderIcon
+                                    strokeWidth={1.5}
+                                    className="size-4 text-muted-foreground shrink-0"
+                                />
+                            )}
+                            <span className="truncate text-base">
+                                {projectDisplayName(name)}
+                            </span>
+                            {cost !== undefined && cost > 0 && (
+                                <span className="ml-auto text-xs text-muted-foreground shrink-0">
+                                    {formatCost(cost)}
+                                </span>
+                            )}
+                        </span>
+                        <span className="flex items-center gap-1 shrink-0">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
                                     <span
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                        }}
+                                        onClick={handleStartRename}
                                         className="opacity-0 group-hover/collection:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
                                     >
-                                        <TrashIcon
+                                        <PencilIcon
                                             className="size-3"
                                             strokeWidth={1.5}
                                         />
                                     </span>
-                                </PopoverTrigger>
-                            </TooltipTrigger>
-                            <TooltipContent>Delete</TooltipContent>
-                        </Tooltip>
-                        <PopoverContent
-                            align="start"
-                            className="w-52 p-2"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <p className="text-xs text-muted-foreground px-2 py-1">
-                                Delete &ldquo;{projectDisplayName(name)}
-                                &rdquo; and all its contents?
-                            </p>
-                            <div className="flex gap-1 mt-1">
-                                <button
-                                    type="button"
-                                    className="tag-suggestion-item flex-1 justify-center"
-                                    onClick={() =>
-                                        setDeletePopoverOpen(false)
-                                    }
+                                </TooltipTrigger>
+                                <TooltipContent>Rename</TooltipContent>
+                            </Tooltip>
+                            <Popover
+                                open={deletePopoverOpen}
+                                onOpenChange={setDeletePopoverOpen}
+                            >
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <PopoverTrigger asChild>
+                                            <span
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                }}
+                                                className="opacity-0 group-hover/collection:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                                            >
+                                                <TrashIcon
+                                                    className="size-3"
+                                                    strokeWidth={1.5}
+                                                />
+                                            </span>
+                                        </PopoverTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Delete</TooltipContent>
+                                </Tooltip>
+                                <PopoverContent
+                                    align="start"
+                                    className="w-52 p-2"
+                                    onClick={(e) => e.stopPropagation()}
                                 >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="button"
-                                    className="tag-suggestion-item flex-1 justify-center text-destructive"
-                                    onClick={() =>
-                                        void handleConfirmDelete()
-                                    }
-                                >
-                                    Delete
-                                </button>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-                    {itemCount > 0 && (
-                        <span className="text-xs text-muted-foreground ml-1">
-                            {itemCount}
+                                    <p className="text-xs text-muted-foreground px-2 py-1">
+                                        Delete &ldquo;{projectDisplayName(name)}
+                                        &rdquo; and all its contents?
+                                    </p>
+                                    <div className="flex gap-1 mt-1">
+                                        <button
+                                            type="button"
+                                            className="tag-suggestion-item flex-1 justify-center"
+                                            onClick={() =>
+                                                setDeletePopoverOpen(false)
+                                            }
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="tag-suggestion-item flex-1 justify-center text-destructive"
+                                            onClick={() =>
+                                                void handleConfirmDelete()
+                                            }
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                            {itemCount > 0 && (
+                                <span className="text-xs text-muted-foreground ml-1">
+                                    {itemCount}
+                                </span>
+                            )}
                         </span>
-                    )}
-                </span>
-            </SidebarMenuButton>
-        </SidebarMenuItem>
-        </ContextMenuTrigger>
-        <ContextMenuContent>
-            <ContextMenuItem onClick={() => handleStartRename()}>
-                <PencilIcon className="size-3.5 mr-2" />{" "}Rename
-            </ContextMenuItem>
-            <ContextMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={() => setDeletePopoverOpen(true)}
-            >
-                <TrashIcon className="size-3.5 mr-2" />{" "}Delete
-            </ContextMenuItem>
-        </ContextMenuContent>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+                <ContextMenuItem onClick={() => handleStartRename()}>
+                    <PencilIcon className="size-3.5 mr-2" /> Rename
+                </ContextMenuItem>
+                <ContextMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setDeletePopoverOpen(true)}
+                >
+                    <TrashIcon className="size-3.5 mr-2" /> Delete
+                </ContextMenuItem>
+            </ContextMenuContent>
         </ContextMenu>
     );
 }

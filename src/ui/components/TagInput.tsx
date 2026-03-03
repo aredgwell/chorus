@@ -87,7 +87,10 @@ export function TagInput({ itemType, itemId }: TagInputProps) {
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <button type="button" className="tag-add-btn flex items-center gap-1">
+                <button
+                    type="button"
+                    className="tag-add-btn flex items-center gap-1"
+                >
                     {itemTags.length > 0 && (
                         <span className="flex items-center gap-0.5">
                             {itemTags.map((tag) => (
@@ -230,8 +233,7 @@ function TagColorDot({
                             onClick={() => {
                                 void updateTag.mutateAsync({
                                     tagId: tag.id,
-                                    color:
-                                        tag.color === color ? null : color,
+                                    color: tag.color === color ? null : color,
                                 });
                             }}
                         />
