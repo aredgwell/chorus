@@ -813,10 +813,8 @@ function NoteListItem({
                     <ContextMenuSeparator />
                     <ContextMenuItem
                         className="text-destructive focus:text-destructive"
-                        onClick={() =>
-                            requestAnimationFrame(() =>
-                                setDeletePopoverOpen(true),
-                            )
+                        onSelect={() =>
+                            setTimeout(() => setDeletePopoverOpen(true), 100)
                         }
                     >
                         <TrashIcon className="size-3.5 mr-2" /> Delete
@@ -1175,10 +1173,8 @@ function ChatListItem({
                     <ContextMenuSeparator />
                     <ContextMenuItem
                         className="text-destructive focus:text-destructive"
-                        onClick={() =>
-                            requestAnimationFrame(() =>
-                                setDeletePopoverOpen(true),
-                            )
+                        onSelect={() =>
+                            setTimeout(() => setDeletePopoverOpen(true), 100)
                         }
                     >
                         <TrashIcon className="size-3.5 mr-2" /> Delete
