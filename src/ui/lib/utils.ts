@@ -54,6 +54,31 @@ export function displayDate(d: Date): string {
     });
 }
 
+/**
+ * Formats a date as a compact relative string for list items.
+ * e.g. "2m ago", "3h ago", "Yesterday", "Mar 2", "Dec 15, 2024"
+ */
+export function compactDate(d: Date): string {
+    if (isNaN(d.getTime())) return "";
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMin = Math.floor(diffMs / 60_000);
+    const diffHr = Math.floor(diffMs / 3_600_000);
+    const diffDays = Math.floor(diffMs / 86_400_000);
+
+    if (diffMin < 1) return "Just now";
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHr < 24) return `${diffHr}h ago`;
+    if (diffDays === 1) return "Yesterday";
+
+    const sameYear = d.getFullYear() === now.getFullYear();
+    return d.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        ...(sameYear ? {} : { year: "numeric" }),
+    });
+}
+
 export function projectDisplayName(name: string) {
     if (!name) return "Untitled collection";
     return name;

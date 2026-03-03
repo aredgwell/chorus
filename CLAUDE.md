@@ -72,13 +72,21 @@ Don't combine git commands -- e.g., instead of `git add -A && git commit`, run `
 -   **Core:** Business logic in `src/core/chorus/`
 -   **Tauri:** Rust backend in `src-tauri/src/`
 
+The app uses a three-pane layout with canonical names:
+
+-   **Sidebar** (left pane) — Navigation, collections, tags. Component: `AppSidebar.tsx`
+-   **List** (middle pane) — Item listing for the selected collection/tag filter. Component: `ListPane.tsx`
+-   **Editor** (right pane) — Content editing/viewing (notes, chats, settings). Component: `EditorPane.tsx`
+
 Important files and directories to be aware of:
 
 -   `src/core/chorus/api/` - TanStack Query queries, mutations, and raw SQL queries, split by entity type (e.g. `MessageAPI.ts`, `ChatAPI.ts`, `ProjectAPI.ts`, `SearchAPI.ts`, `CostAPI.ts`)
 -   `src/core/chorus/DB.ts` - Database connection singleton (queries live in `api/` files, not here)
--   `src/ui/components/MultiChat.tsx` - Main interface
+-   `src/ui/components/MultiChat.tsx` - Main chat interface (rendered in the Editor pane)
 -   `src/ui/components/ChatInput.tsx` - The input box where the user types chat messages
--   `src/ui/components/AppSidebar.tsx` - The sidebar on the left
+-   `src/ui/components/AppSidebar.tsx` - The Sidebar pane
+-   `src/ui/components/ListPane.tsx` - The List pane (item listing)
+-   `src/ui/components/EditorPane.tsx` - The Editor pane (routes to notes, chats, etc.)
 -   `src/ui/App.tsx` - The root component
 
 Other features:

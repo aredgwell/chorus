@@ -107,7 +107,7 @@ export class OpenAIImporter {
         jsonData: any,
         onProgress?: (current: number, total: number) => void,
     ): Promise<{ imported: number; failed: number }> {
-        console.time("importConversations");
+        if (import.meta.env.DEV) console.time("importConversations");
         let importedCount = 0;
         let failedCount = 0;
 
@@ -148,7 +148,7 @@ export class OpenAIImporter {
             }
         }
 
-        console.timeEnd("importConversations");
+        if (import.meta.env.DEV) console.timeEnd("importConversations");
         return { imported: importedCount, failed: failedCount };
     }
 
@@ -159,7 +159,8 @@ export class OpenAIImporter {
         conversation: OpenAIConversation,
         projectId: string,
     ): Promise<void> {
-        console.log(`Importing conversation: ${conversation.title}`);
+        if (import.meta.env.DEV)
+            console.log(`Importing conversation: ${conversation.title}`);
 
         // Create a new chat using conversation-level timestamps
         // Format dates as SQLite datetime format: "YYYY-MM-DD HH:MM:SS"
@@ -234,9 +235,10 @@ export class OpenAIImporter {
             messageSetLevel++;
         }
 
-        console.log(
-            `Imported ${messageSetLevel} message sets for "${conversation.title}"`,
-        );
+        if (import.meta.env.DEV)
+            console.log(
+                `Imported ${messageSetLevel} message sets for "${conversation.title}"`,
+            );
 
         // Restore the original updated_at timestamp since chat table trigger will override it
         await restoreChatUpdatedAt(

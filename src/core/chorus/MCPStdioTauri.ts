@@ -161,7 +161,6 @@ export class StdioClientTransportChorus implements Transport {
         // });
 
         this._command.stdout?.on("data", (chunk) => {
-            console.log("Received chunk:", chunk);
             // Strip ANSI escape codes that some MCP servers emit
             // (e.g. colored output), which break JSON parsing
             const cleaned = stripAnsi(chunk);
@@ -170,7 +169,6 @@ export class StdioClientTransportChorus implements Transport {
         });
 
         this._command.stderr?.on("data", (chunk) => {
-            console.log("Received stderr chunk:", chunk, this.onerror);
             this.onerror?.(new Error(chunk));
         });
 
@@ -179,8 +177,6 @@ export class StdioClientTransportChorus implements Transport {
         // });
 
         this._process = await this._command.spawn();
-
-        console.log("[MCPStdioTauri] Started server");
     }
 
     private processReadBuffer() {
@@ -190,7 +186,6 @@ export class StdioClientTransportChorus implements Transport {
                 if (message === null) {
                     break;
                 }
-                console.log("Received message:", message);
                 this.onmessage?.(message);
             } catch (error) {
                 // Non-JSON lines (e.g. startup banners, debug output) are
@@ -213,7 +208,6 @@ export class StdioClientTransportChorus implements Transport {
     }
 
     async send(message: JSONRPCMessage): Promise<void> {
-        console.log("Sending message:", message);
         const json = serializeMessage(message);
         await this._process?.write(json);
     }

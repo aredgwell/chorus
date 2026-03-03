@@ -161,7 +161,7 @@ export async function checkToolPermission(
 ): Promise<{
     shouldAsk: boolean;
     isAllowed: boolean;
-    permission: ToolPermission | null;
+    permission: ToolPermission | undefined;
 }> {
     const permission = await fetchToolPermission(toolsetName, toolName);
 
@@ -170,7 +170,7 @@ export async function checkToolPermission(
         return {
             shouldAsk: defaultPermission === "ask",
             isAllowed: defaultPermission === "always_allow",
-            permission: null,
+            permission: undefined,
         };
     }
 

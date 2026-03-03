@@ -1,9 +1,6 @@
 name: Chorus CrabNebula Cloud Release
 on:
     workflow_dispatch:
-    push:
-        branches:
-            - release
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}

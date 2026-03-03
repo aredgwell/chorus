@@ -8,7 +8,7 @@ import NoteEditor from "./NoteEditor";
 import ProjectView from "./ProjectView";
 import SearchView from "./SearchView";
 
-export function ContentPane() {
+export function EditorPane() {
     return (
         <div className="flex flex-col h-full">
             <div className="flex-1 min-h-0">

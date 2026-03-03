@@ -5,13 +5,7 @@
     text-align: left;
 }
 
-/* Tag row below the header */
-.note-editor-tags {
-    padding: 4px 24px;
-    border-bottom: 1px solid hsl(var(--border));
-    background: hsl(var(--background));
-    flex-shrink: 0;
-}
+/* Tag row below the header (kept for potential reuse, now tags are in the toolbar) */
 
 /* Apple Notes-like typography for the note editor */
 .note-editor-content .ProseMirror {
@@ -35,6 +29,10 @@
     letter-spacing: -0.02em;
     margin-top: 1.2em;
     margin-bottom: 0.3em;
+}
+
+.note-editor-content .ProseMirror > h1:first-child {
+    margin-top: 0;
 }
 
 .note-editor-content .ProseMirror h2 {
@@ -77,6 +75,24 @@
     padding-left: 1em;
     margin-left: 0;
     color: hsl(var(--muted-foreground));
+    quotes: none;
+}
+
+.note-editor-content .ProseMirror blockquote::before,
+.note-editor-content .ProseMirror blockquote::after {
+    content: none;
+}
+
+/* Links — always visible, not just on hover */
+.note-editor-content .ProseMirror a {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+
+.note-editor-content .ProseMirror a:hover {
+    color: hsl(var(--primary) / 0.8);
 }
 
 /* Placeholder text for empty editor */
@@ -144,29 +160,18 @@
     font-size: 85%;
 }
 
-/* Code block wrapper with language selector — always visible */
+/* Code block wrapper — matches mermaid/katex block style */
 .code-block-wrapper {
     position: relative;
-}
-
-.code-block-wrapper select {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    font-size: 10px;
-    line-height: 1;
-    padding: 3px 8px;
-    border-radius: var(--radius);
     border: 1px solid hsl(var(--border));
-    background: hsl(var(--muted));
-    color: hsl(var(--muted-foreground));
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
+    border-radius: var(--radius);
+    margin: 0.5em 0;
 }
 
-.code-block-wrapper select:focus {
-    outline: none;
+.code-block-wrapper pre {
+    border: none;
+    margin: 0;
+    border-radius: 0;
 }
 
 /* Note editor layout */
@@ -192,7 +197,7 @@
 .note-editor-content {
     flex: 1;
     overflow-y: auto;
-    padding: 2rem 3rem;
+    padding: 1.25rem 3rem 2rem;
 }
 
 /* Editor toolbar */
@@ -256,6 +261,12 @@
     color: hsl(var(--muted-foreground));
 }
 
+.block-view-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
 .block-view-toggle {
     display: flex;
     align-items: center;
@@ -278,9 +289,6 @@
 }
 
 .block-view-source {
-    border: 1px solid hsl(var(--border));
-    border-top: none;
-    border-radius: 0 0 var(--radius) var(--radius);
     padding: 0.75rem 1rem;
     overflow-x: auto;
 }
@@ -289,6 +297,16 @@
     background: none;
     padding: 0;
     font-size: 85%;
+}
+
+/* Remove the default ProseMirror pre border inside block-view wrappers —
+   the wrapper already provides the outer chrome. */
+.code-block-wrapper pre,
+.mermaid-block-wrapper pre,
+.katex-block-wrapper pre {
+    border: none;
+    margin: 0;
+    border-radius: 0;
 }
 
 .block-view-hidden-content {
@@ -339,7 +357,7 @@
 }
 
 .mermaid-block-preview {
-    padding: 1rem;
+    padding: 0.5rem;
     cursor: pointer;
     overflow-x: auto;
 }
@@ -369,6 +387,22 @@
     color: hsl(var(--muted-foreground));
     user-select: none;
     white-space: nowrap;
+}
+
+.tag-chip-dot-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 9999px;
+    flex-shrink: 0;
+}
+
+.tag-chip-dot-btn:hover {
+    background: hsl(var(--accent));
 }
 
 .tag-chip-dot {

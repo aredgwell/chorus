@@ -97,22 +97,6 @@ export default function GroupChat() {
     const { data: threadCounts } = useGCThreadCounts(chatId || "");
     const { data: conductor } = useGCConductor(chatId || "");
 
-    // Debug logging for conductor state
-    useEffect(() => {
-        console.log("[UI Debug] GroupChat conductor state changed:", conductor);
-        console.log(
-            "[UI Debug] chatId:",
-            chatId,
-            "conductor data:",
-            conductor
-                ? {
-                      modelId: conductor.conductorModelId,
-                      isActive: conductor.isActive,
-                      turnCount: conductor.turnCount,
-                  }
-                : "no conductor",
-        );
-    }, [conductor, chatId]);
     const sendMessage = useSendGCMessage();
     const generateAIResponses = useGenerateAIResponses();
     const deleteMessage = useDeleteGCMessage();
@@ -175,12 +159,6 @@ export default function GroupChat() {
                 }
             }
         });
-
-        console.log(
-            "[ThinkingIndicator] Generating models:",
-            Object.fromEntries(generatingModels),
-        );
-        console.log("[ThinkingIndicator] Thinking instances:", instances);
 
         return instances;
     }, [generatingModels]);

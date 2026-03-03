@@ -1,10 +1,52 @@
 import type { NodeViewProps } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper } from "@tiptap/react";
-import { CodeIcon, EyeIcon } from "lucide-react";
+import {
+    CheckIcon,
+    ChevronDownIcon,
+    ClipboardIcon,
+    CodeIcon,
+    EyeIcon,
+} from "lucide-react";
 import mermaid from "mermaid";
 import { useDeferredValue, useEffect, useState } from "react";
 
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import { codeBlockLanguages } from "./codeBlockLanguages";
+
 let mermaidIdCounter = 0;
+
+/** Copy-to-clipboard button with brief checkmark feedback */
+function CopyButton({ getText }: { getText: () => string }) {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        void navigator.clipboard.writeText(getText()).then(() => {
+            setCopied(true);
+        });
+    };
+
+    useEffect(() => {
+        if (!copied) return;
+        const id = window.setTimeout(() => setCopied(false), 1500);
+        return () => window.clearTimeout(id);
+    }, [copied]);
+
+    return (
+        <button
+            type="button"
+            className="block-view-toggle"
+            onClick={handleCopy}
+            title="Copy to clipboard"
+        >
+            {copied ? <CheckIcon size={12} /> : <ClipboardIcon size={12} />}
+        </button>
+    );
+}
 
 /**
  * Renders a Mermaid diagram from source text using the mermaid v8 API directly.
@@ -75,27 +117,73 @@ function MermaidDiagram({ source }: { source: string }) {
  * Tiptap NodeView for ```mermaid code blocks.
  * Shows rendered diagram by default; toggle to see/edit source.
  */
-export function MermaidBlockView({ node }: NodeViewProps) {
-    const [showSource, setShowSource] = useState(false);
+export function MermaidBlockView({
+    node,
+    updateAttributes,
+    editor,
+    getPos,
+}: NodeViewProps) {
     const textContent = node.textContent.trim();
+    const [showSource, setShowSource] = useState(!textContent);
     const deferredContent = useDeferredValue(textContent);
+
+    // When freshly created (empty, source mode), focus the cursor into the code block
+    useEffect(() => {
+        if (showSource && !textContent) {
+            const pos = getPos();
+            if (typeof pos === "number") {
+                // +1 to move inside the code block node
+                editor.commands.focus(pos + 1);
+            }
+        }
+        // Only on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <NodeViewWrapper className="mermaid-block-wrapper">
             <div className="block-view-header" contentEditable={false}>
-                <span className="block-view-label">Mermaid</span>
-                <button
-                    type="button"
-                    className="block-view-toggle"
-                    onClick={() => setShowSource((prev) => !prev)}
-                    title={showSource ? "Show preview" : "Show source"}
-                >
-                    {showSource ? (
-                        <EyeIcon size={12} />
-                    ) : (
-                        <CodeIcon size={12} />
-                    )}
-                </button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button
+                            type="button"
+                            className="block-view-label flex items-center gap-1 cursor-pointer"
+                        >
+                            mermaid
+                            <ChevronDownIcon size={10} />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                        align="start"
+                        className="max-h-[300px] overflow-y-auto"
+                    >
+                        {codeBlockLanguages.map((lang) => (
+                            <DropdownMenuItem
+                                key={lang}
+                                onSelect={() =>
+                                    updateAttributes({ language: lang })
+                                }
+                            >
+                                {lang}
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <div className="block-view-actions">
+                    <button
+                        type="button"
+                        className="block-view-toggle"
+                        onClick={() => setShowSource((prev) => !prev)}
+                        title={showSource ? "Show preview" : "Show source"}
+                    >
+                        {showSource ? (
+                            <EyeIcon size={12} />
+                        ) : (
+                            <CodeIcon size={12} />
+                        )}
+                    </button>
+                    <CopyButton getText={() => node.textContent} />
+                </div>
             </div>
 
             {showSource ? (

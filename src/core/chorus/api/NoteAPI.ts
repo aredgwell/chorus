@@ -26,6 +26,7 @@ export type Note = {
     title: string;
     content: string;
     projectId: string;
+    pinned: boolean;
     createdAt: string;
     updatedAt: string;
 };
@@ -35,6 +36,7 @@ type NoteDBRow = {
     title: string;
     content: string;
     project_id: string;
+    pinned: number;
     created_at: string;
     updated_at: string;
 };
@@ -45,6 +47,7 @@ function readNote(row: NoteDBRow): Note {
         title: row.title,
         content: row.content,
         projectId: row.project_id,
+        pinned: !!row.pinned,
         createdAt: row.created_at,
         updatedAt: row.updated_at || row.created_at,
     };
@@ -52,7 +55,7 @@ function readNote(row: NoteDBRow): Note {
 
 export async function fetchNote(noteId: string): Promise<Note> {
     const rows = await db.select<NoteDBRow[]>(
-        `SELECT id, title, content, project_id, created_at, updated_at
+        `SELECT id, title, content, project_id, pinned, created_at, updated_at
         FROM notes
         WHERE id = $1;`,
         [noteId],
@@ -66,7 +69,7 @@ export async function fetchNote(noteId: string): Promise<Note> {
 export async function fetchNotes(): Promise<Note[]> {
     return await db
         .select<NoteDBRow[]>(
-            `SELECT id, title, content, project_id, created_at, updated_at
+            `SELECT id, title, content, project_id, pinned, created_at, updated_at
             FROM notes
             ORDER BY updated_at DESC`,
         )
@@ -91,8 +94,8 @@ export function useCreateNote() {
             projectId = "default",
         }: { projectId?: string } = {}) => {
             const result = await db.select<{ id: string }[]>(
-                `INSERT INTO notes (id, project_id, created_at, updated_at)
-                 VALUES (lower(hex(randomblob(16))), ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                `INSERT INTO notes (id, project_id, content, created_at, updated_at)
+                 VALUES (lower(hex(randomblob(16))), ?, '# ', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                  RETURNING id`,
                 [projectId],
             );
@@ -115,8 +118,9 @@ export function useCreateNote() {
                     {
                         id: noteId,
                         title: "",
-                        content: "",
+                        content: "# ",
                         projectId: variables.projectId ?? "default",
+                        pinned: false,
                         createdAt: now,
                         updatedAt: now,
                     },
@@ -166,8 +170,46 @@ export function useUpdateNote() {
                 params,
             );
         },
-        onSuccess: async (_data, variables) => {
+        onMutate: async (variables) => {
+            // Optimistically update the note in the list cache so title/content
+            // changes appear immediately (e.g., H1 → sidebar title)
+            await queryClient.cancelQueries(noteQueries.list());
+            const previousNotes = queryClient.getQueryData<Note[]>(
+                noteQueries.list().queryKey,
+            );
+            queryClient.setQueryData<Note[]>(
+                noteQueries.list().queryKey,
+                (old) =>
+                    old?.map((n) =>
+                        n.id === variables.noteId
+                            ? {
+                                  ...n,
+                                  ...(variables.title !== undefined && {
+                                      title: variables.title,
+                                  }),
+                                  ...(variables.content !== undefined && {
+                                      content: variables.content,
+                                  }),
+                                  updatedAt: new Date().toISOString(),
+                              }
+                            : n,
+                    ),
+            );
+            return { previousNotes };
+        },
+        onError: (_err, _vars, context) => {
+            if (context?.previousNotes) {
+                queryClient.setQueryData(
+                    noteQueries.list().queryKey,
+                    context.previousNotes,
+                );
+            }
+        },
+        onSettled: async (_data, _error, variables) => {
             await queryClient.invalidateQueries(noteQueries.list());
+            void queryClient.invalidateQueries(
+                noteQueries.detail(variables.noteId),
+            );
 
             // Enqueue embedding generation when note content changes
             try {
@@ -275,6 +317,49 @@ export function useSetNoteProject() {
             );
         },
         onSuccess: async () => {
+            await queryClient.invalidateQueries(noteQueries.list());
+        },
+    });
+}
+
+export function useTogglePinNote() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationKey: ["togglePinNote"] as const,
+        mutationFn: async ({
+            noteId,
+            pinned,
+        }: {
+            noteId: string;
+            pinned: boolean;
+        }) => {
+            await db.execute("UPDATE notes SET pinned = ? WHERE id = ?", [
+                pinned ? 1 : 0,
+                noteId,
+            ]);
+        },
+        onMutate: async ({ noteId, pinned }) => {
+            await queryClient.cancelQueries(noteQueries.list());
+            const previousNotes = queryClient.getQueryData<Note[]>(
+                noteQueries.list().queryKey,
+            );
+            queryClient.setQueryData<Note[]>(
+                noteQueries.list().queryKey,
+                (old) =>
+                    old?.map((n) => (n.id === noteId ? { ...n, pinned } : n)),
+            );
+            return { previousNotes };
+        },
+        onError: (_err, _vars, context) => {
+            if (context?.previousNotes) {
+                queryClient.setQueryData(
+                    noteQueries.list().queryKey,
+                    context.previousNotes,
+                );
+            }
+        },
+        onSettled: async () => {
             await queryClient.invalidateQueries(noteQueries.list());
         },
     });

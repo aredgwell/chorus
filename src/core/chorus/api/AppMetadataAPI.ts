@@ -318,6 +318,99 @@ export function useSetSelectedCollectionId() {
     });
 }
 
+// ── Selected tag IDs for sidebar tag filtering ────────────────────────
+
+export function useSelectedTagIds(): string[] {
+    const { data: appMetadata } = useAppMetadata();
+    const raw = appMetadata?.["selected_tag_ids"];
+    if (!raw) return [];
+    try {
+        return JSON.parse(raw) as string[];
+    } catch {
+        return [];
+    }
+}
+
+export function useSetSelectedTagIds() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ["setSelectedTagIds"] as const,
+        mutationFn: async (tagIds: string[]) => {
+            if (tagIds.length > 0) {
+                await db.execute(
+                    "INSERT OR REPLACE INTO app_metadata (key, value) VALUES (?, ?)",
+                    ["selected_tag_ids", JSON.stringify(tagIds)],
+                );
+            } else {
+                await db.execute(
+                    "DELETE FROM app_metadata WHERE key = 'selected_tag_ids'",
+                );
+            }
+        },
+        onMutate: async (tagIds) => {
+            await queryClient.cancelQueries({
+                queryKey: appMetadataKeys.appMetadata(),
+            });
+            const previous = queryClient.getQueryData<Record<string, string>>(
+                appMetadataKeys.appMetadata(),
+            );
+            queryClient.setQueryData<Record<string, string>>(
+                appMetadataKeys.appMetadata(),
+                (old) => {
+                    const updated = { ...old };
+                    if (tagIds.length > 0) {
+                        updated["selected_tag_ids"] = JSON.stringify(tagIds);
+                    } else {
+                        delete updated["selected_tag_ids"];
+                    }
+                    return updated;
+                },
+            );
+            return { previous };
+        },
+        onError: (_err, _variables, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(
+                    appMetadataKeys.appMetadata(),
+                    context.previous,
+                );
+            }
+        },
+        onSettled: async () => {
+            await queryClient.invalidateQueries({
+                queryKey: appMetadataKeys.appMetadata(),
+            });
+        },
+    });
+}
+
+export type ContextTab = "all" | "notes" | "chats";
+
+export function useSidebarContextTab(): ContextTab {
+    const { data: appMetadata } = useAppMetadata();
+    const value = appMetadata?.["sidebar_context_tab"];
+    if (value === "notes" || value === "chats") return value;
+    return "all";
+}
+
+export function useSetSidebarContextTab() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ["setSidebarContextTab"] as const,
+        mutationFn: async (tab: ContextTab) => {
+            await db.execute(
+                "INSERT OR REPLACE INTO app_metadata (key, value) VALUES (?, ?)",
+                ["sidebar_context_tab", tab],
+            );
+        },
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({
+                queryKey: appMetadataKeys.appMetadata(),
+            });
+        },
+    });
+}
+
 export type SidebarSortMode = "date" | "name" | "type";
 
 export function useSidebarSortMode(): SidebarSortMode {

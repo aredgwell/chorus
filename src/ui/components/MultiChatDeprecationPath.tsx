@@ -56,7 +56,7 @@ import { Toggle } from "./ui/toggle";
 import { TooltipContent } from "./ui/tooltip";
 import { Tooltip } from "./ui/tooltip";
 import { TooltipTrigger } from "./ui/tooltip";
-import SimpleCopyButton from "./unused/CopyButton";
+import SimpleCopyButton from "./CopyButton";
 
 function getReviewerLongName(
     model: string,

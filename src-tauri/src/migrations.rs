@@ -2948,5 +2948,14 @@ You have full access to bash commands on the user''''s computer. If you write a 
                 CREATE INDEX idx_note_chat_links_chat ON note_chat_links(chat_id);
             "#,
         },
+        Migration {
+            version: 155,
+            description: "add pinned column to notes",
+            kind: MigrationKind::Up,
+            sql: r#"
+                ALTER TABLE notes ADD COLUMN pinned BOOLEAN NOT NULL DEFAULT 0;
+                CREATE INDEX IF NOT EXISTS idx_notes_pinned ON notes(pinned);
+            "#,
+        },
     ]
 }

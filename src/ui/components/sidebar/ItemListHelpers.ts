@@ -14,7 +14,7 @@ export function sidebarItemTitle(item: SidebarItem): string {
 }
 
 export function sidebarItemIsPinned(item: SidebarItem): boolean {
-    return item.type === "chat" && item.data.pinned;
+    return item.data.pinned;
 }
 
 export type SortMode = "date" | "name" | "type";

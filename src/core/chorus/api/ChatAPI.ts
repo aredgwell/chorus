@@ -202,9 +202,7 @@ export function useUpdateNewChat() {
         },
         onSuccess: (chatId: string) => {
             cacheUpdateChat(chatId, (chat) => {
-                console.log("updating chat", chat);
                 chat.updatedAt = new Date().toISOString();
-                console.log("updated chat", chat);
             });
 
             navigate(`/chat/${chatId}`);
@@ -237,10 +235,8 @@ export function useCreateNewChat() {
             }
             return result[0].id;
         },
-        onSuccess: async (chatId: string) => {
+        onSuccess: async (_chatId: string) => {
             await queryClient.invalidateQueries(chatQueries.list());
-
-            console.log("created new chat", chatId);
 
             const version = await getVersion();
             posthog?.capture("chat_created", {
@@ -271,8 +267,6 @@ export function useCreateGroupChat() {
         },
         onSuccess: async (chatId: string) => {
             await queryClient.invalidateQueries(chatQueries.list());
-
-            console.log("created new group chat", chatId);
 
             const version = await getVersion();
             posthog?.capture("gc_prototype_chat_created", {
@@ -345,7 +339,6 @@ export function useGetOrCreateNewQuickChat() {
             );
 
             if (existingNewChat.length > 0) {
-                console.log("existing new chat", existingNewChat);
                 await updateNewChat.mutateAsync({
                     chatId: existingNewChat[0].id,
                 });

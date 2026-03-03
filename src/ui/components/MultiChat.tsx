@@ -17,7 +17,7 @@ import { useAppContext } from "@ui/hooks/useAppContext";
 import { useShareChat } from "@ui/hooks/useShareChat";
 import { useShortcut } from "@ui/hooks/useShortcut";
 import { useWaitForAppMetadata } from "@ui/hooks/useWaitForAppMetadata";
-import { FileTextIcon, Loader2, SplitIcon } from "lucide-react";
+import { FileTextIcon, Loader2, SplitIcon, TrashIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import React from "react";
 import {
@@ -33,12 +33,15 @@ import { ChatInput } from "./ChatInput";
 import { MessageSetView } from "./ChatMessageViews";
 import { FindInPage } from "./FindInPage";
 import GroupChat from "./GroupChat";
+import { HeaderBar } from "./HeaderBar";
 import { LinkedItems } from "./LinkedItems";
 import { MouseTrackingEyeRef } from "./MouseTrackingEye";
 import { QuickChatHeaderBar } from "./QuickChatHeaderBar";
 import RepliesDrawer from "./RepliesDrawer";
 import { SHARE_CHAT_DIALOG_ID, ShareChatDialog } from "./ShareChatDialog";
+import { TagInput } from "./TagInput";
 import { Button } from "./ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { VirtualizedMessageSet } from "./VirtualizedMessageSet";
@@ -178,7 +181,7 @@ export default function MultiChat() {
 
         return () => {
             window.removeEventListener("focus", handleFocus);
-            window.removeEventListener("blur-sm", handleBlur);
+            window.removeEventListener("blur", handleBlur);
         };
     }, []);
 
@@ -266,21 +269,6 @@ export default function MultiChat() {
     const selectMessage = MessageAPI.useSelectMessage();
     const selectSynthesis = MessageAPI.useSelectSynthesis();
     const setReviewsEnabled = MessageAPI.useSetReviewsEnabled();
-    // const nextTools = API.useNextTools();
-
-    // function handleTabKey(isShiftPressed: boolean) {
-    //     if (currentMessageSet?.selectedBlockType === "tools") {
-    //         nextTools.mutate({
-    //             chatId: chatId!,
-    //             messageSetId: currentMessageSet.id,
-    //             toolsBlock: currentMessageSet.toolsBlock,
-    //             direction: isShiftPressed ? "prev" : "next",
-    //         });
-    //     }
-    // }
-
-    // useShortcut(["tab"], () => handleTabKey(false));
-    // useShortcut(["shift", "tab"], () => handleTabKey(true));
 
     const handleToggleVisionMode = useCallback(async () => {
         const hasPermissions = await checkScreenRecordingPermission();
@@ -390,7 +378,6 @@ export default function MultiChat() {
         selectSynthesis,
         setReviewsEnabled,
         setVisionModeEnabled,
-        // nextTools,
         handleToggleVisionMode,
     ]);
 
@@ -416,8 +403,8 @@ export default function MultiChat() {
             className={`flex flex-col ${isQuickChatWindow ? "h-screen" : "h-full"} w-full min-w-0 mx-auto @container group relative
         ${isQuickChatWindow && (windowIsFocused ? "rounded-xl" : "bg-foreground/5 rounded-xl")}`}
         >
-            {/* header bar — only for quick chat windows */}
-            {isQuickChatWindow && (
+            {/* header bar */}
+            {isQuickChatWindow ? (
                 <QuickChatHeaderBar
                     visionModeEnabled={
                         appMetadata["vision_mode_enabled"] === "true"
@@ -429,6 +416,11 @@ export default function MultiChat() {
                         void handleOpenQuickChatInMainWindow()
                     }
                     onNewAmbientChat={() => createQuickChat.mutate()}
+                />
+            ) : (
+                <ChatTopBar
+                    chatId={chatId!}
+                    hasMessages={!!messageSetsQuery.data?.length}
                 />
             )}
 
@@ -446,34 +438,34 @@ export default function MultiChat() {
                         <ResizablePanel
                             defaultSize={repliesDrawerOpen ? 70 : 100}
                         >
-                            <div className="relative flex-1 min-h-0 overflow-hidden h-full">
-                                {!isQuickChatWindow && (
-                                    <ChatTopBar
-                                        chatId={chatId!}
-                                        hasMessages={
-                                            !!messageSetsQuery.data?.length
+                            <div className="flex flex-col min-h-0 h-full">
+                                <div className="relative flex-1 min-h-0 overflow-hidden">
+                                    <MainScrollableContentView
+                                        chatContainerRef={chatContainerRef}
+                                        lastMessageSetRef={lastMessageSetRef}
+                                        inputRef={inputRef}
+                                        setShowScrollButton={
+                                            setShowScrollButton
+                                        }
+                                        handleScrollToBottom={
+                                            handleScrollToBottom
                                         }
                                     />
-                                )}
-                                <MainScrollableContentView
-                                    chatContainerRef={chatContainerRef}
-                                    lastMessageSetRef={lastMessageSetRef}
-                                    inputRef={inputRef}
-                                    setShowScrollButton={setShowScrollButton}
-                                    handleScrollToBottom={handleScrollToBottom}
-                                />
-                                <ChatInput
-                                    isNewChat={chatQuery.data?.isNewChat}
-                                    chatId={chatId!}
-                                    inputRef={inputRef}
-                                    eyeRef={eyeRef}
-                                    currentMessageSet={currentMessageSet}
-                                    scrollToLatestMessageSet={
-                                        scrollToLatestMessageSet
-                                    }
-                                    showScrollButton={showScrollButton}
-                                    handleScrollToBottom={handleScrollToBottom}
-                                />
+                                    <ChatInput
+                                        isNewChat={chatQuery.data?.isNewChat}
+                                        chatId={chatId!}
+                                        inputRef={inputRef}
+                                        eyeRef={eyeRef}
+                                        currentMessageSet={currentMessageSet}
+                                        scrollToLatestMessageSet={
+                                            scrollToLatestMessageSet
+                                        }
+                                        showScrollButton={showScrollButton}
+                                        handleScrollToBottom={
+                                            handleScrollToBottom
+                                        }
+                                    />
+                                </div>
                             </div>
                         </ResizablePanel>
                         {repliesDrawerOpen && (
@@ -561,7 +553,7 @@ function ChatMessageSkeleton() {
     );
 }
 
-/** Thin header bar for non-quick-chat views — sits in the top-10 gap */
+/** Header bar for non-quick-chat views — uses HeaderBar for consistent height */
 function ChatTopBar({
     chatId,
     hasMessages,
@@ -571,6 +563,9 @@ function ChatTopBar({
 }) {
     const navigate = useNavigate();
     const summarize = useSummarizeChatToNote();
+    const deleteChat = ChatAPI.useDeleteChat();
+    const chatQuery = ChatAPI.useChat(chatId);
+    const [deletePopoverOpen, setDeletePopoverOpen] = useState(false);
 
     const handleSummarize = useCallback(() => {
         summarize.mutate(
@@ -592,41 +587,92 @@ function ChatTopBar({
         );
     }, [chatId, summarize, navigate]);
 
+    const handleConfirmDelete = useCallback(async () => {
+        const chatTitle = chatQuery.data?.title || "Untitled Chat";
+        await deleteChat.mutateAsync({ chatId });
+        setDeletePopoverOpen(false);
+        toast(`'${chatTitle}' deleted`);
+        navigate("/");
+    }, [chatId, chatQuery.data?.title, deleteChat, navigate]);
+
     return (
-        <div
-            data-tauri-drag-region
-            className="absolute top-0 left-0 right-0 h-10 z-10 flex items-center justify-between px-4"
-        >
-            <div className="flex items-center gap-1 min-w-0">
-                <LinkedItems chatId={chatId} />
-            </div>
-            {hasMessages && (
-                <div className="flex items-center gap-1 shrink-0">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="iconSm"
-                                className="px-2 text-accent-foreground hover:text-foreground"
-                                tabIndex={-1}
-                                onClick={handleSummarize}
-                                disabled={summarize.isPending}
-                            >
-                                {summarize.isPending ? (
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                    <FileTextIcon
-                                        strokeWidth={1.5}
-                                        className="size-3.5!"
-                                    />
-                                )}
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Summarize to note</TooltipContent>
-                    </Tooltip>
+        <HeaderBar
+            leftActions={
+                <div className="flex items-center gap-1">
+                    <TagInput itemType="chat" itemId={chatId} />
+                    <LinkedItems chatId={chatId} />
                 </div>
-            )}
-        </div>
+            }
+            actions={
+                <div className="flex items-center gap-1">
+                    {hasMessages && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="iconSm"
+                                    tabIndex={-1}
+                                    onClick={handleSummarize}
+                                    disabled={summarize.isPending}
+                                >
+                                    {summarize.isPending ? (
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                        <FileTextIcon
+                                            strokeWidth={1.5}
+                                            className="size-3.5!"
+                                        />
+                                    )}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Summarize to note</TooltipContent>
+                        </Tooltip>
+                    )}
+
+                    <Popover
+                        open={deletePopoverOpen}
+                        onOpenChange={setDeletePopoverOpen}
+                    >
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <PopoverTrigger asChild>
+                                    <Button variant="ghost" size="iconSm">
+                                        <TrashIcon
+                                            strokeWidth={1.5}
+                                            className="size-3.5!"
+                                        />
+                                    </Button>
+                                </PopoverTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete chat</TooltipContent>
+                        </Tooltip>
+                        <PopoverContent align="end" className="w-52 p-2">
+                            <p className="text-xs text-muted-foreground px-2 py-1">
+                                Delete &ldquo;
+                                {chatQuery.data?.title || "Untitled Chat"}
+                                &rdquo;?
+                            </p>
+                            <div className="flex gap-1 mt-1">
+                                <button
+                                    type="button"
+                                    className="tag-suggestion-item flex-1 justify-center"
+                                    onClick={() => setDeletePopoverOpen(false)}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    className="tag-suggestion-item flex-1 justify-center text-destructive"
+                                    onClick={() => void handleConfirmDelete()}
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                </div>
+            }
+        />
     );
 }
 

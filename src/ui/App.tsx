@@ -10,6 +10,7 @@ import * as ProjectAPI from "@core/chorus/api/ProjectAPI";
 import * as ToolsetsAPI from "@core/chorus/api/ToolsetsAPI";
 import { config } from "@core/config";
 import { dialogActions, useDialogStore } from "@core/infra/DialogStore";
+import { useNavigationStore } from "@core/infra/NavigationStore";
 import { SettingsManager } from "@core/utilities/Settings";
 import {
     DndContext,
@@ -59,8 +60,8 @@ import { v4 as uuidv4 } from "uuid";
 
 import { AppSidebar } from "./components/AppSidebar";
 import { COMMAND_MENU_DIALOG_ID, CommandMenu } from "./components/CommandMenu";
-import { ContentPane } from "./components/ContentPane";
-import { ContextPane } from "./components/ContextPane";
+import { EditorPane } from "./components/EditorPane";
+import { ListPane } from "./components/ListPane";
 import Onboarding from "./components/Onboarding";
 import Settings, {
     SETTINGS_DIALOG_ID,
@@ -116,34 +117,6 @@ const queryClient = new QueryClient({
         },
     },
 });
-
-// function DeeplinkTester({ onTest }: { onTest: (urls: string[]) => void }) {
-//     const [testUrl, setTestUrl] = useState("");
-
-//     const handleTestDeeplink = () => {
-//         if (testUrl.trim()) {
-//             onTest([testUrl]);
-//         }
-//     };
-
-//     return (
-//         <div className="fixed bottom-12 right-4 z-50 flex gap-2 bg-card p-2 rounded-md border shadow-md">
-//             <input
-//                 type="text"
-//                 value={testUrl}
-//                 onChange={(e) => setTestUrl(e.target.value)}
-//                 placeholder="chorus://..."
-//                 className="px-2 py-1 text-sm border rounded"
-//             />
-//             <button
-//                 onClick={handleTestDeeplink}
-//                 className="px-2 py-1 text-sm bg-primary text-primary-foreground rounded"
-//             >
-//                 Open deep link
-//             </button>
-//         </div>
-//     );
-// }
 
 let deepLinkChecked = false;
 
@@ -212,7 +185,6 @@ function AppContent() {
         dismissedAlertVersion !== currentAppVersion;
 
     const [reviewsDialogOpen, setReviewsDialogOpen] = useState(false);
-    const [_waitlistDialogOpen, _setWaitlistDialogOpen] = useState(false);
     const [defaultSettingsTab, setDefaultSettingsTab] =
         useState<SettingsTabId>("general");
     const { db } = useDatabase();
@@ -319,18 +291,31 @@ function AppContent() {
         },
     );
 
-    // these are not global since they're navigation based
-    // and we should block these out when a dialog is opened
+    // Navigate to the previous/next item in the current filtered view
     useShortcut(["meta", "["], () => {
-        if (!isQuickChatWindow) {
-            navigate(-1);
-        }
+        if (isQuickChatWindow) return;
+        const { visibleItems } = useNavigationStore.getState();
+        if (visibleItems.length === 0) return;
+        const currentId = location.pathname.match(/^\/(chat|note)\/(.+)$/)?.[2];
+        const idx = visibleItems.findIndex((i) => i.id === currentId);
+        const prev =
+            idx > 0
+                ? visibleItems[idx - 1]
+                : visibleItems[visibleItems.length - 1];
+        navigate(`/${prev.type === "note" ? "note" : "chat"}/${prev.id}`);
     });
 
     useShortcut(["meta", "]"], () => {
-        if (!isQuickChatWindow) {
-            navigate(1);
-        }
+        if (isQuickChatWindow) return;
+        const { visibleItems } = useNavigationStore.getState();
+        if (visibleItems.length === 0) return;
+        const currentId = location.pathname.match(/^\/(chat|note)\/(.+)$/)?.[2];
+        const idx = visibleItems.findIndex((i) => i.id === currentId);
+        const next =
+            idx < visibleItems.length - 1
+                ? visibleItems[idx + 1]
+                : visibleItems[0];
+        navigate(`/${next.type === "note" ? "note" : "chat"}/${next.id}`);
     });
 
     useShortcut(["meta", "p"], () => {
@@ -895,21 +880,6 @@ function AppContent() {
                 </div>
             )}
 
-            <AlertDialog open={_waitlistDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>
-                            You're on the waitlist!
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Thanks for signing up! You've been added to our
-                            waitlist. We'll email you as soon as your account is
-                            activated with full access to Chorus.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                </AlertDialogContent>
-            </AlertDialog>
-
             {!hasDismissedOnboarding && !isQuickChatWindow && (
                 <Onboarding onComplete={onCompleteOnboarding} />
             )}
@@ -964,7 +934,7 @@ function AppContent() {
                         <main className="flex flex-col flex-1 h-svh min-w-0 overflow-hidden">
                             <div className="flex-1 min-h-0 relative">
                                 {isQuickChatWindow ? (
-                                    <ContentPane />
+                                    <EditorPane />
                                 ) : (
                                     <ResizablePanelGroup
                                         autoSaveId="three-pane-layout"
@@ -976,11 +946,11 @@ function AppContent() {
                                             minSize={15}
                                             maxSize={40}
                                         >
-                                            <ContextPane />
+                                            <ListPane />
                                         </ResizablePanel>
                                         <ResizableHandle />
                                         <ResizablePanel defaultSize={75}>
-                                            <ContentPane />
+                                            <EditorPane />
                                         </ResizablePanel>
                                     </ResizablePanelGroup>
                                 )}
@@ -1035,7 +1005,7 @@ async function getDeviceId(): Promise<string> {
 }
 
 function App() {
-    const [_deviceId, setDeviceId] = useState<string | null>(null);
+    const [, setDeviceId] = useState<string | null>(null);
     const [db, setDb] = useState<Database | null>(null);
     const [appLocationDialogOpen, setAppLocationDialogOpen] = useState(false);
 

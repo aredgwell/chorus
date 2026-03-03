@@ -71,6 +71,46 @@ export async function fetchTagsForItem(
         .then((rows) => rows.map(readTag));
 }
 
+export type ItemTagEntry = {
+    itemType: ItemType;
+    itemId: string;
+    tag: Tag;
+};
+
+export async function fetchAllItemTags(): Promise<ItemTagEntry[]> {
+    type Row = TagDBRow & { item_type: string; item_id: string };
+    const rows = await db.select<Row[]>(
+        `SELECT t.id, t.name, t.color, t.created_at, it.item_type, it.item_id
+         FROM tags t
+         INNER JOIN item_tags it ON t.id = it.tag_id
+         ORDER BY t.name ASC`,
+    );
+    return rows.map((row) => ({
+        itemType: row.item_type as ItemType,
+        itemId: row.item_id,
+        tag: readTag(row),
+    }));
+}
+
+/** Returns a Map keyed by "itemType:itemId" → Tag[] */
+export function useAllItemTags(): Map<string, Tag[]> {
+    const { data } = useQuery({
+        queryKey: [...tagKeys.all(), "allItemTags"] as const,
+        queryFn: fetchAllItemTags,
+    });
+    const map = new Map<string, Tag[]>();
+    for (const entry of data ?? []) {
+        const key = `${entry.itemType}:${entry.itemId}`;
+        const existing = map.get(key);
+        if (existing) {
+            existing.push(entry.tag);
+        } else {
+            map.set(key, [entry.tag]);
+        }
+    }
+    return map;
+}
+
 export function useTags() {
     return useQuery(tagQueries.list());
 }
@@ -155,6 +195,9 @@ export function useAddTagToItem() {
                     variables.itemId,
                 ),
             });
+            await queryClient.invalidateQueries({
+                queryKey: [...tagKeys.all(), "allItemTags"],
+            });
         },
     });
 }
@@ -186,6 +229,66 @@ export function useRemoveTagFromItem() {
                     variables.itemId,
                 ),
             });
+            await queryClient.invalidateQueries({
+                queryKey: [...tagKeys.all(), "allItemTags"],
+            });
+        },
+    });
+}
+
+// ── Color palette ─────────────────────────────────────────────────────
+
+export const TAG_COLOR_PALETTE = [
+    "#ef4444", // red
+    "#f97316", // orange
+    "#eab308", // yellow
+    "#22c55e", // green
+    "#14b8a6", // teal
+    "#3b82f6", // blue
+    "#6366f1", // indigo
+    "#a855f7", // purple
+    "#ec4899", // pink
+    "#78716c", // stone
+] as const;
+
+// ── Update tag ────────────────────────────────────────────────────────
+
+export function useUpdateTag() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationKey: ["updateTag"] as const,
+        mutationFn: async ({
+            tagId,
+            name,
+            color,
+        }: {
+            tagId: string;
+            name?: string;
+            color?: string | null;
+        }) => {
+            const updates: string[] = [];
+            const params: (string | null)[] = [];
+
+            if (name !== undefined) {
+                updates.push("name = ?");
+                params.push(name);
+            }
+            if (color !== undefined) {
+                updates.push("color = ?");
+                params.push(color);
+            }
+
+            if (updates.length === 0) return;
+
+            params.push(tagId);
+            await db.execute(
+                `UPDATE tags SET ${updates.join(", ")} WHERE id = ?`,
+                params,
+            );
+        },
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: tagKeys.all() });
         },
     });
 }

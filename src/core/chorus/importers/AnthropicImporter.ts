@@ -71,7 +71,7 @@ export class AnthropicImporter {
         jsonData: any,
         onProgress?: (current: number, total: number) => void,
     ): Promise<{ imported: number; failed: number }> {
-        console.time("importConversations");
+        if (import.meta.env.DEV) console.time("importConversations");
         let failedCount = 0;
         let importedCount = 0;
 
@@ -112,7 +112,7 @@ export class AnthropicImporter {
             }
         }
 
-        console.timeEnd("importConversations");
+        if (import.meta.env.DEV) console.timeEnd("importConversations");
         return { imported: importedCount, failed: failedCount };
     }
 
@@ -123,7 +123,8 @@ export class AnthropicImporter {
         conversation: AnthropicConversation,
         projectId: string,
     ): Promise<void> {
-        console.log(`Importing conversation: ${conversation.name}`);
+        if (import.meta.env.DEV)
+            console.log(`Importing conversation: ${conversation.name}`);
 
         const chatId = await createChat(
             conversation.name,

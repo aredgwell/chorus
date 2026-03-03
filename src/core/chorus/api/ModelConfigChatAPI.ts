@@ -93,7 +93,7 @@ export function useReplyModelConfig(chatId: string) {
     const savedModelConfig = useSavedModelConfigChat(chatId);
     return {
         ...savedModelConfig,
-        data: savedModelConfig.data?.[0] ?? null,
+        data: savedModelConfig.data?.[0] ?? undefined,
     };
 }
 
