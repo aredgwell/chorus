@@ -160,44 +160,18 @@
     font-size: 85%;
 }
 
-/* Code block wrapper with language selector — always visible */
+/* Code block wrapper — matches mermaid/katex block style */
 .code-block-wrapper {
     position: relative;
-}
-
-.code-block-actions {
-    position: absolute;
-    top: -0.5rem;
-    right: 0.75rem;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.code-block-actions select {
-    font-size: 10px;
-    line-height: 1;
-    padding: 3px 8px;
-    border-radius: var(--radius);
     border: 1px solid hsl(var(--border));
-    background: hsl(var(--muted));
-    color: hsl(var(--muted-foreground));
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-}
-
-.code-block-actions select:focus {
-    outline: none;
-}
-
-.code-block-actions .block-view-toggle {
-    width: 20px;
-    height: 20px;
     border-radius: var(--radius);
-    border: 1px solid hsl(var(--border));
-    background: hsl(var(--muted));
+    margin: 0.5em 0;
+}
+
+.code-block-wrapper pre {
+    border: none;
+    margin: 0;
+    border-radius: 0;
 }
 
 /* Note editor layout */
@@ -327,6 +301,7 @@
 
 /* Remove the default ProseMirror pre border inside block-view wrappers —
    the wrapper already provides the outer chrome. */
+.code-block-wrapper pre,
 .mermaid-block-wrapper pre,
 .katex-block-wrapper pre {
     border: none;

@@ -31,6 +31,7 @@ import { common, createLowlight } from "lowlight";
 import {
     BoldIcon,
     CheckIcon,
+    ChevronDownIcon,
     ClipboardIcon,
     CodeIcon,
     Heading1Icon,
@@ -43,8 +44,14 @@ import {
     QuoteIcon,
     StrikethroughIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Markdown } from "tiptap-markdown";
 
@@ -90,43 +97,57 @@ function CodeBlockView({
     editor,
     getPos,
 }: NodeViewProps) {
-    // Auto-focus the language selector when a new empty code block is created
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    const selectRefCallback = useCallback(
-        (el: HTMLSelectElement | null) => {
-            if (el && !node.textContent.trim() && !node.attrs.language) {
-                el.focus();
-            }
-        },
-        [], // only on mount
-    );
+    const language = (node.attrs.language ?? "") as string;
+    const isEmpty = !node.textContent.trim() && !language;
+
+    const focusContent = () => {
+        const pos = getPos();
+        if (typeof pos === "number") {
+            editor.commands.focus(pos + 1);
+        }
+    };
 
     return (
         <NodeViewWrapper className="code-block-wrapper">
-            <div className="code-block-actions" contentEditable={false}>
-                <select
-                    ref={selectRefCallback}
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                    value={node.attrs.language ?? ""}
-                    onChange={(e) => {
-                        updateAttributes({
-                            language: e.target.value || null,
-                        });
-                        // After selecting a language, focus the code block content
-                        const pos = getPos();
-                        if (typeof pos === "number") {
-                            editor.commands.focus(pos + 1);
-                        }
-                    }}
-                >
-                    <option value="">auto</option>
-                    {languages.map((lang) => (
-                        <option key={lang} value={lang}>
-                            {lang}
-                        </option>
-                    ))}
-                </select>
-                <CopyButton getText={() => node.textContent} />
+            <div className="block-view-header" contentEditable={false}>
+                <DropdownMenu defaultOpen={isEmpty}>
+                    <DropdownMenuTrigger asChild>
+                        <button
+                            type="button"
+                            className="block-view-label flex items-center gap-1 cursor-pointer"
+                        >
+                            {language || "auto"}
+                            <ChevronDownIcon size={10} />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                        align="start"
+                        className="max-h-[300px] overflow-y-auto"
+                    >
+                        <DropdownMenuItem
+                            onSelect={() => {
+                                updateAttributes({ language: null });
+                                focusContent();
+                            }}
+                        >
+                            auto
+                        </DropdownMenuItem>
+                        {languages.map((lang) => (
+                            <DropdownMenuItem
+                                key={lang}
+                                onSelect={() => {
+                                    updateAttributes({ language: lang });
+                                    focusContent();
+                                }}
+                            >
+                                {lang}
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <div className="block-view-actions">
+                    <CopyButton getText={() => node.textContent} />
+                </div>
             </div>
             <pre>
                 <NodeViewContent<"code"> as="code" />
